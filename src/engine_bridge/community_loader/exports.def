@@ -1,0 +1,3 @@
+LIBRARY SSCNative
+EXPORTS
+    SSCInitialize

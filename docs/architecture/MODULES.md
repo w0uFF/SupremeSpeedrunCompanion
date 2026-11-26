@@ -22,3 +22,5 @@ T19: recorder quality helper is pure, used by Worker; QPC conversion requires ex
 T19 isolated optional WGC and process-loopback probes have no bootstrap dependencies. Synthetic media wrapper exports a hashed quality diagnostic separate from eligibility. Standalone local SQLite experiment not linked to any module; Repository port remains unchanged.
 
 T20: recorder pixel_conversion.hpp and audio_observation.hpp are pure C++17 helpers. Isolated WGC probe uses pixel conversion and temporary captured-frame fixture to exercise existing MF worker; separate own-process sampling probe consumes audio observation. WinSQLite probe uses explicit system-library API binding, not a production Repository. No bootstrap dependency or native capability added.
+
+T21 adds offline SSC profile contract/store and CLI (tools/ssc_profiles.py, tools/ssc_profile_cli.py), launcher manifest (integrations/launcher/ssc/mod.json) and opt-in inert community_loader adapter. No dependencies on bootstrap, engine, capture, storage or submission. Native configuration adapter and UI pending. See SSC_CONFIGURATION.md and community_loader README.

@@ -1,0 +1,226 @@
+{
+  "name": "Supreme Speedrun Companion (development prototype)",
+  "version": "0.0.12-p0",
+  "description": "Inert diagnostic only. No recording, hooks or game changes. Do not install before G1 review.",
+  "dlls": [
+    {
+      "path": "SSCNative.dll",
+      "initialize": "SSCInitialize",
+      "enable_if": "load_diagnostic"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "load_diagnostic",
+      "name": "Load inert diagnostic DLL",
+      "help_text": "Development only; default off.",
+      "type": "boolean"
+    },
+    {
+      "id": "profile_name",
+      "name": "SSC profile (blank = active)",
+      "help_text": "Exact saved SSC profile name.",
+      "type": "text"
+    },
+    {
+      "id": "use_launcher_overrides",
+      "name": "Use launcher settings for next session",
+      "help_text": "Off: use selected SSC profile. On: use all controls below.",
+      "type": "boolean"
+    },
+    {
+      "id": "auto_record",
+      "name": "Auto record",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "boolean"
+    },
+    {
+      "id": "game_audio",
+      "name": "Game audio",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "boolean"
+    },
+    {
+      "id": "resolution",
+      "name": "Resolution",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "dropdown",
+      "choices": [
+        "720p",
+        "1080p",
+        "1440p",
+        "2160p"
+      ]
+    },
+    {
+      "id": "fps",
+      "name": "Fps",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "dropdown",
+      "choices": [
+        "30",
+        "60"
+      ]
+    },
+    {
+      "id": "bitrate_mbps",
+      "name": "Bitrate mbps",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "number",
+      "min": 3,
+      "max": 40,
+      "step": 1
+    },
+    {
+      "id": "encoder",
+      "name": "Encoder",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "dropdown",
+      "choices": [
+        "auto",
+        "software",
+        "hardware"
+      ]
+    },
+    {
+      "id": "input_overlay",
+      "name": "Input overlay",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "boolean"
+    },
+    {
+      "id": "igt_overlay",
+      "name": "Igt overlay",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "boolean"
+    },
+    {
+      "id": "rta_overlay",
+      "name": "Rta overlay",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "boolean"
+    },
+    {
+      "id": "overlay_opacity",
+      "name": "Overlay opacity",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "number",
+      "min": 10,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "package_directory",
+      "name": "Package directory",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "text"
+    },
+    {
+      "id": "retention",
+      "name": "Retention",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "dropdown",
+      "choices": [
+        "finished",
+        "all_attempts",
+        "pb_only"
+      ]
+    },
+    {
+      "id": "min_free_gib",
+      "name": "Min free gib",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "number",
+      "min": 1,
+      "max": 100,
+      "step": 1
+    },
+    {
+      "id": "auto_package",
+      "name": "Auto package",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "boolean"
+    },
+    {
+      "id": "remember_loadout",
+      "name": "Remember loadout",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "boolean"
+    },
+    {
+      "id": "restart_key",
+      "name": "Restart key",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "dropdown",
+      "choices": [
+        "Unassigned",
+        "F5",
+        "F6",
+        "F7",
+        "F8",
+        "F9",
+        "F10",
+        "F11",
+        "F12"
+      ]
+    },
+    {
+      "id": "record_key",
+      "name": "Record key",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "dropdown",
+      "choices": [
+        "Unassigned",
+        "F5",
+        "F6",
+        "F7",
+        "F8",
+        "F9",
+        "F10",
+        "F11",
+        "F12"
+      ]
+    },
+    {
+      "id": "overlay_key",
+      "name": "Overlay key",
+      "help_text": "Prototype setting; no gameplay effect.",
+      "type": "dropdown",
+      "choices": [
+        "Unassigned",
+        "F5",
+        "F6",
+        "F7",
+        "F8",
+        "F9",
+        "F10",
+        "F11",
+        "F12"
+      ]
+    }
+  ],
+  "configuration": {
+    "auto_record": false,
+    "game_audio": false,
+    "resolution": "720p",
+    "fps": "30",
+    "bitrate_mbps": 5,
+    "encoder": "auto",
+    "input_overlay": false,
+    "igt_overlay": true,
+    "rta_overlay": true,
+    "overlay_opacity": 100,
+    "package_directory": "",
+    "retention": "finished",
+    "min_free_gib": 5,
+    "auto_package": false,
+    "remember_loadout": true,
+    "restart_key": "Unassigned",
+    "record_key": "Unassigned",
+    "overlay_key": "Unassigned",
+    "load_diagnostic": false,
+    "profile_name": "",
+    "use_launcher_overrides": false
+  },
+  "rules": []
+}

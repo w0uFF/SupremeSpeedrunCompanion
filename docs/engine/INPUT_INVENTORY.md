@@ -16,3 +16,20 @@ Original supplied files are private references, not repository assets. Rechecked
 | Supreme_Speedrun_Mod_v0.0.4-p0.zip | e12d00a52f095fc76ccdf2d9c68e7e38245f33855a96d35e7cbc083517dc48f7 |
 
 USER_REPORTED: keyboard persistence works on the owner's Windows installation; audio also works but causal connection is unestablished. Not a comprehensive regression or competition approval.
+
+## T21 new immutable references
+
+All ten previous SHA-256 values rechecked and unchanged. Eight newly supplied/downloaded references hashed before and after private static inspection. No execution, redistribution or edits.
+
+| Reference | SHA-256 |
+|---|---|
+| Launcher-b7d9233f8636e222bbd0a5a739e1e04d2fbc8a12.zip | 2ed8a5d2e334268432c23dff26b294bbe9b2d69b22a60073f8fd42e71b66c72b |
+| Markdown collé.md (PR66 patch text) | d3545532a02592f539c1d0c602880f68b8c08e7a4b10de18670ace14b610dbd6 |
+| winmm.dll (Simone folder Launcher) | 4f42fb3ac2a774fff11622b17495299fd5af34bc6e5af3e6c3430bc7cad1ee4e |
+| TrackLoader-1.0.1.zip | c097a266b4006d8ddc67895d5613f1b7aa37742d595f2dca69bd150e91a62472 |
+| OnlinePlay-0.3.7.zip | 68a381f6d93ba7be07a8c70494eed10d3821a652493e1d466fdfeeff3fbb3b62 |
+| XInputController-0.3.2.zip | f6ed128b9e290cfb9f6d917a227f39b32eed13cfa9616f52a782f051f77e4767 |
+| CheckpointGates-1.1.1.zip | 4d422e00629e8adbc22aa5d773bc52abb86390a6219df60d67dadd8913359a4a |
+| U.I. Upscaler.zip | 95093e086166707b874bb2e5d12bac361f76637fe9df2c2a81cd24791846ccc7 |
+
+See COMMUNITY_LOADER.md for exact source provenance and binary evidence.

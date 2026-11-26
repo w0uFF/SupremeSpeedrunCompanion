@@ -43,7 +43,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             $listing = ctest --test-dir build -C $config --show-only=json-v1
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            if (($listing | Out-String | ConvertFrom-Json).tests.Count -lt 21) { throw 'Baseline test targets missing.' }
+            if (($listing | Out-String | ConvertFrom-Json).tests.Count -lt 22) { throw 'Baseline test targets missing.' }
             ctest --test-dir build -C $config --output-on-failure --no-tests=error
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
@@ -74,7 +74,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $listing = ctest --test-dir build -C Release --show-only=json-v1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (($listing | Out-String | ConvertFrom-Json).tests.Count -lt 21) { throw 'Baseline test targets missing.' }
+          if (($listing | Out-String | ConvertFrom-Json).tests.Count -lt 22) { throw 'Baseline test targets missing.' }
           ctest --test-dir build -C Release --output-on-failure --no-tests=error
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Package offline development diagnostic
@@ -167,4 +167,22 @@ jobs:
           cmake --build storage-build --config Release --target p0_winsqlite_probe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ctest --test-dir storage-build -C Release -R "^p0_winsqlite_probe$" --verbose --no-tests=error
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  community-entry:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Test inert native entry in independent host
+        shell: pwsh
+        run: |
+          cmake -S . -B entry-build -A Win32 -DSSC_NATIVE_CANDIDATE=ON
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build entry-build --config Release --target SSCNative p0_community_entry_tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --test-dir entry-build -C Release -R "^p0_community_entry$" --verbose --no-tests=error
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
