@@ -1,0 +1,5 @@
+# Synthetic bound index port — P0-T31 candidate
+
+Fixture-only frozen BoundSyntheticIndex binds existing native bridge executable and runs.sqlite database via resolved path and filesystem device/inode identity. Missing identity, non-regular file and final-component symbolic link/reparse point are rejected. Before and after each operation revalidate both identities. Normal SQLite in-place content change is allowed. RetryPlan equality includes the port, and execute reobserves before any external operation. Reject alternate database or bridge, ordinary replacement, non-synthetic origin and stale plan. Existing native compare/insert contract, explicit publication and journal-only reconciliation preserved.
+
+Not independent authentication, hostile-path or TOCTOU/concurrent-writer defense, transaction across files, power-loss proof or production local provenance. No native game wiring. Tests: 5 portable port, 4 retry methods PASS; native fixture adds two distinct empty databases and byte-identical replacement refusal, retaining process termination after publication/insertion and conflict preservation. Windows integration pending.

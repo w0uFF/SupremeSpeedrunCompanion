@@ -42,3 +42,5 @@ T28: isolated synthetic_journal_store adapter depends on pure synthetic_admissio
 T29: tools/synthetic_recovery.py composes pure synthetic model, Store and archive_status with injected read-only lookup. It writes only an explicit journal snapshot after reinspection. Existing archive publication and native index remain independently callable, no bootstrap integration. Media fixture gains fixed 720p synthetic spec and measured resource reporting; no production recorder change. ADR-019.
 
 T30: synthetic_retry separate adapter depends on existing observe, Store, archive_publish and verified index_archive; injected lookup/insert pair, one explicit operation, journal reconciliation separate. WGC fixture reuses existing worker and MF video spec; lookahead explicit bounded frame byte count, no production capture integration. ADR-020.
+
+T31 synthetic_index_port test-only adapter owns resolved database and bridge identity, exposes lookup/insert; synthetic_retry includes port identity in plan. Resource-series parser validates standalone WGC fixture samples, no runtime recorder integration. ADR-021.
