@@ -127,17 +127,23 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
-    Apartment apartment;
+    // The calling thread owns one apartment for its entire probe lifetime.
+    if(hd)std::cout<<"HDStage support-check"<<std::endl;
     if(!cap::GraphicsCaptureSession::IsSupported()){
         std::cout<<"BLOCKED: Windows Graphics Capture unsupported\n";return 77;
     }
     const auto spec=hd?ssc::media_fixture::hd_spec:ssc::media_fixture::low_spec;
+    if(hd)std::cout<<"HDStage create-window"<<std::endl;
     Window window(hd);
     if(!window.handle){std::cerr<<"test window creation failed "<<GetLastError()<<'\n';return 1;}
+    if(hd)std::cout<<"HDStage pump-window"<<std::endl;
     pump();
+    if(hd)std::cout<<"HDStage activation-factory"<<std::endl;
     cap::GraphicsCaptureItem item{nullptr};
     auto interop=winrt::get_activation_factory<cap::GraphicsCaptureItem,IGraphicsCaptureItemInterop>();
+    if(hd)std::cout<<"HDStage capture-item"<<std::endl;
     winrt::check_hresult(interop->CreateForWindow(window.handle,winrt::guid_of<cap::GraphicsCaptureItem>(),winrt::put_abi(item)));
+    if(hd)std::cout<<"HDStage capture-item-size"<<std::endl;
     const auto size=item.Size();
     if(hd){
         RECT client{}, outer{};
@@ -150,6 +156,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     if(size.Width<=0 || size.Height<=0 || size.Width>(hd?1536:1024) || size.Height>1024 ||
        (hd && (size.Width<1280 || size.Height<720)))
         throw winrt::hresult_error(E_FAIL,L"unexpected capture item size");
+    if(hd)std::cout<<"HDStage create-device"<<std::endl;
     winrt::com_ptr<ID3D11Device> device;
     auto hr=D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_HARDWARE,nullptr,D3D11_CREATE_DEVICE_BGRA_SUPPORT,
                             nullptr,0,D3D11_SDK_VERSION,device.put(),nullptr,nullptr);
@@ -163,7 +170,9 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     winrt::com_ptr<::IInspectable> inspectable;
     winrt::check_hresult(CreateDirect3D11DeviceFromDXGIDevice(dxgi.get(),inspectable.put()));
     auto runtime_device=inspectable.as<dx::Direct3D11::IDirect3DDevice>();
+    if(hd)std::cout<<"HDStage create-pool"<<std::endl;
     auto pool=cap::Direct3D11CaptureFramePool::CreateFreeThreaded(runtime_device,dx::DirectXPixelFormat::B8G8R8A8UIntNormalized,2,size);
+    if(hd)std::cout<<"HDStage create-session"<<std::endl;
     auto session=pool.CreateCaptureSession(item);
     LARGE_INTEGER frequency{},start{},now{};
     if(!QueryPerformanceFrequency(&frequency)||!QueryPerformanceCounter(&start)||frequency.QuadPart<=0||start.QuadPart<0)
@@ -177,6 +186,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     supreme::recorder::FrameLookahead lookahead(spec.frame_bytes);
     supreme::recorder::Coverage expected_coverage;
     if(live){
+        if(hd)std::cout<<"HDStage start-worker"<<std::endl;
         if(std::filesystem::exists(std::filesystem::symlink_status(output)))return 2;
         sink=std::make_unique<ssc::media_fixture::AsyncSink>(output,false,spec);
         worker=std::make_unique<supreme::recorder::Worker>(*sink,8,hd?spec.frame_bytes:32768u);
@@ -193,10 +203,16 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     struct CloseCapture {
         cap::GraphicsCaptureSession& session;
         cap::Direct3D11CaptureFramePool& pool;
-        ~CloseCapture(){try{session.Close();}catch(...){}try{pool.Close();}catch(...){}}
+        bool session_closed=false,pool_closed=false;
+        void close(){
+            if(!session_closed){session.Close();session_closed=true;}
+            if(!pool_closed){pool.Close();pool_closed=true;}
+        }
+        ~CloseCapture(){if(!session_closed)try{session.Close();}catch(...){}if(!pool_closed)try{pool.Close();}catch(...){}}
     } close_capture{session,pool};
     const auto fixture_wall_begin=FixtureClock::now();
     const auto cpu_begin=(marathon || hd)?process_cpu_100ns():std::uint64_t{0};
+    if(hd)std::cout<<"HDStage start-capture"<<std::endl;
     session.StartCapture();
     unsigned frames=0;std::int64_t last=-1;
     std::vector<std::uint8_t> dark,light;
@@ -287,7 +303,8 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
         InvalidateRect(window.handle,nullptr,TRUE);
         Sleep(25);
     }
-    session.Close();pool.Close();
+    if(hd)std::cout<<"HDStage close-capture"<<std::endl;
+    close_capture.close();
     if(live){
         if(resize || lookahead.count()!=target || !written_before_stop){
             std::cerr<<"LiveIncomplete selected="<<lookahead.count()<<" observed="<<frames<<'\n';return frames?1:77;
@@ -384,7 +401,7 @@ int lifecycle(const std::filesystem::path& directory){
 }
 int wmain(int argc,wchar_t** argv){
     if(argc==3 && std::wstring_view(argv[1])==L"--live-hd720-lifecycle"){
-        try{return lifecycle(std::filesystem::path(argv[2]));}
+        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]));}
         catch(const winrt::hresult_error& e){std::cerr<<"HD lifecycle HRESULT "<<winrt::to_string(e.message())<<'\n';return 1;}
         catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     }
@@ -398,7 +415,7 @@ int wmain(int argc,wchar_t** argv){
     const bool hd=hd_extended || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720");
     const bool live=hd || resize || long_fixture || extended || simulated_loss || marathon || (argc==3 && std::wstring_view(argv[1])==L"--live");
     if(argc>2 && !timed && !live)return 2;
-    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture,extended,simulated_loss,marathon,hd,hd_extended);}
+    try{Apartment apartment;return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture,extended,simulated_loss,marathon,hd,hd_extended);}
     catch(const winrt::hresult_error& e){
         const auto hr=e.code().value;
         std::cerr<<"WGC HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<" "<<winrt::to_string(e.message())<<'\n';
