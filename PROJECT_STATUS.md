@@ -19,3 +19,5 @@ G1 synthetic source-loader fixture prerequisite satisfied for exact reviewed PR6
 P0-T24: collect baseline and identify installed loader without changing it; independently continue static lifecycle/IGT research, source-backed observation boundary design, run-library adapter and safe session/evidence binding. Do not advance G1 or G2 without applicable evidence. Product-first README retained; SSC remains optional and current rules remain in effect.
 
 P0-T24 candidate: native WinSQLite repository, independent SQL inspection, insert-only record/annotations/PB queries, schema identity and owner-thread checks. Hosted regression pending. No game hookup or gate change.
+
+T24 optional schema-2 attempt-settings diagnostic binding from immutable native snapshot to archive manifest, redacted private path/profile name, independent Python validation and negative fixtures; 33 core targets configured, hosted tests pending. No live attempt producer.

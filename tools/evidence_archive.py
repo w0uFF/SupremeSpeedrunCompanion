@@ -9,6 +9,7 @@ import zipfile
 from evidence_inventory import inventory, safe_name, ROLES
 from baseline_snapshot import linked
 import run_manifest
+import attempt_settings_evidence as ase
 
 MAX_TOTAL = 1024**3
 MAX_DIRECTORY = 128 * 1024
@@ -93,6 +94,7 @@ def verify(path):
             raise ValueError('unsupported manifest')
         listed = set()
         total = 0
+        settings_digest = None
         for item in manifest['files']:
             if not isinstance(item, dict) or set(item) != {'path', 'role', 'size', 'sha256'}:
                 raise ValueError('invalid manifest entry')
@@ -107,7 +109,15 @@ def verify(path):
             if total > MAX_TOTAL or archive.getinfo(name).file_size != size:
                 raise ValueError('size mismatch or archive exceeds bound')
             with archive.open(name) as stream:
-                if stream_digest(stream, size) != (size, digest):
+                if manifest['schema'] == 2 and name.lower() == ase.NAME:
+                    if name != ase.NAME or role != 'diagnostic' or size > ase.MAX_BYTES:
+                        raise ValueError('unsupported attempt settings member')
+                    settings_raw = stream.read(ase.MAX_BYTES + 1)
+                    if (len(settings_raw), hashlib.sha256(settings_raw).hexdigest()) != (size, digest):
+                        raise ValueError('evidence digest mismatch')
+                    ase.validate(settings_raw, manifest)
+                    settings_digest = digest
+                elif stream_digest(stream, size) != (size, digest):
                     raise ValueError('evidence digest mismatch')
         if listed != set(names) - {MANIFEST}:
             raise ValueError('unlisted member')
@@ -118,6 +128,8 @@ def verify(path):
         if raw != json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode('utf-8'):
             raise ValueError('noncanonical schema 2 manifest')
         report.update(run_id=manifest['run_id'], manifest_sha256=hashlib.sha256(raw).hexdigest())
+        if settings_digest is not None:
+            report.update(attempt_settings_sha256=settings_digest, attempt_settings_consistent=True)
     return report
 
 
