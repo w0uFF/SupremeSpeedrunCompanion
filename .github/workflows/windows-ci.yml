@@ -144,9 +144,9 @@ jobs:
       - name: Build and execute independent capture feasibility probes
         shell: pwsh
         run: |
-          cmake -S . -B capture-build -A Win32 -DSSC_CAPTURE_PROBES=ON -DSSC_MEDIA_PROBE=ON
+          cmake -S . -B capture-build -A Win32 -DSSC_CAPTURE_PROBES=ON -DSSC_MEDIA_PROBE=ON -DSSC_STORAGE_PROBE=ON
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cmake --build capture-build --config Release --target p0_wgc_probe p0_process_audio_probe p0_media_probe
+          cmake --build capture-build --config Release --target p0_wgc_probe p0_process_audio_probe p0_media_probe p0_winsqlite_probe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ctest --test-dir capture-build -C Release -R "^p0_(wgc|process_audio|captured_video)_probe$" --verbose --no-tests=error
+          ctest --test-dir capture-build -C Release -R "^p0_(wgc|process_audio|process_audio_sample|captured_video|winsqlite)_probe$" --verbose --no-tests=error
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

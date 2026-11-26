@@ -15,3 +15,5 @@ d=$(mktemp -d)
 ```
 
 Not included in default CMake/CI or any release. Next: separate WinSQLite native SDK probe, version/feature guard, prepared-statement binding and transaction/recovery tests, then durable adapter behind Repository with exact manifest linkage and immutable conflicts. Sources: https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/custom-versions ; https://sqlite.org/atomiccommit.html ; https://sqlite.org/wal.html . No game files involved, no G1/G4 advancement.
+
+T20 adds optional WinSQLite SDK probe (NOT_RUN at preparation): system winsqlite3 import library, UTF-16 path, prepared statements with quoted ID, nullable IGT and zero RTA, explicit rollback on duplicate, foreign keys and close/reopen, exclusive test-path refusal in trusted temp directory. No production adapter or bootstrap dependency. Windows hosted execution required.
