@@ -101,7 +101,7 @@ public:
 };
 // Exact schema identity; derived index, not the authoritative evidence archive.
 // Explicit version 1, no migration of older Python prototype databases.
-inline constexpr char runs_sql[]="CREATE TABLE runs(seq INTEGER PRIMARY KEY,run_id TEXT NOT NULL UNIQUE,category TEXT NOT NULL,profile TEXT NOT NULL,event_semantics TEXT NOT NULL,manifest_sha256 TEXT NOT NULL,origin INTEGER NOT NULL CHECK(origin BETWEEN 0 AND 2),status INTEGER NOT NULL CHECK(status BETWEEN 0 AND 3),igt_ms INTEGER CHECK(igt_ms>=0 AND status=0),rta_ns INTEGER CHECK(rta_ns>=0))";
+inline constexpr char runs_sql[]="CREATE TABLE runs(seq INTEGER PRIMARY KEY,run_id TEXT NOT NULL UNIQUE,category TEXT NOT NULL,profile TEXT NOT NULL,event_semantics TEXT NOT NULL,manifest_sha256 TEXT NOT NULL,origin INTEGER NOT NULL CHECK(origin BETWEEN 0 AND 2),status INTEGER NOT NULL CHECK(status BETWEEN 0 AND 3),igt_ms INTEGER CHECK(igt_ms IS NULL OR (igt_ms>=0 AND status=0)),rta_ns INTEGER CHECK(rta_ns>=0))";
 inline constexpr char labels_sql[]="CREATE TABLE labels(run_id TEXT PRIMARY KEY NOT NULL REFERENCES runs(run_id),name TEXT NOT NULL,favorite INTEGER NOT NULL CHECK(favorite IN (0,1)))";
 inline constexpr char index_sql[]="CREATE INDEX runs_comparison ON runs(category,profile,event_semantics,origin,status)";
 inline constexpr std::int64_t application_id=0x53534352;

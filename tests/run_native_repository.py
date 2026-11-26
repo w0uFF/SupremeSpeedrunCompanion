@@ -27,6 +27,13 @@ with tempfile.TemporaryDirectory() as directory:
         assert conn.execute('select igt_ms,rta_ns from runs where run_id=?', ('2'*32,)).fetchone() == (None, 0)
         assert conn.execute('select name,favorite from labels').fetchall() == [("Test ' é", 1)]
         assert conn.execute('select count(*) from runs').fetchone()[0] == 7
+        assert conn.execute('select status,igt_ms from runs where run_id=?', ('6'*32,)).fetchone() == (1, None)
+        try:
+            conn.execute('update runs set igt_ms=0 where run_id=?', ('6'*32,))
+        except sqlite3.IntegrityError:
+            pass
+        else:
+            raise AssertionError('unfinished final IGT accepted by database')
         conn.execute('pragma user_version=99')
     conn.close()
     unsupported = db.read_bytes()

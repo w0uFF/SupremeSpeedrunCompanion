@@ -21,3 +21,5 @@ P0-T24: collect baseline and identify installed loader without changing it; inde
 P0-T24 candidate: native WinSQLite repository, independent SQL inspection, insert-only record/annotations/PB queries, schema identity and owner-thread checks. Hosted regression pending. No game hookup or gate change.
 
 T24 optional schema-2 attempt-settings diagnostic binding from immutable native snapshot to archive manifest, redacted private path/profile name, independent Python validation and negative fixtures; 33 core targets configured, hosted tests pending. No live attempt producer.
+
+First native library run 45803020180 failed at new fixture due CHECK three-valued logic (null IGT with status!=finished evaluated false); independently reproduced with Python SQLite, corrected schema to allow explicit null while rejecting unfinished final IGT; database-level regression added. No previously deployed native DB schema. Manifest revision 0.0.15-p0. CI pending.
