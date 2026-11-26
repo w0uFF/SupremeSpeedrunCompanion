@@ -23,10 +23,10 @@ with tempfile.TemporaryDirectory() as directory:
     result.check_returncode()
     if not output.is_file() or not 0 < output.stat().st_size <= 16 * 1024 * 1024:
         raise RuntimeError('missing or oversized synthetic media output')
-    if sys.argv[2:] in (['--async-av'], ['--sustained-av']):
+    if sys.argv[2:] in (['--async-av'], ['--sustained-av'], ['--extended-av']):
         final = root / 'synthetic.zip'
         metadata = dict(run_id='1'*32, session_id='2'*32, created_utc='2026-01-02T03:04:05Z',
-                        mod_build='v0.0.10-p0-synthetic-probe', origin='synthetic',
+                        mod_build='v0.0.11-p0-synthetic-probe', origin='synthetic',
                         recording_mode='unknown', attempt_status='unknown', capture_status='finalized',
                         warnings=['Synthetic encoder fixture; no race or gameplay capture.'])
         names = ('accepted', 'written', 'first_100ns', 'end_100ns', 'written_duration_100ns', 'internal_gap_100ns',
@@ -46,7 +46,7 @@ with tempfile.TemporaryDirectory() as directory:
                 marks.append(int(mark[1]))
         if set(streams) != {'video', 'audio'} or len(marks) != 1 or not 1 <= marks[0] <= 32:
             raise RuntimeError('missing stream quality output')
-        expected = 250 if sys.argv[2:] == ['--sustained-av'] else 12
+        expected = {'--async-av': 12, '--sustained-av': 250, '--extended-av': 750}[sys.argv[2]]
         for stream in streams.values():
             if (stream['accepted'] != expected or stream['written'] != expected or stream['first_100ns'] != 0
                     or stream['end_100ns'] != expected * 400000 or stream['written_duration_100ns'] != stream['end_100ns']

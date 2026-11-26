@@ -148,3 +148,7 @@ Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Rel
 ## P0-T20
 - Baseline PASS run 45782546029, exact 064b2cbe52b74555bf2c2583fc297132c1877be8, jobs 139781254496 (20/20 each), 139781254967 (4/4), 139781255032 (2/2), release skipped.
 - Capture primitives PASS local: Debian GCC 14.2.0, g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -I. tests/test_capture_primitives.cpp -o primitives && ./primitives, exit 0. Repeat with -fsanitize=undefined -fno-sanitize-recover=all, exit 0. Exact source/test Git blob hashes checked. Full local checkout failed DNS; no full Linux regression claim. 10/10 supplied reference SHA-256 values match inventory. Windows CI pending.
+
+- T20 core PASS on 45783418178 job 139784156751 (21/21 each); media 4/4; capture baseline 2/2. Pixel fixture PASS run 45783539220 capture job 139784561057, 3/3 tests, actual two verified NV12 crops and decoded MP4; synthetic timestamps/audio. Core 21/21 and media 4/4 same run.
+- T20 storage initial FAIL compile C1083 missing winsqlite3.h on run 45783668360 capture job 139784999468, audio sample target compiled but tests not reached. Switch to documented system ABI and separate job, retry pending. Added 30s media test pending.
+- T20 static high-time file reader/writer candidates documented using original hashes, objdump -d/-p; not race timing validation.

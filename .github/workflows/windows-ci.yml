@@ -130,7 +130,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build media-build --config Release --target p0_media_probe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ctest --test-dir media-build -C Release -R "^P0_media_(probe|av_probe|async_av_probe|sustained_av_probe)$" --verbose --no-tests=error
+          ctest --test-dir media-build -C Release -R "^P0_media_(probe|av_probe|async_av_probe|sustained_av_probe|extended_av_probe)$" --verbose --no-tests=error
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   capture-probes:
@@ -144,9 +144,27 @@ jobs:
       - name: Build and execute independent capture feasibility probes
         shell: pwsh
         run: |
-          cmake -S . -B capture-build -A Win32 -DSSC_CAPTURE_PROBES=ON -DSSC_MEDIA_PROBE=ON -DSSC_STORAGE_PROBE=ON
+          cmake -S . -B capture-build -A Win32 -DSSC_CAPTURE_PROBES=ON -DSSC_MEDIA_PROBE=ON
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cmake --build capture-build --config Release --target p0_wgc_probe p0_process_audio_probe p0_media_probe p0_winsqlite_probe
+          cmake --build capture-build --config Release --target p0_wgc_probe p0_process_audio_probe p0_media_probe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ctest --test-dir capture-build -C Release -R "^p0_(wgc|process_audio|process_audio_sample|captured_video|winsqlite)_probe$" --verbose --no-tests=error
+          ctest --test-dir capture-build -C Release -R "^p0_(wgc|process_audio|process_audio_sample|captured_video)_probe$" --verbose --no-tests=error
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  storage-probe:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Build and execute standalone WinSQLite probe
+        shell: pwsh
+        run: |
+          cmake -S . -B storage-build -A Win32 -DSSC_STORAGE_PROBE=ON
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build storage-build --config Release --target p0_winsqlite_probe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --test-dir storage-build -C Release -R "^p0_winsqlite_probe$" --verbose --no-tests=error
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

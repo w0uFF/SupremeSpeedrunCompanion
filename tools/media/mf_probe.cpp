@@ -320,10 +320,11 @@ void decode_audio(const wchar_t* path,LONGLONG video_end) {
 }
 }
 int wmain(int argc,wchar_t** argv) {
-    const bool sustained=argc==3 && std::wstring(argv[2])==L"--sustained-av";
+    const bool extended=argc==3 && std::wstring(argv[2])==L"--extended-av";
+    const bool sustained=extended || (argc==3 && std::wstring(argv[2])==L"--sustained-av");
     const bool captured=argc==4 && std::wstring(argv[2])==L"--captured-av";
     const bool asynchronous=captured || sustained || (argc==3 && std::wstring(argv[2])==L"--async-av");
-    if(sustained) frames=250;
+    if(sustained) frames=extended?750u:250u;
     const bool with_audio=asynchronous || (argc==3 && std::wstring(argv[2])==L"--av");
     if((argc!=2 && !with_audio) || GetFileAttributesW(argv[1])!=INVALID_FILE_ATTRIBUTES) return 2;
     try {
