@@ -1,6 +1,8 @@
 // Standalone Windows synthetic encode/decode probe. No game or capture access.
 #define NOMINMAX
 #include <windows.h>
+#include <psapi.h>
+#include "tools/media/fixture_performance.hpp"
 #include <mfapi.h>
 #include <mfidl.h>
 #include <mfreadwrite.h>
@@ -138,7 +140,72 @@ void encode_timed(const wchar_t* path,const std::vector<supreme::recorder::Timed
         throw std::runtime_error("timed worker quality");
     std::cout<<"TimedHandoff "<<c.packets<<" "<<c.first<<" "<<c.end<<" "<<c.duration<<" "<<*c.internal_gap()<<" "<<worker.high_water()<<"\n";
 }
-LONGLONG decode(const wchar_t* path,const std::vector<supreme::recorder::FrameInterval>* timeline=nullptr) {
+std::uint64_t cpu_100ns() {
+    FILETIME creation{},exit_time{},kernel{},user{};
+    if(!GetProcessTimes(GetCurrentProcess(),&creation,&exit_time,&kernel,&user))
+        throw std::runtime_error("process CPU time unavailable");
+    const auto units=[](const FILETIME& f){
+        return (static_cast<std::uint64_t>(f.dwHighDateTime)<<32u)|f.dwLowDateTime;
+    };
+    return units(kernel)+units(user);
+}
+void encode_hd(const wchar_t* path) {
+    using namespace supreme::recorder;
+    using Clock=std::chrono::steady_clock;
+    const auto us=[](Clock::time_point start,Clock::time_point end){
+        return std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+    };
+    constexpr auto spec=hd_spec;
+    constexpr std::size_t slots=8;
+    const auto start=Clock::now();
+    const auto cpu_start=cpu_100ns();
+    AsyncSink sink(path,false,spec);
+    Worker worker(sink,slots,spec.frame_bytes);
+    if(worker.wait_ready()!=State::running)throw std::runtime_error("HD worker start");
+    const auto epoch=Clock::now();
+    std::vector<std::int64_t> latencies;
+    latencies.reserve(frames);
+    for(UINT32 i=0;i<frames;++i){
+        std::this_thread::sleep_until(epoch+std::chrono::milliseconds(40)*i);
+        const auto begin=Clock::now();
+        const auto pts=static_cast<std::uint64_t>(i)*static_cast<std::uint64_t>(period);
+        Packet frame{Stream::video,pts,static_cast<std::uint64_t>(period),std::vector<std::uint8_t>(spec.frame_bytes,128)};
+        // Moving checker bands; first two 64x32 tiles retain independently checked luma.
+        for(UINT32 y=0;y<spec.frame_height;++y){
+            for(UINT32 x=0;x<spec.frame_width;x+=64u){
+                const auto parity=(x/64u+y/32u+(y<32u?0u:i/5u))%2u;
+                const bool bright=(i>=frames/2u)!=(parity!=0u);
+                std::fill_n(frame.bytes.data()+y*spec.frame_width+x,64u,static_cast<BYTE>(bright?192:48));
+            }
+        }
+        if(worker.offer(std::move(frame))!=Offer::accepted)throw std::runtime_error("HD worker offer");
+        latencies.push_back(us(begin,Clock::now()));
+    }
+    const auto drain=Clock::now();
+    worker.stop();worker.join();
+    const auto end=Clock::now();
+    const auto cpu_end=cpu_100ns();
+    const auto stats=worker.stats();
+    const auto q=worker.quality()[0];
+    const auto expected=static_cast<std::uint64_t>(frames)*static_cast<std::uint64_t>(period);
+    if(worker.state()!=State::finalized || stats.accepted!=frames || stats.written!=frames ||
+       stats.dropped_full || stats.discarded || stats.rejected_invalid || q.written.first!=0 ||
+       q.written.end!=expected || q.written.duration!=expected || q.written.internal_gap()!=0 ||
+       cpu_end<cpu_start)throw std::runtime_error("HD worker quality");
+    PROCESS_MEMORY_COUNTERS_EX memory{};
+    memory.cb=static_cast<DWORD>(sizeof(memory));
+    if(!GetProcessMemoryInfo(GetCurrentProcess(),reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory),memory.cb))
+        throw std::runtime_error("process memory counters unavailable");
+    const auto size=std::filesystem::file_size(std::filesystem::path(path));
+    if(!size || size>16u*1024u*1024u)throw std::runtime_error("HD output size");
+    const auto summary=summarize_latency(std::move(latencies));
+    std::cout<<"HDPerformance "<<summary.count<<" "<<us(start,end)<<" "<<cpu_end-cpu_start<<" "
+             <<summary.median_us<<" "<<summary.p95_us<<" "<<summary.p99_us<<" "<<summary.max_us<<" "
+             <<us(drain,end)<<" "<<memory.PeakWorkingSetSize<<" "<<memory.WorkingSetSize<<" "
+             <<memory.PrivateUsage<<" "<<size<<" "<<worker.high_water()<<" "<<slots*spec.frame_bytes<<"\n";
+}
+LONGLONG decode(const wchar_t* path,const std::vector<supreme::recorder::FrameInterval>* timeline=nullptr,
+                VideoSpec spec=low_spec,bool texture=false) {
     ComPtr<IMFSourceReader> reader;
     check(MFCreateSourceReaderFromURL(path,nullptr,reader.GetAddressOf()),"open finalized MP4");
     constexpr DWORD video=static_cast<DWORD>(MF_SOURCE_READER_FIRST_VIDEO_STREAM);
@@ -158,7 +225,7 @@ LONGLONG decode(const wchar_t* path,const std::vector<supreme::recorder::FrameIn
     check(reader->GetCurrentMediaType(video,actual.GetAddressOf()),"get decode type");
     UINT32 w=0,h=0;
     check(MFGetAttributeSize(actual.Get(),MF_MT_FRAME_SIZE,&w,&h),"decoded size");
-    if(w!=width || h!=height) throw std::runtime_error("unexpected dimensions");
+    if(w!=spec.frame_width || h!=spec.frame_height) throw std::runtime_error("unexpected dimensions");
     UINT32 count=0;
     LONGLONG previous=-1;
     bool eos=false;
@@ -185,14 +252,17 @@ LONGLONG decode(const wchar_t* path,const std::vector<supreme::recorder::FrameIn
         BYTE* data=nullptr; DWORD length=0;
         check(buffer->Lock(&data,nullptr,&length),"lock decoded frame");
         // Sample only the first luma byte; tolerates lossy coding and row padding.
-        const int luma=length>=bytes?data[0]:-1;
+        const int luma=length>=spec.frame_bytes?data[0]:-1;
+        const int alternate=length>=spec.frame_bytes?data[64]:-1;
         check(buffer->Unlock(),"unlock decoded frame");
         if(luma<0 || (count<frames/2?luma>=100:luma<=140))
             throw std::runtime_error("decoded luma pattern mismatch");
+        if(texture && (alternate<0 || (count<frames/2?alternate<=140:alternate>=100)))
+            throw std::runtime_error("decoded HD alternate tile mismatch");
         ++count;
     }
     if(!eos || count!=frames) throw std::runtime_error("frame count or EOS mismatch");
-    std::cout<<"Decoded "<<count<<" H264 frames, "<<width<<'x'<<height<<", monotonic timestamps and luma pattern verified\n";
+    std::cout<<"Decoded "<<count<<" H264 frames, "<<spec.frame_width<<'x'<<spec.frame_height<<", monotonic timestamps and luma pattern verified\n";
     return previous+(timeline?static_cast<LONGLONG>(timeline->back().duration):period);
 }
 void decode_audio(const wchar_t* path,LONGLONG video_end) {
@@ -263,6 +333,7 @@ void decode_audio(const wchar_t* path,LONGLONG video_end) {
 }
 }
 int wmain(int argc,wchar_t** argv) {
+    const bool hd=argc==3 && std::wstring(argv[2])==L"--hd720";
     const bool live_decode=argc==4 && std::wstring(argv[2])==L"--decode-live";
     const bool timed=argc==4 && std::wstring(argv[2])==L"--timed-video";
     const bool extended=argc==3 && std::wstring(argv[2])==L"--extended-av";
@@ -271,10 +342,21 @@ int wmain(int argc,wchar_t** argv) {
     const bool asynchronous=captured || sustained || (argc==3 && std::wstring(argv[2])==L"--async-av");
     if(sustained) frames=extended?750u:250u;
     const bool with_audio=asynchronous || (argc==3 && std::wstring(argv[2])==L"--av");
-    if(argc<2 || (argc!=2 && !with_audio && !timed && !live_decode))return 2;
+    if(argc<2 || (argc!=2 && !with_audio && !timed && !live_decode && !hd))return 2;
     if((GetFileAttributesW(argv[1])!=INVALID_FILE_ATTRIBUTES)!=live_decode)return 2;
     try {
         Com com; Foundation mf;
+        if(hd){
+            frames=250;
+            encode_hd(argv[1]);
+            std::vector<supreme::recorder::FrameInterval> timeline;
+            timeline.reserve(frames);
+            for(UINT32 i=0;i<frames;++i)
+                timeline.push_back({static_cast<std::uint64_t>(i)*static_cast<std::uint64_t>(period),
+                                    static_cast<std::uint64_t>(period)});
+            (void)decode(argv[1],&timeline,hd_spec,true);
+            return 0;
+        }
         if(live_decode){
             std::ifstream input(std::filesystem::path(argv[3]),std::ios::binary);
             std::vector<supreme::recorder::FrameInterval> timeline;

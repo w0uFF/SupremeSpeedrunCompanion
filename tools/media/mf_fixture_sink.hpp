@@ -17,6 +17,9 @@ using Microsoft::WRL::ComPtr;
 constexpr UINT32 width=160, height=96, fps=25;
 constexpr DWORD bytes=width*height*3/2;
 constexpr LONGLONG period=10000000/fps;
+struct VideoSpec { UINT32 frame_width, frame_height; DWORD frame_bytes, bitrate; };
+inline constexpr VideoSpec low_spec{width,height,bytes,500000};
+inline constexpr VideoSpec hd_spec{1280,720,1280u*720u*3u/2u,5000000};
 inline void check(HRESULT hr, const char* step) {
     if(FAILED(hr)) {
         std::cerr<<step<<" HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<'\n';
@@ -25,12 +28,12 @@ inline void check(HRESULT hr, const char* step) {
 }
 struct Com { Com(){check(CoInitializeEx(nullptr,COINIT_MULTITHREADED),"COM");} ~Com(){CoUninitialize();} };
 struct Foundation { Foundation(){check(MFStartup(MF_VERSION),"MFStartup");} ~Foundation(){MFShutdown();} };
-inline ComPtr<IMFMediaType> type(const GUID& subtype) {
+inline ComPtr<IMFMediaType> type(const GUID& subtype,VideoSpec spec=low_spec) {
     ComPtr<IMFMediaType> t;
     check(MFCreateMediaType(t.GetAddressOf()),"create media type");
     check(t->SetGUID(MF_MT_MAJOR_TYPE,MFMediaType_Video),"major type");
     check(t->SetGUID(MF_MT_SUBTYPE,subtype),"subtype");
-    check(MFSetAttributeSize(t.Get(),MF_MT_FRAME_SIZE,width,height),"frame size");
+    check(MFSetAttributeSize(t.Get(),MF_MT_FRAME_SIZE,spec.frame_width,spec.frame_height),"frame size");
     check(MFSetAttributeRatio(t.Get(),MF_MT_FRAME_RATE,fps,1),"frame rate");
     check(MFSetAttributeRatio(t.Get(),MF_MT_PIXEL_ASPECT_RATIO,1,1),"pixel aspect");
     check(t->SetUINT32(MF_MT_INTERLACE_MODE,MFVideoInterlace_Progressive),"interlace");
@@ -50,14 +53,14 @@ inline ComPtr<IMFMediaType> audio_type(bool compressed) {
     if(!compressed) check(t->SetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT,block_align),"audio alignment");
     return t;
 }
-inline ComPtr<IMFSinkWriter> open_writer(const wchar_t* path,bool with_audio,DWORD& stream,DWORD& audio_stream) {
+inline ComPtr<IMFSinkWriter> open_writer(const wchar_t* path,bool with_audio,DWORD& stream,DWORD& audio_stream,VideoSpec spec=low_spec) {
     ComPtr<IMFSinkWriter> writer;
     check(MFCreateSinkWriterFromURL(path,nullptr,nullptr,writer.GetAddressOf()),"create MP4 sink writer");
-    auto output=type(MFVideoFormat_H264);
-    check(output->SetUINT32(MF_MT_AVG_BITRATE,500000),"bitrate");
+    auto output=type(MFVideoFormat_H264,spec);
+    check(output->SetUINT32(MF_MT_AVG_BITRATE,spec.bitrate),"bitrate");
     check(writer->AddStream(output.Get(),&stream),"add H264 stream");
-    auto input=type(MFVideoFormat_NV12);
-    check(input->SetUINT32(MF_MT_DEFAULT_STRIDE,width),"stride");
+    auto input=type(MFVideoFormat_NV12,spec);
+    check(input->SetUINT32(MF_MT_DEFAULT_STRIDE,spec.frame_width),"stride");
     check(writer->SetInputMediaType(stream,input.Get(),nullptr),"NV12 input");
     if(with_audio) {
         auto audio_out=audio_type(true),audio_in=audio_type(false);
@@ -70,22 +73,23 @@ inline ComPtr<IMFSinkWriter> open_writer(const wchar_t* path,bool with_audio,DWO
 class AsyncSink final:public supreme::recorder::Sink {
     const wchar_t* path_;
     bool with_audio_;
+    const VideoSpec spec_;
     std::unique_ptr<Com> com_;
     std::unique_ptr<Foundation> mf_;
     ComPtr<IMFSinkWriter> writer_;
     DWORD video_=0,audio_=0;
     void release() noexcept {writer_.Reset();mf_.reset();com_.reset();}
 public:
-    explicit AsyncSink(const wchar_t* path,bool audio=true):path_(path),with_audio_(audio){}
+    explicit AsyncSink(const wchar_t* path,bool audio=true,VideoSpec spec=low_spec):path_(path),with_audio_(audio),spec_(spec){}
     void begin() override {
         com_=std::make_unique<Com>();
         mf_=std::make_unique<Foundation>();
-        writer_=open_writer(path_,with_audio_,video_,audio_);
+        writer_=open_writer(path_,with_audio_,video_,audio_,spec_);
     }
     void write(const supreme::recorder::Packet& packet) override {
         const bool video=packet.stream==supreme::recorder::Stream::video;
         if(!video && !with_audio_)throw std::runtime_error("audio stream disabled");
-        const DWORD length=video?bytes:pcm_bytes;
+        const DWORD length=video?spec_.frame_bytes:pcm_bytes;
         constexpr auto max_timestamp=static_cast<std::uint64_t>(std::numeric_limits<LONGLONG>::max());
         if(packet.bytes.size()!=length || packet.pts>max_timestamp ||
            packet.duration>max_timestamp-packet.pts)
