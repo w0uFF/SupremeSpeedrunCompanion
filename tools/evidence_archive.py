@@ -45,6 +45,10 @@ def check_directory(path):
     if size < 22:
         raise ValueError('truncated archive')
     with path.open('rb') as handle:
+        if size >= 42:
+            handle.seek(-42, 2)
+            if handle.read(4) == b'PK\x06\x07':
+                raise ValueError('ZIP64 central directory unsupported')
         handle.seek(-22, 2)
         signature, disk, start_disk, disk_count, count, length, offset, comment = struct.unpack('<4s4H2IH', handle.read(22))
     if (signature != b'PK\x05\x06' or disk or start_disk or comment or disk_count != count

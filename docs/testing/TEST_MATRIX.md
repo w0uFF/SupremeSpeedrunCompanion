@@ -93,3 +93,10 @@ Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Rel
 - TEST-T17-MEDIA-001 FAIL (compile): job 139704913379 on the same commit, MSVC C4245/C2220 at mf_probe.cpp lines 68–69, signed/unsigned SDK stream selectors. No encoding/decoding executed. Explicit DWORD casts added, /W4 /WX retained. Re-run pending.
 - TEST-T17-REGRESSION-003 PASS: Linux Debug + UBSan 16/16, GCC 14.2.0, CMake 3.31.6, Python 3.13.5. Fresh build with CMAKE_CXX_FLAGS and CMAKE_C_FLAGS=-fsanitize=undefined -fno-sanitize-recover=all, configure/build/CTest exit 0. No sanitizer errors reported. Same portable source as above; media target disabled.
 - Exact hosted logs: https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45759192220 .
+
+### T17 follow-up: media retry and archive validation hardening
+
+- TEST-T17-MEDIA-002 PASS (actual Windows x86 synthetic encode/decode): run 45759324352, job 139705335489, commit f3dded0e8accd0c9e6dc1a841648478dc6a950a3. MSVC 19.52.37029.0, 1/1 CTest, 1.54 s. Actual log: Decoded 12 H264 frames, 160x96, monotonic timestamps and luma pattern verified. No actual game, audio or capture test.
+- TEST-T17-WIN-002 PASS: same commit, job 139705335614, core 16/16 Debug and 16/16 Release from actual logs.
+- TEST-T17-ARCHIVE-002 FAIL reproduced, then PASS: crafted ZIP64 EOCD/locator fixture accepted by original verifier despite classic-only contract. Added explicit ZIP64 locator rejection, new seventh archive unittest passes. Re-executed all portable CTest targets on existing Debug/Release/UBSan builds with updated Python source: 16/16 each, no sanitizer report. New commit Windows CI pending.
+- https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45759324352

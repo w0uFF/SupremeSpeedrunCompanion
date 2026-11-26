@@ -4,8 +4,8 @@
 - Verify v0.0.7 Windows x86 logs, 13/13 Debug and Release.
 - Add bounded stored ZIP archive creation and independent verification; no eligibility verdict or extraction.
 - Add injected C++ preference storage port/controller, candidate replay split comparison and additional static result-path evidence.
-- Add opt-in standalone Windows Media Foundation synthetic video probe and separate CI job; Windows execution pending at commit preparation.
-- Linux Debug/Release 16/16; no runtime or release gate changes.
+- Add opt-in standalone Windows Media Foundation synthetic video probe and separate CI job; first compilation fixed for MSVC C4245, hosted synthetic H.264 MP4 encode/decode test passed (12/12 frames).
+- Reject ZIP64 footer bypass with a seventh archive test. Linux Debug/Release/UBSan 16/16; Windows core Debug/Release 16/16 before archive follow-up. No game runtime or release gate changes.
 
 ## v0.0.7-p0 — independent timing, local data and evidence foundations
 - Verify v0.0.6 Windows x86 logs, 9/9 Debug and Release.

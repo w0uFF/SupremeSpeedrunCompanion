@@ -1,4 +1,4 @@
-import json
+import struct
 from pathlib import Path
 import sys
 import tempfile
@@ -74,6 +74,21 @@ class ArchiveTests(unittest.TestCase):
         self.assertFalse(self.path.exists())
         with self.assertRaises(ValueError):
             ea.create(self.root, {'clip.mp4': 'video'}, self.root / 'out.zip')
+
+    def test_zip64_footer_rejected(self):
+        self.create()
+        raw = self.path.read_bytes()
+        signature, disk, start, disk_count, count, size, offset, comment = struct.unpack('<4s4H2IH', raw[-22:])
+        extension = (struct.pack('<4sQ2H2I4Q', b'PK\x06\x06', 44, 45, 45, 0, 0,
+                                 count, count, size, offset)
+                     + struct.pack('<4sIQI', b'PK\x06\x07', 0, len(raw) - 22, 1))
+        footer = struct.pack('<4s4H2IH', signature, disk, start, disk_count, count,
+                             size + len(extension), offset, comment)
+        self.path.write_bytes(raw[:-22] + extension + footer)
+        with zipfile.ZipFile(self.path) as archive:
+            self.assertEqual(archive.read('clip.mp4'), b'abc')
+        with self.assertRaisesRegex(ValueError, 'ZIP64 central directory'):
+            ea.verify(self.path)
 
     def test_compressed_rejected(self):
         self.create()
