@@ -1,22 +1,57 @@
 # Supreme Speedrun Companion
 
-An optional, community-driven speedrunning companion for Supreme Snowboarding (Boarder Zone).
+**Spend more time racing, less time setting up speedruns.**
 
-**Status: P0 discovery — not an installable mod.** Current revision v0.0.12-p0 adds a community-loader ABI candidate, declarative launcher controls and an offline player-profile prototype. Native game compatibility (G1), race timing and actual gameplay recording remain unvalidated. Do not copy development files into your game directory.
+Supreme Speedrun Companion (SSC) is an optional Windows mod in development for Supreme Snowboarding (Boarder Zone). Its goal is to make practicing, recording, analyzing and submitting speedruns as convenient as possible, without changing the original game's racing mechanics.
 
-SSC is not a new racing game mode: it is intended to remove setup and submission friction so players can focus on attempts. Planned features include quick retry, optional automatic recording and timers, saved setups, All Tracks sequencing, local run history and player-confirmed submission. Ordinary unmodded play and existing recording methods remain eligible under existing rules. No competition policy change or endorsement is implied.
+SSC is **not a new version of Time Attack, a replacement for Online Time Attack, or a compulsory anti-cheat**. It is a companion for the existing game and its speedrunning community, intended to bring recording, timing, quick retries, run management and submission preparation into one place.
 
-## Project goals
+> **Development status: v0.0.13-p0 — not yet playable or installable.** Configuration, independent DLL loading, synthetic video encoding, isolated test-window capture and offline evidence components have automated test coverage. Actual launcher/game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
 
-- Native Speedrun menu with nine Time Attack categories, All Tracks, and Championship.
-- Remembered character and snowboard selection, weather choice, automatic race sequencing, and training mode.
-- Automatic/manual recording, independent real-time and native in-game timing, input overlays, replays, and run management.
-- Local submission packages and optional, player-confirmed Speedrun.com API submission.
-- Preserve original gameplay, Display Config compatibility, and the keyboard persistence patch.
+## Why build it?
 
-## Build and test
+Preparing a Speedrun.com attempt currently involves more than racing: configuring capture software such as OBS, setting up an input overlay or external timer, recording the required menu selections, locating footage after a run, and preparing a submission. Retrying or chaining tracks can interrupt the flow, and forgetting to start recording can waste an excellent attempt.
 
-C++17, CMake 3.16+, C99 and Python 3.10+ (required for full tests). Windows Visual Studio Build Tools:
+SSC aims to remove that friction and make participation accessible to more players, from someone trying their first time to someone grinding personal bests.
+
+## What the intended player experience looks like
+
+1. **Choose a setup.** Open a Speedrun entry in the existing game menu, choose a track/difficulty, rider, snowboard and weather, or select All Tracks or Championship. Reuse saved loadouts and a personal settings profile.
+2. **Race and retry.** Automatic recording starts early enough to capture the required evidence for each attempt. A configurable quick-restart shortcut should let you retry without returning to the main menu or reselecting everything. Reset-to-track remains distinct from restarting.
+3. **See your performance.** Optional input overlay, the game's own time (IGT), a separate real-time timer (RTA), and planned splits and comparison tools. The existing leaderboard's official time is not silently replaced by RTA.
+4. **Keep and review your runs.** The companion should finish recordings and prepare local evidence asynchronously, with configurable retention. Browse personal records and run history, rename or favorite runs, rewatch video, and inspect or compare native replays where safely supported.
+5. **Share when you choose.** Generate a local evidence package with video, timing, race identity, configuration and available replay/diagnostics. Prepare a Speedrun.com submission through its accepted video/link workflow, with explicit player confirmation; no automatic publication or credentials in evidence.
+
+### Planned features
+
+| Feature | What it means for players |
+|---|---|
+| Automatic and manual recording | Record attempts automatically or manually capture a full session, including menu proof where required. |
+| Quick restart and saved selections | Keep practicing without repeatedly navigating menus or choosing your setup. |
+| Dual timers and input overlay | See original game time and independently measured elapsed time; enable or disable individual displays. |
+| All Tracks and Championship | Planned automated progression and splits using the agreed competition order and retry rules. |
+| Player profiles | Save multiple configurations such as Speedrun Tryhard, Training, All Tracks or Low Performance; change settings in the launcher or in-game when available. |
+| Recording settings | Choose output folder, quality, resolution, FPS, bitrate, audio and encoder preferences; set retention and disk-space policy. Supported recording modes must be measured. |
+| Run library and analysis | Review, import, export and compare attempts, videos and supported replays. |
+| Evidence and moderator tools | A separate validator should help examine package consistency, supported modifications and anomalies, without pretending client-side checks can prove the absence of cheating. |
+
+These are product goals, not a list of features available today. See [development status](PROJECT_STATUS.md) and the [roadmap](docs/product/ROADMAP.md) for the tested scope.
+
+## Optional by design — competition rules
+
+Players must remain free to use the original game, community mods and existing recording methods. SSC is intended to work alongside the Community Launcher and other compatible mods, not to replace Xinfe's Online Time Attack, which has its own replay-upload workflow.
+
+Current reported Speedrun.com rules require video showing track and difficulty selection from the main menu, and use the game's displayed finish time. The proposed alternative is to allow approved SSC-generated evidence to establish those selections without recording the main menu every time. **That alternative requires moderator approval and is not in force.** Until then, automatic-only recording is not established to meet menu-proof requirements; the planned manual recording mode preserves the existing workflow. No approval or endorsement is implied. No physics, difficulty or competition rules should be changed silently.
+
+## Community integration and development
+
+SSC is intended to be an independently configurable mod in the existing Community Launcher. The [PR66 native mod loading contract](docs/engine/COMMUNITY_LOADER.md) provides a promising integration boundary; SSC does not supply a replacement winmm.dll. A separate [offline profile editor](docs/contracts/SSC_CONFIGURATION.md) already exists for development tests. The actual launcher page and in-game settings are not yet connected.
+
+The project is being developed with ChatGPT assistance under a documented, modular architecture and strict validation protocol, aiming for readable, maintainable source that community contributors can extend. Contributions and review are welcome; the project license is pending owner selection. Original game files, private recordings and third-party binaries are not redistributed.
+
+## Build and test (developers only)
+
+C++17 core, CMake 3.16+, C99 and Python 3.10+ (required for full tests). Use Visual Studio Build Tools with x86 support:
 
 ```powershell
 cmake -S . -B build -A Win32
@@ -24,32 +59,17 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure --no-tests=error
 ```
 
-Portable Linux: configure without -A Win32, then build and run CTest. Twenty-three portable CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
+Windows core: 26 test targets including native profile persistence. Portable Linux: configure without -A Win32 (Windows-only targets excluded). Run all development tools outside the game directory. The offline supreme_diagnostic reports unavailable engine data by design.
 
-Read-only reference classifier: `python tools/preflight.py <copied-game-root>`. Exact on-disk matches are not runtime support or competition eligibility. For local research, `python tools/native_xrefs.py <original.exe> --compare <patched.exe>` requires GNU objdump; `python tools/replay_samples.py <replay.dat>` reports candidate coordinates and header timing without an official verdict. Use only trusted local reference copies. See docs/engine/ENGINE_MAP.md.
+- [Project status](PROJECT_STATUS.md) — latest verified commit, exact CI evidence and blockers.
+- [Architecture](docs/architecture/MODULES.md) — independently testable module boundaries.
+- [Configuration contract](docs/contracts/SSC_CONFIGURATION.md) — profile settings, precedence, serialization and prototype editor.
+- [Community loader validation](docs/testing/COMMUNITY_LOADER_VALIDATION.md) — source fixture and G1 prerequisites.
+- [Windows baseline](docs/testing/WINDOWS_BASELINE.md) — safe disposable-copy observations, no installation.
+- [Recording feasibility](docs/architecture/RECORDING_FEASIBILITY.md) — synthetic and isolated capture test scope.
+- [Engine map](docs/engine/ENGINE_MAP.md) — version-specific static research.
+- [Test matrix](docs/testing/TEST_MATRIX.md) and [changelog](CHANGELOG.md) — development history.
 
-## Development and distribution
+Read-only reference classifier: `python tools/preflight.py <copied-game-root>`. Offline research: `python tools/native_xrefs.py <original.exe> --compare <patched.exe>` (GNU objdump), `python tools/replay_samples.py <replay.dat>`. Optional baseline snapshots: `python tools/baseline_snapshot.py snapshot <game-root>` and `python tools/baseline_snapshot.py compare <before.json> <after.json>`. None establish runtime compatibility or eligibility.
 
-GitHub-hosted Windows x86 CI builds and tests Debug and Release. No Actions artifact storage. Automated development pre-releases are gated by a maintainer-approved LICENSE and SSC_RELEASE_APPROVED repository variable. Release assets are offline diagnostics, not installable game mods. Native integration remains blocked by G1. See PROJECT_STATUS.md and docs/release/CI.md.
-
-The original game, launcher binaries, private recordings, credentials, and raw reference research are not redistributed. The project license is pending maintainer selection; no redistribution or upstream license permissions are implied. Launcher auto-update integration is proposed, not agreed with upstream.
-
-Optional paired diagnostic for a closed disposable game copy: `python tools/baseline_snapshot.py snapshot <game-root>` and `python tools/baseline_snapshot.py compare <before.json> <after.json>`. See docs/testing/WINDOWS_BASELINE.md. This never passes the loader gate.
-
-T16 standalone components: src/modules/timing/README.md and docs/contracts/OFFLINE_LIBRARY.md, EVIDENCE_INVENTORY.md, SUBMISSION_PREVIEW.md. Reference Python implementations are offline development tools, not dependencies of the native companion. No runtime, eligibility or release claims.
-
-T17: see docs/contracts/EVIDENCE_ARCHIVE.md and PREFERENCES_PORT.md. Optional Windows media test documented in docs/architecture/RECORDING_FEASIBILITY.md. None are installable game components or approved submission tooling.
-
-T18 offline components: src/modules/recorder/README.md, src/modules/run_library/README.md and docs/contracts/RUN_MANIFEST.md. No live capture, verified submission or native installation.
-
-T19: docs/contracts/RECORDING_QUALITY.md describes handoff-quality statistics, not gameplay coverage.
-
-T19 Windows offline CI verified 20 portable targets in Debug and Release, four media tests and two limited capture feasibility tests. WGC acquired frame metadata from a test window; WASAPI initialized an own-process capture service, not audio sampling. No installable game mod. See docs/architecture/RECORDING_FEASIBILITY.md and STORAGE_FEASIBILITY.md.
-
-T20: exact Windows core 21/21 Debug and Release, media 5/5, capture 3 passed/1 skipped, storage 1/1. Actual own-window pixel encode/decode verified, audio signal collection blocked by hosted playback device availability. See docs/testing/CAPTURE_PROBE_VALIDATION.md; no game installation.
-
-T21: optional inert native candidate and launcher manifest are source-only development inputs, not installable. See docs/contracts/SSC_CONFIGURATION.md for profile editor and precedence, docs/engine/COMMUNITY_LOADER.md for upstream source evidence, docs/testing/COMMUNITY_LOADER_VALIDATION.md for G1 prerequisites.
-
-The native configuration port is documented in src/modules/configuration/README.md. No actual settings consumption in the inert DLL.
-
-T21 verified code/test revision 478a33a790fdebc24c0f3788f10b1a00fa5dbdeb: 23/23 Windows core each, 5/5 media, capture 3 pass/1 skip, storage 1/1, inert entry 1/1 (independent host, not actual community launcher). Release skipped. Native menu, actual configuration consumption and gameplay remain unavailable.
+GitHub-hosted Windows x86 CI tests Debug and Release; see [CI policy](docs/release/CI.md). Public releases remain disabled pending license selection and maintainer approval. No development source or binary is an installable game mod until the relevant gates pass.

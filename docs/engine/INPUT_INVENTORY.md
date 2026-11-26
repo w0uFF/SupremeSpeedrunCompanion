@@ -33,3 +33,5 @@ All ten previous SHA-256 values rechecked and unchanged. Eight newly supplied/do
 | U.I. Upscaler.zip | 95093e086166707b874bb2e5d12bac361f76637fe9df2c2a81cd24791846ccc7 |
 
 See COMMUNITY_LOADER.md for exact source provenance and binary evidence.
+
+T22: sha256sum -c of all 18 supplied references passed after inspection; no originals modified. Source fixture staging uses exact ZIP fingerprint and fresh private destination; no third-party files added to SSC.

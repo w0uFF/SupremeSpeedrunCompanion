@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.13-p0 — native profile persistence and launcher fixture preparation
+- Add native canonical schema-1 profile codec, lexical path policy and Win32 private file store, Python/C++ interoperability and persistence tests.
+- Correct offline launcher gate to require order and enablement; add offline Tkinter profile editor and fingerprint-gated PR66 source fixture.
+- Rewrite README for players, clarify optionality and current competition rules; document launcher UI proposal and G1 rollback procedure.
+- Windows core 26/26 Debug and Release, media 5/5, capture 3 passed/1 skipped, storage 1/1, independent inert DLL 1/1. Actual upstream fixture pending at documentation preparation. No game integration or release.
+
 ## v0.0.12-p0 — community-loader candidate and configuration prototype
 - Verify v0.0.11 final CI; inspect supplied PR66 loader source and private community references.
 - Add inert opt-in x86 cdecl initializer and launcher manifest with default-disabled loading; no game effects; independent Windows host test passed.

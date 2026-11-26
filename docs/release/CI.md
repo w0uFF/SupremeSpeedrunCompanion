@@ -31,3 +31,5 @@ T20 final exact code/test commit eda75eb2adc1d7ed319526b8a083696658a7bbf0 run 45
 T21 core floor 22; separate community-entry job builds only inert SSCNative and independent test host with SSC_NATIVE_CANDIDATE=ON. No real launcher or game loaded. No artifacts/releases of DLL; existing development release gate unchanged.
 
 T21 final code/test revision 478a33a790fdebc24c0f3788f10b1a00fa5dbdeb run 45795828198: 23/23 core each, 5/5 media, 3 capture pass/1 skip, 1/1 storage, 1/1 inert native entry. No actual community loader/game execution. Release skipped, no artifact publication.
+
+T22 Windows core floor 26; actual native FileStore and Python/C++ conformance. Separate reviewed PR66 source fixture CI (read-only repository, exact fingerprint gate, no artifacts, synthetic host). Source download failure/mismatch is BLOCKED not PASS even if workflow succeeds. No public release authorization.

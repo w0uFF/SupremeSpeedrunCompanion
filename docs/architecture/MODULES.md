@@ -26,3 +26,5 @@ T20: recorder pixel_conversion.hpp and audio_observation.hpp are pure C++17 help
 T21 adds offline SSC profile contract/store and CLI (tools/ssc_profiles.py, tools/ssc_profile_cli.py), launcher manifest (integrations/launcher/ssc/mod.json) and opt-in inert community_loader adapter. No dependencies on bootstrap, engine, capture, storage or submission. Native configuration adapter and UI pending. See SSC_CONFIGURATION.md and community_loader README.
 
 T21 follow-up: C++ configuration Controller injects Store and PathPolicy; independent typed settings and copy snapshots, no engine or I/O implementation. Existing Python reference remains standalone.
+
+T22 configuration: public/profile_codec.hpp and public/path_policy.hpp portable; infrastructure/windows_profile_store.hpp implements injected Store. Offline Tkinter controller uses existing Python reference. Native consumption and launcher state parsing remain separate pending adapters; no dependencies on game/recorder.
