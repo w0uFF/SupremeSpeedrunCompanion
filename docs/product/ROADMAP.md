@@ -41,3 +41,7 @@ T27 candidate: 600-frame capture, injected removal and begin/finalize failure te
 T27 first candidate ef335294a03a1746b8b3d52d1e48c660b09aa899 verified run 45860359753 (37/37 each core, 5/5 media, 7 PASS/1 SKIP capture, storage/entry 1/1). Follow-up branch includes saturation cancellation, mixed recovery and explicit capture completeness/reconciliation. Review exact final revision CI before merge. Next: private synthetic durable journal design and fault injection, longer capture/performance feasibility, official display correlation, owner G1 evidence; no local authority.
 
 T27 final v0.0.18-p0: exact implementation 83c89e0336cc781bf2fa70cd22754f89c2acf31a verified Windows 45861739545 and PR66 45861731467. T28: synthetic-only durable journal prototype and process-death recovery, longer bounded capture with measured fixture latency, static finish/identity correlation. No game install or local authority; G1 remains blocked.
+
+T28 candidate v0.0.19-p0: synthetic append-only snapshot store and process-death tests, 1200 selected-frame capture and measurement feasibility, static checkpoint/finish/HUD class mapping. Local model/store/summary tests verified, Windows candidate CI pending. No promotion until exact regression results; G1 remains blocked.
+
+T28 final v0.0.19-p0 verified with Windows and fixture-relevant PR66 equivalence. T29: synthetic coordinator and explicit journal-only reconciliation, representative-resolution bounded synthetic encoding metrics, further static timer research. G1 remains blocked.

@@ -10,6 +10,8 @@
 #include <winrt/Windows.Graphics.DirectX.h>
 #include <winrt/Windows.Graphics.DirectX.Direct3D11.h>
 #include <iostream>
+#include <chrono>
+#include "tools/media/fixture_performance.hpp"
 #include <filesystem>
 #include <fstream>
 #include <vector>
@@ -87,7 +89,20 @@ void pump() {
     MSG msg{};
     while(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageW(&msg);}
 }
-int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false) {
+using FixtureClock=std::chrono::steady_clock;
+std::int64_t elapsed_us(FixtureClock::time_point start,FixtureClock::time_point end){
+    return std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+}
+std::uint64_t process_cpu_100ns(){
+    FILETIME creation{},exit_time{},kernel{},user{};
+    if(!GetProcessTimes(GetCurrentProcess(),&creation,&exit_time,&kernel,&user))
+        throw std::runtime_error("fixture process CPU time unavailable");
+    const auto units=[](const FILETIME& value){
+        return (static_cast<std::uint64_t>(value.dwHighDateTime)<<32u)|value.dwLowDateTime;
+    };
+    return units(kernel)+units(user);
+}
+int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false) {
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
@@ -149,15 +164,19 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
         cap::Direct3D11CaptureFramePool& pool;
         ~CloseCapture(){try{session.Close();}catch(...){}try{pool.Close();}catch(...){}}
     } close_capture{session,pool};
+    const auto fixture_wall_begin=FixtureClock::now();
+    const auto cpu_begin=marathon?process_cpu_100ns():std::uint64_t{0};
     session.StartCapture();
     unsigned frames=0;std::int64_t last=-1;
     std::vector<std::uint8_t> dark,light;
     std::vector<supreme::recorder::TimedFrame> sequence;
     unsigned skipped_pattern=0;
-    const std::size_t target=extended?600u:long_fixture?240u:live?60u:12u;
+    const std::size_t target=marathon?1200u:extended?600u:long_fixture?240u:live?60u:12u;
+    std::vector<std::int64_t> processing_us;
+    if(marathon)processing_us.reserve(target);
     std::uint64_t written_before_stop=0;
     bool paused=false;
-    const auto deadline=GetTickCount64()+(extended?40000u:long_fixture?20000u:live?10000u:8000u);
+    const auto deadline=GetTickCount64()+(marathon?80000u:extended?40000u:long_fixture?20000u:live?10000u:8000u);
     while(GetTickCount64()<deadline && (live?lookahead.count()<target:timed?sequence.size()<target:output?light.empty():frames<3)){
         pump();
         if(auto frame=pool.TryGetNextFrame()){
@@ -187,11 +206,13 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
                 throw winrt::hresult_error(E_FAIL,L"frame dimensions or timestamp mismatch");
             last=time;++frames;
             if(output){
+                const auto processing_begin=FixtureClock::now();
                 auto pixels=read_crop(device.get(),frame);
                 if(live){
                     const auto count=lookahead.count();
                     if(matches(pixels,count>=target/2)){
                         if(auto packet=lookahead.push({static_cast<std::uint64_t>(time),std::move(pixels)}))offer(std::move(*packet));
+                        if(marathon)processing_us.push_back(elapsed_us(processing_begin,FixtureClock::now()));
                         std::cout<<"LiveFrame "<<count<<" "<<time<<"\n";
                         if(lookahead.count()==target/2)window.bright();
                         if(resize && lookahead.count()==5 && !SetWindowPos(window.handle,nullptr,0,0,400,300,SWP_NOMOVE|SWP_NOZORDER))throw std::runtime_error("test resize failed");
@@ -208,7 +229,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
             }
             frame.Close();
             // Controlled fixture-only pause; not a production capture technique.
-            if((long_fixture || extended) && !paused && lookahead.count()>=100){
+            if((long_fixture || extended || marathon) && !paused && lookahead.count()>=100){
                 paused=true;
                 Sleep(350);
             }
@@ -222,12 +243,23 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
         if(resize || lookahead.count()!=target || !written_before_stop){
             std::cerr<<"LiveIncomplete selected="<<lookahead.count()<<" observed="<<frames<<'\n';return frames?1:77;
         }
+        const auto drain_begin=FixtureClock::now();
         offer(lookahead.finish());worker->stop();worker->join();
+        const auto fixture_wall_end=FixtureClock::now();
         const auto q=worker->quality()[0];const auto& c=q.written;
         if(worker->state()!=supreme::recorder::State::finalized || c.packets!=target || q.accepted!=target ||
            c.first!=expected_coverage.first || c.end!=expected_coverage.end || c.duration!=expected_coverage.duration ||
            q.dropped_full || q.discarded || q.rejected_invalid)throw std::runtime_error("live worker quality");
         std::cout<<"LiveCapture "<<target<<" "<<frames<<" "<<skipped_pattern<<" "<<written_before_stop<<"\n";
+        if(marathon){
+            const auto cpu_end=process_cpu_100ns();
+            if(cpu_end<cpu_begin)throw std::runtime_error("fixture CPU clock regression");
+            const auto summary=ssc::media_fixture::summarize_latency(std::move(processing_us));
+            if(summary.count!=target)throw std::runtime_error("fixture processing sample count");
+            std::cout<<"LivePerformance "<<summary.count<<" "<<elapsed_us(fixture_wall_begin,fixture_wall_end)
+                     <<" "<<cpu_end-cpu_begin<<" "<<summary.median_us<<" "<<summary.p95_us<<" "
+                     <<summary.p99_us<<" "<<summary.max_us<<" "<<elapsed_us(drain_begin,fixture_wall_end)<<"\n";
+        }
         std::cout<<"LiveHandoff "<<c.packets<<" "<<c.first<<" "<<c.end<<" "<<c.duration<<" "<<*c.internal_gap()<<" "<<worker->high_water()<<" "<<q.dropped_full<<" "<<q.discarded<<"\n";
         return 0;
     }
@@ -269,9 +301,10 @@ int wmain(int argc,wchar_t** argv){
     const bool long_fixture=argc==3 && std::wstring_view(argv[1])==L"--live-long";
     const bool extended=argc==3 && std::wstring_view(argv[1])==L"--live-extended";
     const bool simulated_loss=argc==3 && std::wstring_view(argv[1])==L"--live-simulated-loss";
-    const bool live=resize || long_fixture || extended || simulated_loss || (argc==3 && std::wstring_view(argv[1])==L"--live");
+    const bool marathon=argc==3 && std::wstring_view(argv[1])==L"--live-marathon";
+    const bool live=resize || long_fixture || extended || simulated_loss || marathon || (argc==3 && std::wstring_view(argv[1])==L"--live");
     if(argc>2 && !timed && !live)return 2;
-    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture,extended,simulated_loss);}
+    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture,extended,simulated_loss,marathon);}
     catch(const winrt::hresult_error& e){
         const auto hr=e.code().value;
         std::cerr<<"WGC HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<'\n';
