@@ -19,3 +19,7 @@
 - T16 timer is not bound to native race events; QPC smoke test is not timing correctness in-game. Supported conversion frequency limited to 1 GHz; suspend behavior and performance unmeasured.
 - Offline SQLite schema is provisional and not an evidence database or C++ runtime decision; no arbitrary DB import, crash recovery, migration, deletion or native UI.
 - File inventory is not full package/export verification. API preview is not dispatchable; metadata, credentials and submission authorization absent. Recording feasibility is documentation-only; no interactive capture or codec test.
+
+- T17 archive is experimental, stored-only, 1 GiB total; no complete evidence schema, crash-safe publication, playback, import/extraction or authenticity. Do not assume arbitrary ZIP compatibility.
+- Preferences storage adapter remains test-only in C++; no production backend or run-store integration. Replay comparison needs caller-confirmed matching identity; no official IGT.
+- Media probe is synthetic and Windows-only; compile/runtime/codec support pending CI, no audio, live capture or performance validation.

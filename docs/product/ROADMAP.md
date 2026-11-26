@@ -9,3 +9,5 @@ P0-T14: offline menu/selection/lifecycle/clock reference mapping and replay posi
 P0-T15: registry/ownership and result-presentation mapping, Windows baseline diagnostic and proposed integration lifecycle complete as partial discovery. P0-T16: collect actual Windows baseline, seek upstream contract review, continue result producer and actual race identity investigation. G1 remains blocked; no candidate hooks active.
 
 P0-T16: parallel offline foundations — timing interval, reference storage, inventory and API preview. P0-T17: Windows CI, independent synthetic media feasibility and archive staging, continued native research. Native gate unchanged; no upstream availability dependency for isolated work.
+
+P0-T17: experimental archive roundtrip/verifier, preferences storage port, split comparison and media probe. Next: verify separate Windows media test, improve archive provenance/recovery and storage adapters, continue native finish/identity research. G1/G3/G4 unchanged.

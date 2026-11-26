@@ -67,3 +67,22 @@ Actual previous Windows CI: MSVC 19.52.37029.0, x86 compiler, Python 3.12.10, 8/
 Environment: Linux GCC 14.2.0, CMake 3.31.6, Python 3.13.5, SQLite 3.46.1. From fresh copy of local v0.0.6 build inputs verified against current Git tree blobs: cmake -S . -B <build> -DCMAKE_BUILD_TYPE=Debug (repeat Release), cmake --build <build> --parallel 4, ctest --test-dir <build> --output-on-failure --no-tests=error; UBSan Debug adds -DCMAKE_CXX_FLAGS="-fsanitize=undefined -fno-sanitize-recover=all" and equivalent C flags. All final source/test/CMake blobs compared to locally tested content before commit. No Windows game, storage crash-recovery or actual media backend test. Windows symlink fixture may skip when privilege unavailable. See docs/contracts for scopes and limitations.
 
 Previous Windows logs: MSVC 19.52.37029.0, x86 compiler, Python 3.12.10, 9/9 Debug and Release; https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45753602966
+
+## P0-T17 — v0.0.8-p0
+
+| Test ID | Result | Evidence |
+|---|---|---|
+| TEST-T16-WIN-001 | PASS | Actual run 45757144179 job 139698327194, commit 34f348c0508f8d7fe5e1c9e0e448712afbae954e; 13/13 Debug and Release; QPC smoke passed; release skipped |
+| TEST-T17-ARCHIVE-001 | PASS Linux | python tests/test_evidence_archive.py -v, six cases, exit 0 |
+| TEST-T17-PREF-001 | PASS Linux | P0_preferences_port, injected in-memory adapter |
+| TEST-T17-REPLAY-001 | PASS Linux | P0_replay_compare, two synthetic cases |
+| TEST-T17-REPLAY-002 | PASS static | 135 same-directory pair comparisons; arithmetic reconciliation, not IGT validation |
+| TEST-T17-STATIC-001 | OBSERVED_STATIC | Original objdump range 0x427000..0x427100, second presentation path |
+| TEST-T17-REGRESSION-001 | PASS Linux | fresh Debug CTest 16/16 |
+| TEST-T17-REGRESSION-002 | PASS Linux | fresh Release CTest 16/16 |
+| TEST-T17-INPUTS-001 | PASS | sha256sum -c against recorded input manifest and v0.0.4 hash; 10/10 unchanged |
+| TEST-T17-WIN-001 | NOT_RUN at commit preparation | Inspect exact new hosted CI logs |
+| TEST-T17-MEDIA-001 | NOT_RUN | Windows-only opt-in probe; separate CI job configured |
+| TEST-G1/G2/G3/G4 | BLOCKED/NOT_RUN | No native game test or complete evidence import/export workflow |
+
+Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Release); cmake --build <build> --parallel 4; ctest --test-dir <build> --output-on-failure --no-tests=error. Both passed 16/16; new CMake and source/test Git blob hashes checked against uploaded tree. No fresh sanitizer run. Windows CI uses official hosted runner and explicit Win32. Media probe compiled/run only by separate hosted job, not part of portable 16 targets. No release authorization. Prior verified logs: https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45757144179 .

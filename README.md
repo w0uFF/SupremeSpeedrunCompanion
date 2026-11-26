@@ -2,7 +2,7 @@
 
 An optional, community-driven speedrunning companion for Supreme Snowboarding (Boarder Zone).
 
-**Status: P0 discovery — not an installable mod.** Current revision v0.0.7-p0 adds an independent clock interval, local persistence, evidence inventory and offline submission preview to the verified v0.0.6 baseline. Native loader compatibility (G1), race timing, recording and menu integration have not been validated. Do not copy development files into your game directory.
+**Status: P0 discovery — not an installable mod.** Current revision v0.0.8-p0 adds experimental evidence archive creation/verification, a C++ preferences port, replay split comparison and an opt-in standalone Media Foundation probe. Native loader compatibility (G1), race timing, recording and menu integration have not been validated. Do not copy development files into your game directory.
 
 ## Project goals
 
@@ -22,7 +22,7 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure --no-tests=error
 ```
 
-Portable Linux: configure without -A Win32, then build and run CTest. Thirteen baseline CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
+Portable Linux: configure without -A Win32, then build and run CTest. Sixteen portable CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
 
 Read-only reference classifier: `python tools/preflight.py <copied-game-root>`. Exact on-disk matches are not runtime support or competition eligibility. For local research, `python tools/native_xrefs.py <original.exe> --compare <patched.exe>` requires GNU objdump; `python tools/replay_samples.py <replay.dat>` reports candidate coordinates and header timing without an official verdict. Use only trusted local reference copies. See docs/engine/ENGINE_MAP.md.
 
@@ -35,3 +35,5 @@ The original game, launcher binaries, private recordings, credentials, and raw r
 Optional paired diagnostic for a closed disposable game copy: `python tools/baseline_snapshot.py snapshot <game-root>` and `python tools/baseline_snapshot.py compare <before.json> <after.json>`. See docs/testing/WINDOWS_BASELINE.md. This never passes the loader gate.
 
 T16 standalone components: src/modules/timing/README.md and docs/contracts/OFFLINE_LIBRARY.md, EVIDENCE_INVENTORY.md, SUBMISSION_PREVIEW.md. Reference Python implementations are offline development tools, not dependencies of the native companion. No runtime, eligibility or release claims.
+
+T17: see docs/contracts/EVIDENCE_ARCHIVE.md and PREFERENCES_PORT.md. Optional Windows media test documented in docs/architecture/RECORDING_FEASIBILITY.md. None are installable game components or approved submission tooling.
