@@ -1,3 +1,4 @@
+#include "src/modules/submission/public/track_claims.hpp"
 #include "src/modules/session/public/session.hpp"
 #include "src/modules/capture_boundary/public/ledger.hpp"
 #include "src/modules/player_setup/public/setup.hpp"
@@ -52,6 +53,26 @@ static void submission_review() {
  using namespace submission; Draft d;CHECK(review(d,false)==Decision::incomplete_run);d.completed=true;CHECK(review(d,false)==Decision::unknown_category);d.category_id="wk6y97ed";CHECK(review(d,false)==Decision::missing_evidence);d.proof=player_setup::Proof::observed_menu_and_result;CHECK(review(d,false)==Decision::unresolved_rules);d.rules_confirmed=true;d.official_method=TimingMethod::ingame;CHECK(review(d,false)==Decision::missing_time);d.igt_ms=1000;CHECK(review(d,false)==Decision::missing_video);d.video_url="https://youtu.be/abc_DEF-123";CHECK(review(d,false)==Decision::awaiting_confirmation);CHECK(review(d,true)==Decision::offline_only);
  CHECK(!plausible_video_link("https://youtu.be.evil/a"));CHECK(!plausible_video_link("https://youtu.be/"));CHECK(!plausible_video_link("https://youtu.be/a?token=secret"));CHECK(!plausible_video_link("https://youtu.be/a\nb"));CHECK(!plausible_video_link("http://youtu.be/a"));
 }
+static void track_claims_review() {
+ using namespace submission;
+ using categories::Track;
+ TrackClaims c;
+ CHECK(compare_track_claims(c)==TrackClaimStatus::incomplete);
+ c={Track::alpine_easy,Track::alpine_easy,Track::alpine_easy,Track::alpine_easy,std::nullopt,false,true};
+ CHECK(compare_track_claims(c)==TrackClaimStatus::consistent_claims);
+ c.replay_expected=true;CHECK(compare_track_claims(c)==TrackClaimStatus::incomplete);
+ c.replay=Track::alpine_hard;CHECK(compare_track_claims(c)==TrackClaimStatus::conflicting);
+ c.replay=Track::alpine_easy;CHECK(compare_track_claims(c)==TrackClaimStatus::consistent_claims);
+ c.video_coverage_claimed=false;CHECK(compare_track_claims(c)==TrackClaimStatus::incomplete);
+ c.finish=Track::forest_easy;CHECK(compare_track_claims(c)==TrackClaimStatus::conflicting);
+ c.finish=static_cast<Track>(99);CHECK(compare_track_claims(c)==TrackClaimStatus::malformed);
+ c.finish=Track::alpine_easy;c.video_coverage_claimed=true;
+ // Claim agreement does not bypass the existing main-menu proof requirement.
+ Draft d;d.completed=true;d.category_id="wk6y97ed";d.rules_confirmed=true;
+ d.official_method=TimingMethod::ingame;d.igt_ms=1000;d.video_url="https://youtu.be/abc";
+ CHECK(compare_track_claims(c)==TrackClaimStatus::consistent_claims);
+ CHECK(review(d,true)==Decision::missing_evidence);
+}
 static void capture_boundaries() {
  using namespace capture_boundary;
  Ledger a(Mode::automatic,1);CHECK(a.id()==1);CHECK(!a.selection_observed(1,1));CHECK(a.acquired(10));CHECK(!a.acquired(11));CHECK(a.selection_observed(1,12));CHECK(a.begin(1,1,13));CHECK(!a.close(14,false));CHECK(a.end(1,1,End::restarted,15));CHECK(!a.close(16,false));CHECK(!a.begin(2,1,16));CHECK(a.begin(1,2,16));CHECK(a.end(1,2,End::finished,20));CHECK(!a.close(21,false));CHECK(a.result_observed(1,2,22));CHECK(a.close(23,false));CHECK(a.state()==capture_boundary::State::finalizing);CHECK(a.finalized());CHECK(!a.finalized());CHECK(a.markers().size()==2&&a.observed_menu());
@@ -59,4 +80,4 @@ static void capture_boundaries() {
  Ledger failed(Mode::automatic,3);CHECK(failed.acquired(1));failed.failure();CHECK(failed.state()==capture_boundary::State::failed&&!failed.begin(3,1,2));
  Ledger old(Mode::automatic,4);CHECK(old.acquired(1));CHECK(old.begin(4,1,2));CHECK(old.end(4,1,End::restarted,3));CHECK(old.close(4,false,true));Ledger fresh(Mode::automatic,5);CHECK(fresh.acquired(4));CHECK(fresh.selection_observed(5,5));CHECK(fresh.begin(5,1,6));CHECK(old.state()==capture_boundary::State::finalizing&&fresh.state()==capture_boundary::State::acquiring);
 }
-int main(){try{catalog_setup();std::cout<<"catalog_setup PASS\n";individual();std::cout<<"individual PASS\n";all_tracks();std::cout<<"all_tracks PASS\n";championship_and_limits();std::cout<<"championship_and_limits PASS\n";submission_review();std::cout<<"submission_review PASS\n";capture_boundaries();std::cout<<"capture_boundaries PASS\n";}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{catalog_setup();std::cout<<"catalog_setup PASS\n";individual();std::cout<<"individual PASS\n";all_tracks();std::cout<<"all_tracks PASS\n";championship_and_limits();std::cout<<"championship_and_limits PASS\n";submission_review();std::cout<<"submission_review PASS\n";track_claims_review();std::cout<<"track_claims_review PASS\n";capture_boundaries();std::cout<<"capture_boundaries PASS\n";}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
