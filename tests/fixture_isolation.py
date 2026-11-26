@@ -6,6 +6,14 @@ MODES = ('window', 'device', 'pool', 'worker-idle', 'worker-write')
 CYCLES = 3
 REFINEMENT_MODES = ('support-only', 'item-only', 'framepool-only', 'pool')
 REFINEMENT_CYCLES = 6
+ONCE_COUNTS = {
+    'cached-support': (1,0,0,0,0),
+    'factory-only': (1,6,0,0,0),
+    'cached-item': (1,6,6,6,0),
+    'cached-item-reused-window': (1,6,6,1,0),
+    'cached-pool': (1,6,6,6,6),
+}
+ONCE_MODES = tuple(ONCE_COUNTS)
 
 
 @dataclass(frozen=True)
@@ -33,7 +41,7 @@ class Outcome:
 
 
 def evidence(text, mode, cycles=CYCLES):
-    allowed = MODES if cycles == CYCLES else REFINEMENT_MODES if cycles == REFINEMENT_CYCLES else ()
+    allowed = MODES if cycles == CYCLES else (REFINEMENT_MODES + ONCE_MODES) if cycles == REFINEMENT_CYCLES else ()
     if mode not in allowed or len(text)>64_000:
         raise ValueError('isolation mode or output bound')
     rows=[line for line in text.splitlines() if line.startswith('Isolation')]
@@ -61,3 +69,14 @@ def evidence(text, mode, cycles=CYCLES):
             raise ValueError('isolation outcome bounds')
         outcomes.append(o)
     return tuple(samples),tuple(outcomes)
+
+
+def once_evidence(text, mode):
+    if mode not in ONCE_COUNTS:
+        raise ValueError('once mode')
+    rows,outcomes=evidence(text,mode,REFINEMENT_CYCLES)
+    markers=[line for line in text.splitlines() if line.startswith('WGCOnce')]
+    expected='WGCOnceCounts '+mode+' '+' '.join(map(str,ONCE_COUNTS[mode]))
+    if markers!=[expected] or text.splitlines()[-1]!=expected:
+        raise ValueError('once call counts or marker order')
+    return rows,outcomes

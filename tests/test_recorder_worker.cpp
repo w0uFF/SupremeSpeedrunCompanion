@@ -29,6 +29,16 @@ struct FinalizeGateSink final:Sink {
     void finalize() override {++finalizes;entered.set_value();permit.wait();if(fail)throw std::runtime_error("late finalize fixture");}
     void abort() noexcept override {++aborts;}
 };
+struct BeginGateSink final:Sink {
+    std::promise<void> entered, release;
+    std::shared_future<void> permit=release.get_future().share();
+    unsigned begins=0,writes=0,finalizes=0,aborts=0;
+    bool fail=false;
+    void begin() override {++begins;entered.set_value();permit.wait();if(fail)throw std::runtime_error("late begin fixture");}
+    void write(const Packet&) override {++writes;}
+    void finalize() override {++finalizes;}
+    void abort() noexcept override {++aborts;}
+};
 Packet video(std::uint64_t pts){return {Stream::video,pts,10,{1,2}};}
 int main(){
     {
@@ -101,6 +111,21 @@ int main(){
         CHECK(terminal==(fail?State::failed:State::finalized) && w.state()==terminal);
         CHECK(s.writes==1 && s.finalizes==1 && s.aborts==(fail?1u:0u));
         const auto n=w.stats();CHECK(n.accepted==1 && n.written==1 && !n.discarded && !n.dropped_full && !n.rejected_invalid);
+    }
+    // Start is an asynchronous boundary: stop/cancel before begin completes.
+    for(bool cancel:{false,true})for(bool fail:{false,true}){
+        BeginGateSink s;s.fail=fail;Worker w(s,2,16);
+        const auto entered=s.entered.get_future().wait_for(std::chrono::seconds(5));
+        const auto before=w.state();const auto first=w.offer(video(0));
+        if(cancel)w.cancel();else w.stop();
+        const auto requested=w.state();const auto second=w.offer(video(10));
+        s.release.set_value();w.join();
+        CHECK(entered==std::future_status::ready && before==State::starting && first==Offer::closed);
+        CHECK(requested==(cancel?State::cancelling:State::draining) && second==Offer::closed);
+        const auto expected=fail?State::failed:cancel?State::cancelled:State::finalized;
+        CHECK(w.state()==expected && s.begins==1 && s.writes==0);
+        CHECK(s.finalizes==(!cancel&&!fail?1u:0u) && s.aborts==(cancel||fail?1u:0u));
+        const auto n=w.stats();CHECK(!n.accepted && !n.written && !n.discarded && !n.dropped_full && !n.rejected_invalid);
     }
     try {GateSink s;Worker w(s,128,16u*1024u*1024u);return 1;}catch(const std::invalid_argument&){}
     return 0;

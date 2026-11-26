@@ -82,3 +82,5 @@ T35 verified in isolated automated fixtures: injected recorder write failure, st
 T36 verified in isolated Windows fixtures: compound WGC setup reproduces recurring +2 settled handles; deterministic finalization failure/restart and fresh-child torn-journal refusal passed. No leak attribution, gameplay or installation claim.
 
 T37 verified in isolated Windows fixtures: recurring +1 settled handles in WGC support-only, +2 in item setup, unchanged increment with pool/session. Finalization-state and repeated recovery refusal tests passed. No ownership, leak, gameplay or installation claim.
+
+T38 verified in isolated Windows fixtures: one-time support and factory-only controls flat; item setup retains recurring +1 settled handles with either recreated or reused window. Startup/recovery regressions PASS. No ownership, leak, gameplay or installation claim.

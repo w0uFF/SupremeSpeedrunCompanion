@@ -1,5 +1,5 @@
 import unittest
-from fixture_isolation import MODES, REFINEMENT_MODES, REFINEMENT_CYCLES, evidence
+from fixture_isolation import MODES, REFINEMENT_MODES, REFINEMENT_CYCLES, ONCE_COUNTS, evidence, once_evidence
 
 
 def log(mode, cycles=3):
@@ -30,6 +30,19 @@ class IsolationTests(unittest.TestCase):
             with self.assertRaises(ValueError): evidence(log(mode,cycles),mode,cycles)
         with self.assertRaises(ValueError): evidence(log('pool',3),'pool',6)
         with self.assertRaises(ValueError): evidence(log('pool',6).replace('IsolationSample 6 3 123','IsolationSample 6 3 456'),'pool',6)
+
+    def test_once_counts(self):
+        for mode,counts in ONCE_COUNTS.items():
+            with self.subTest(mode=mode):
+                marker='WGCOnceCounts '+mode+' '+' '.join(map(str,counts))
+                base=log(mode,6)+'\n'+marker
+                rows,outcomes=once_evidence(base,mode)
+                self.assertEqual((len(rows),len(outcomes)),(24,6))
+                for bad in (log(mode,6),base+'\n'+marker,
+                            base.replace(marker,marker.replace(' 1 ',' 2 ',1)),
+                            marker+'\n'+log(mode,6)):
+                    with self.assertRaises(ValueError): once_evidence(bad,mode)
+        with self.assertRaises(ValueError): once_evidence(log('pool',6),'pool')
 
     def test_refuses_corruption(self):
         base=log('worker-write')
