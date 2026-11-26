@@ -284,7 +284,7 @@ int wmain(int argc,wchar_t** argv) {
                 if(timeline.size()==supreme::recorder::FrameLookahead::max_frames || pts>supreme::recorder::FrameLookahead::max_span || duration>supreme::recorder::fixture_max_hold || !coverage.observe(pts,duration))throw std::runtime_error("live decode timeline");
                 timeline.push_back({pts,duration});
             }
-            if(!input.eof() || (timeline.size()!=60 && timeline.size()!=240 && timeline.size()!=600) || timeline.front().pts!=0 || timeline.back().duration!=supreme::recorder::fixture_tail)throw std::runtime_error("live decode bounds");
+            if(!input.eof() || (timeline.size()!=60 && timeline.size()!=240 && timeline.size()!=600 && timeline.size()!=1200) || timeline.front().pts!=0 || timeline.back().duration!=supreme::recorder::fixture_tail)throw std::runtime_error("live decode bounds");
             frames=static_cast<UINT32>(timeline.size());
             (void)decode(argv[1],&timeline);return 0;
         }

@@ -10,8 +10,8 @@ class FrameLookahead {
     std::size_t count_=0;
     bool closed_=false;
 public:
-    static constexpr std::size_t max_frames=720;
-    static constexpr std::uint64_t max_span=450000000;
+    static constexpr std::size_t max_frames=1440;
+    static constexpr std::uint64_t max_span=900000000;
     std::size_t count()const noexcept{return count_;}
     std::optional<Packet> push(TimedFrame frame){
         if(closed_ || count_==max_frames || frame.pixels.size()!=fixture_bytes ||
