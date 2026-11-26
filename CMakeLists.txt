@@ -360,3 +360,8 @@ if(TARGET ssc_index AND Python3_Interpreter_FOUND)
  add_test(NAME P0_synthetic_retry_native COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_synthetic_retry.py $<TARGET_FILE:ssc_index>)
  set_tests_properties(P0_synthetic_retry_native PROPERTIES TIMEOUT 90)
 endif()
+
+if(Python3_Interpreter_FOUND)
+ add_test(NAME P0_fixture_display_contract COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_fixture_display.py -v)
+ set_tests_properties(P0_fixture_display_contract PROPERTIES TIMEOUT 15)
+endif()
