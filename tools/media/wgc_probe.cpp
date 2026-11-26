@@ -14,6 +14,7 @@
 #include <chrono>
 #include "tools/media/fixture_performance.hpp"
 #include <filesystem>
+#include <array>
 #include <fstream>
 #include <vector>
 #include "src/modules/recorder/public/pixel_conversion.hpp"
@@ -40,15 +41,17 @@ LRESULT CALLBACK paint_window(HWND hwnd,UINT message,WPARAM wp,LPARAM lp) {
 }
 struct Window {
     HWND handle=nullptr;
+    ATOM registered=0;
     explicit Window(bool hd=false){
         WNDCLASSW cls{};cls.lpfnWndProc=paint_window;cls.hInstance=GetModuleHandleW(nullptr);cls.lpszClassName=L"SSC_T20_OwnWindow";
-        if(!RegisterClassW(&cls))return;
+        registered=RegisterClassW(&cls);
+        if(!registered)return;
         const DWORD style=hd?static_cast<DWORD>(WS_POPUP|WS_VISIBLE):static_cast<DWORD>(WS_OVERLAPPEDWINDOW|WS_VISIBLE);
         handle=CreateWindowExW(0,cls.lpszClassName,L"SSC synthetic capture test",style,
                                hd?0:40,hd?0:40,hd?1280:320,hd?720:240,nullptr,nullptr,cls.hInstance,nullptr);
         if(handle)UpdateWindow(handle);
     }
-    ~Window(){if(handle)DestroyWindow(handle);}
+    ~Window(){if(handle)DestroyWindow(handle);if(registered)UnregisterClassW(MAKEINTATOM(registered),GetModuleHandleW(nullptr));}
     void bright(){SetWindowLongPtrW(handle,GWLP_USERDATA,1);InvalidateRect(handle,nullptr,FALSE);UpdateWindow(handle);}
 };
 // Map only a bounded centered crop of the own window. No desktop capture or scaling.
@@ -120,7 +123,7 @@ std::uint64_t process_cpu_100ns(){
     };
     return units(kernel)+units(user);
 }
-int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false,bool hd=false,bool hd_extended=false) {
+int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false,bool hd=false,bool hd_extended=false,bool hd_sustained=false) {
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
@@ -199,7 +202,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     std::vector<std::uint8_t> dark,light;
     std::vector<supreme::recorder::TimedFrame> sequence;
     unsigned skipped_pattern=0;
-    const std::size_t target=hd_extended?600u:hd?240u:marathon?1200u:extended?600u:long_fixture?240u:live?60u:12u;
+    const std::size_t target=hd_sustained?1200u:hd_extended?600u:hd?240u:marathon?1200u:extended?600u:long_fixture?240u:live?60u:12u;
     std::vector<std::int64_t> processing_us;
     if(marathon || hd)processing_us.reserve(target);
     std::uint64_t written_before_stop=0;
@@ -351,8 +354,40 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
              <<", increasing QPC-correlated timestamps (coarse one-second sanity bound)\n";
     return 0;
 }
+void lifecycle_sample(unsigned phase){
+    PROCESS_MEMORY_COUNTERS_EX memory{};
+    memory.cb=static_cast<DWORD>(sizeof(memory));
+    DWORD handles=0;
+    if(!GetProcessMemoryInfo(GetCurrentProcess(),reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory),memory.cb)
+       || !GetProcessHandleCount(GetCurrentProcess(),&handles))
+        throw std::runtime_error("lifecycle resource sample unavailable");
+    std::cout<<"HDLifecycleSample "<<phase<<" "<<GetCurrentProcessId()<<" "
+             <<memory.PeakWorkingSetSize<<" "<<memory.WorkingSetSize<<" "<<memory.PrivateUsage<<" "<<handles<<std::endl;
+}
+int lifecycle(const std::filesystem::path& directory){
+    if(!std::filesystem::is_directory(directory) || std::filesystem::is_symlink(directory))return 2;
+    const std::array<std::filesystem::path,3> files{
+        directory/L"segment-1.mp4",directory/L"segment-2.mp4",directory/L"segment-3.mp4"};
+    for(const auto& file:files)if(std::filesystem::exists(std::filesystem::symlink_status(file)))return 2;
+    lifecycle_sample(0);
+    for(unsigned i=0;i<files.size();++i){
+        const bool sustained=i==1;
+        std::cout<<"HDLifecycleBegin "<<i+1<<" "<<(sustained?1200:600)<<std::endl;
+        const int status=run(files[i].c_str(),false,true,false,false,false,false,false,true,true,sustained);
+        if(status!=0){std::cerr<<"HDLifecycleIncomplete "<<i+1<<" "<<status<<'\n';return 1;}
+        // All run-local capture, worker, window and apartment resources have left scope.
+        lifecycle_sample(i+1);
+        std::cout<<"HDLifecycleEnd "<<i+1<<std::endl;
+    }
+    return 0;
+}
 }
 int wmain(int argc,wchar_t** argv){
+    if(argc==3 && std::wstring_view(argv[1])==L"--live-hd720-lifecycle"){
+        try{return lifecycle(std::filesystem::path(argv[2]));}
+        catch(const winrt::hresult_error& e){std::cerr<<"HD lifecycle HRESULT "<<winrt::to_string(e.message())<<'\n';return 1;}
+        catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
+    }
     const bool timed=argc==3 && std::wstring_view(argv[1])==L"--timed";
     const bool resize=argc==3 && std::wstring_view(argv[1])==L"--live-resize";
     const bool long_fixture=argc==3 && std::wstring_view(argv[1])==L"--live-long";

@@ -40,6 +40,22 @@ def child():
             original(source,destination)
             os._exit(91)
         archive_publish.os.link=stop_after_link
+    elif point=='after_alias_cleanup':
+        assert expected.action=='retry_archive_alias_cleanup'
+        original=Path.unlink
+        def stop_after_unlink(path,*args,**kwargs):
+            original(path,*args,**kwargs)
+            if path==managed/('synthetic-'+RUN+'.zip.partial'):
+                os._exit(91)
+        Path.unlink=stop_after_unlink
+    elif point in ('published_flush','indexed_publish'):
+        decision=observe(store,managed,lookup)
+        assert decision.action==('append_published' if point=='published_flush' else 'append_indexed')
+        target='after_flush' if point=='published_flush' else 'after_publish'
+        def stop_at(boundary):
+            if boundary==target: os._exit(91)
+        reconcile(store,managed,lookup,decision,stop_at)
+        raise AssertionError('journal interruption not reached')
     elif point=='after_insert':
         assert expected.action=='retry_index'
         original=synthetic_index_port._insert
@@ -107,9 +123,35 @@ def scenario(exe, lost_response=False):
         assert os.path.samefile(final,partial) and snapshot(private)==initial and db.read_bytes()==db_initial
         alias=plan(store,managed,index)
         assert alias.action=='retry_archive_alias_cleanup'
-        assert execute(store,managed,index,alias)=='alias_cleaned'
+        if lost_response:
+            assert execute(store,managed,index,alias)=='alias_cleaned'
+        else:
+            crash('after_alias_cleanup')
+            assert plan(store,managed,index) is None
+            assert observe(store,managed,lookup).action=='append_published'
+            try:
+                execute(store,managed,index,alias)
+            except ReviewRequired:
+                pass
+            else:
+                raise AssertionError('stale alias cleanup accepted')
         assert not partial.exists() and final.read_bytes()==source.read_bytes()
         assert snapshot(private)==initial and db.read_bytes()==db_initial
+        if not lost_response:
+            before=observe(store,managed,lookup)
+            crash('published_flush')
+            state=store.inspect()
+            assert state.latest==v and state.pending==before.snapshot and not state.alias
+            assert all((private/n).read_bytes()==b for n,b in initial.items())
+            assert db.read_bytes()==db_initial and final.read_bytes()==source.read_bytes()
+            assert plan(store,managed,index) is None
+            assert observe(store,managed,lookup).action=='retry_journal'
+            try:
+                reconcile(store,managed,lookup,before)
+            except ReviewRequired:
+                pass
+            else:
+                raise AssertionError('stale journal decision accepted')
         reconcile(store,managed,lookup,observe(store,managed,lookup))
         published=snapshot(private)
         expected=plan(store,managed,index)
@@ -204,10 +246,21 @@ def scenario(exe, lost_response=False):
         assert snapshot(private)==published and lookup(RUN,report,'synthetic')=='identical'
         assert plan(store,managed,index) is None
         indexed_bytes=db.read_bytes()
+        if not lost_response:
+            before=observe(store,managed,lookup)
+            assert before.action=='append_indexed'
+            crash('indexed_publish')
+            state=store.inspect()
+            assert state.latest==before.snapshot and state.pending==before.snapshot and state.alias
+            assert all((private/n).read_bytes()==b for n,b in published.items())
+            assert db.read_bytes()==indexed_bytes and final.read_bytes()==source.read_bytes()
+            assert plan(store,managed,index) is None
+            assert observe(store,managed,lookup).action=='retry_journal'
         reconcile(store,managed,lookup,observe(store,managed,lookup))
         assert observe(store,managed,lookup).action=='none'
         assert db.read_bytes()==indexed_bytes and final.read_bytes()==source.read_bytes()
         assert all((private/n).read_bytes()==b for n,b in published.items())
+        assert store.inspect().pending is None
         print('Native retry scenario PASS: '+('injected pre-insert outage and lost committed response' if lost_response else 'real process termination after native insert'))
 
 
