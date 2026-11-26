@@ -148,7 +148,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build capture-build --config Release --target p0_wgc_probe p0_process_audio_probe p0_media_probe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ctest --test-dir capture-build -C Release -R "^p0_(wgc|process_audio|process_audio_sample|captured_video|timed_video|live_video)_probe$" --verbose --no-tests=error
+          ctest --test-dir capture-build -C Release -R "^p0_(wgc|process_audio|process_audio_sample|captured_video|timed_video|live_video|live_long_video)_probe$" --verbose --no-tests=error
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   storage-probe:

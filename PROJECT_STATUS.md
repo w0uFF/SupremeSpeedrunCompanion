@@ -18,3 +18,5 @@ Owner disposable Windows baseline and supported installed loader provenance stil
 T26 candidate v0.0.17: one-frame lookahead, shared MF fixture sink and direct WGC-to-worker concurrent video-only fixture (60 frames), actual resize refusal, independent decode; CI pending. No native game integration.
 
 T26 candidate: explicit single-run read-only recovery status (pending/final/alias/conflict/orphan/unavailable), actual native compare/presence uses SQLite READONLY; added regression scenarios. No automatic cleanup or local admission. CI pending.
+
+T26 60-frame live fixture and read-only status passed intermediate Windows tests. Extended 240-frame actual live fixture with controlled capture-side pause and independent gap check added; CI pending; manifest synchronized to 0.0.17-p0.

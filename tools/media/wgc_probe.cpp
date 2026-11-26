@@ -87,7 +87,7 @@ void pump() {
     MSG msg{};
     while(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageW(&msg);}
 }
-int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false) {
+int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false) {
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
@@ -154,9 +154,10 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     std::vector<std::uint8_t> dark,light;
     std::vector<supreme::recorder::TimedFrame> sequence;
     unsigned skipped_pattern=0;
-    const std::size_t target=live?60u:12u;
+    const std::size_t target=long_fixture?240u:live?60u:12u;
     std::uint64_t written_before_stop=0;
-    const auto deadline=GetTickCount64()+(live?10000u:8000u);
+    bool paused=false;
+    const auto deadline=GetTickCount64()+(long_fixture?20000u:live?10000u:8000u);
     while(GetTickCount64()<deadline && (live?lookahead.count()<target:timed?sequence.size()<target:output?light.empty():frames<3)){
         pump();
         if(auto frame=pool.TryGetNextFrame()){
@@ -197,6 +198,11 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
                 else if(!dark.empty() && matches(pixels,true))light=std::move(pixels);
             }
             frame.Close();
+            // Controlled fixture-only pause; not a production capture technique.
+            if(long_fixture && !paused && lookahead.count()>=100){
+                paused=true;
+                Sleep(350);
+            }
         }
         SetWindowTextW(window.handle,(GetTickCount64()/100)%2?L"SSC synthetic capture A":L"SSC synthetic capture B");
         InvalidateRect(window.handle,nullptr,TRUE);
@@ -251,9 +257,10 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
 int wmain(int argc,wchar_t** argv){
     const bool timed=argc==3 && std::wstring_view(argv[1])==L"--timed";
     const bool resize=argc==3 && std::wstring_view(argv[1])==L"--live-resize";
-    const bool live=resize || (argc==3 && std::wstring_view(argv[1])==L"--live");
+    const bool long_fixture=argc==3 && std::wstring_view(argv[1])==L"--live-long";
+    const bool live=resize || long_fixture || (argc==3 && std::wstring_view(argv[1])==L"--live");
     if(argc>2 && !timed && !live)return 2;
-    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize);}
+    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture);}
     catch(const winrt::hresult_error& e){
         const auto hr=e.code().value;
         std::cerr<<"WGC HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<'\n';

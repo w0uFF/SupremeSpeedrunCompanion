@@ -176,6 +176,8 @@ if(SSC_CAPTURE_PROBES)
   set_tests_properties(p0_timed_video_probe PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
   add_test(NAME p0_live_video_probe COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_live_video.py $<TARGET_FILE:p0_wgc_probe> $<TARGET_FILE:p0_media_probe>)
   set_tests_properties(p0_live_video_probe PROPERTIES TIMEOUT 90 SKIP_RETURN_CODE 77)
+  add_test(NAME p0_live_long_video_probe COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_live_video.py $<TARGET_FILE:p0_wgc_probe> $<TARGET_FILE:p0_media_probe> --long)
+  set_tests_properties(p0_live_long_video_probe PROPERTIES TIMEOUT 90 SKIP_RETURN_CODE 77)
  endif()
 endif()
 
