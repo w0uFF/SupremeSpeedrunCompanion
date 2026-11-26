@@ -45,3 +45,5 @@ T27 final v0.0.18-p0: exact implementation 83c89e0336cc781bf2fa70cd22754f89c2acf
 T28 candidate v0.0.19-p0: synthetic append-only snapshot store and process-death tests, 1200 selected-frame capture and measurement feasibility, static checkpoint/finish/HUD class mapping. Local model/store/summary tests verified, Windows candidate CI pending. No promotion until exact regression results; G1 remains blocked.
 
 T28 final v0.0.19-p0 verified with Windows and fixture-relevant PR66 equivalence. T29: synthetic coordinator and explicit journal-only reconciliation, representative-resolution bounded synthetic encoding metrics, further static timer research. G1 remains blocked.
+
+T29 candidate v0.0.20-p0: isolated coordinator, explicit journal-only reconciliation and native subprocess interruption fixtures; representative 720p synthetic encoder benchmark, bounded queue and measured process resources; AI_Player inheritance and separate result argument/row time. Local pure regressions passed. Windows candidate validation pending. Next exact CI/PR66 review before promotion; keep G1 closed.
