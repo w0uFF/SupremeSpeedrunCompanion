@@ -4,6 +4,7 @@ import re
 from fixture_repeat import fields, trial
 
 COUNTS = (600, 1200, 600)
+FAULT_COUNTS = (600, 120, 1200, 120, 600)
 
 
 @dataclass(frozen=True)
@@ -16,15 +17,17 @@ class Resource:
     handles: int
 
 
-def split(text):
-    if len(text) > 512_000:
+def split(text, counts=COUNTS):
+    if counts not in (COUNTS, FAULT_COUNTS):
+        raise ValueError('unsupported lifecycle sequence')
+    if len(text) > (768_000 if counts == FAULT_COUNTS else 512_000):
         raise ValueError('lifecycle log bound')
     blocks, resources = [], []
     active = None
     for line in text.splitlines():
         if line.startswith('HDLifecycleSample '):
             r = Resource(*fields(line, 'HDLifecycleSample', 6))
-            if r.phase != len(resources) or r.phase > 3 or not r.pid or not 0 < r.working <= r.peak or not 0 < r.private <= 2**32 or not r.handles:
+            if r.phase != len(resources) or r.phase > len(counts) or not r.pid or not 0 < r.working <= r.peak or not 0 < r.private <= 2**32 or not r.handles:
                 raise ValueError('lifecycle sample bounds')
             if resources and (r.pid != resources[0].pid or r.peak < resources[-1].peak):
                 raise ValueError('lifecycle identity or peak regression')
@@ -33,7 +36,7 @@ def split(text):
             resources.append(r)
         elif line.startswith('HDLifecycleBegin '):
             n,count=fields(line,'HDLifecycleBegin',2)
-            if active is not None or n!=len(blocks)+1 or n>3 or count!=COUNTS[n-1] or len(resources)!=n:
+            if active is not None or n!=len(blocks)+1 or n>len(counts) or count!=counts[n-1] or len(resources)!=n:
                 raise ValueError('lifecycle begin')
             active=n
             blocks.append([])
@@ -48,7 +51,7 @@ def split(text):
             if len(resources)!=active:
                 raise ValueError('clip evidence after scope sample')
             blocks[-1].append(line)
-    if active is not None or len(blocks)!=3 or len(resources)!=4:
+    if active is not None or len(blocks)!=len(counts) or len(resources)!=len(counts)+1:
         raise ValueError('incomplete lifecycle')
     return tuple('\n'.join(b) for b in blocks),tuple(resources)
 

@@ -1,6 +1,6 @@
 {
   "name": "Supreme Speedrun Companion (development prototype)",
-  "version": "0.0.24-p0",
+  "version": "0.0.25-p0",
   "description": "Inert diagnostic only. No recording, hooks or game changes. Do not install before G1 review.",
   "dlls": [
     {
