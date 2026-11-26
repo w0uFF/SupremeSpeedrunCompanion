@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.17-p0 — concurrent own-window video and recovery inspection
+- Bounded one-frame lookahead, shared test-only MF sink, direct concurrent WGC video capture, 60/240-frame decode checks, controlled gap and actual resize refusal. No gameplay or actual audio claim.
+- Explicit single-run read-only archive status and native SQLite READONLY comparison/presence; no automatic repair or local-origin admission. Proposed private local admission boundary.
+- Static scheduler/render separation and direct candidate IGT formatter; no authoritative finish inference.
+- Windows core 36/36 each, media 5/5, capture 6 PASS/1 SKIP, storage/entry 1/1. VERIFIED_AUTOMATED: v0.0.17 PR66 rerun 45856450816/job 140035983590: reviewed upstream 3/3, SSC 2/2 including native preview, startup/runtime PASS, loads 0/0/1. Actual logs inspected. Prior v0.0.16 fixture preserved. G1 blocked, release skipped.
+
 ## v0.0.16-p0 — verified archive indexing and timestamped own-window capture
 - Add recoverable offline schema-2 archive admission, no-replace publication, exact manifest digest linkage and native index bridge. Imports remain nonlocal regardless of claimed origin; synthetic fixture explicit; local producer not enabled.
 - Add bounded timestamped WGC sequence handoff and video-only worker encoding/independent decode check, with explicit hold/tail policy and coverage limitations.
