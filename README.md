@@ -86,3 +86,5 @@ T37 verified in isolated Windows fixtures: recurring +1 settled handles in WGC s
 T38 verified in isolated Windows fixtures: one-time support and factory-only controls flat; item setup retains recurring +1 settled handles with either recreated or reused window. Startup/recovery regressions PASS. No ownership, leak, gameplay or installation claim.
 
 T39 verified in isolated Windows fixtures: repeated capture-item creation +1 settled handles per scope; reused-item Size and session setup flat across six scopes. Track-claim workflow and PR66 PASS. Conditional moderator support; demonstration pending, no rule change. See [community acceptance record](docs/product/COMMUNITY_ACCEPTANCE.md).
+
+T40 candidate (branch only): same-item actual acquisition lifecycle fixture and per-attempt track-claim binding, portable lifecycle parser5/5 and standalone C++ smoke108 assertions PASS; Windows/PR66 pending. No gameplay/install/rule change.
