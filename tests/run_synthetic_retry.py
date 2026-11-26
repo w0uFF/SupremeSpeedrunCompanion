@@ -48,10 +48,10 @@ def child():
             if path==managed/('synthetic-'+RUN+'.zip.partial'):
                 os._exit(91)
         Path.unlink=stop_after_unlink
-    elif point in ('published_flush','indexed_publish'):
+    elif point in ('published_flush','indexed_publish','published_partial'):
         decision=observe(store,managed,lookup)
-        assert decision.action==('append_published' if point=='published_flush' else 'append_indexed')
-        target='after_flush' if point=='published_flush' else 'after_publish'
+        assert decision.action==('append_indexed' if point=='indexed_publish' else 'append_published')
+        target={'published_flush':'after_flush','indexed_publish':'after_publish','published_partial':'partial_write'}[point]
         def stop_at(boundary):
             if boundary==target: os._exit(91)
         reconcile(store,managed,lookup,decision,stop_at)
@@ -73,7 +73,7 @@ def snapshot(directory):
     return {p.name:p.read_bytes() for p in directory.iterdir()}
 
 
-def scenario(exe, lost_response=False):
+def scenario(exe, lost_response=False, corrupt_pending=False):
     with tempfile.TemporaryDirectory() as tmp:
         root=Path(tmp)
         stage,managed,private=(root/n for n in ('stage','managed','journal'))
@@ -137,6 +137,35 @@ def scenario(exe, lost_response=False):
                 raise AssertionError('stale alias cleanup accepted')
         assert not partial.exists() and final.read_bytes()==source.read_bytes()
         assert snapshot(private)==initial and db.read_bytes()==db_initial
+        if corrupt_pending:
+            before=observe(store,managed,lookup)
+            assert before.action=='append_published'
+            crash('published_partial')
+            interrupted=snapshot(private)
+            assert len(interrupted)==len(initial)+1
+            assert all(interrupted[n]==b for n,b in initial.items())
+            new=set(interrupted)-set(initial)
+            name,=new
+            assert name.endswith('-published.json.partial') and interrupted[name]
+            try:
+                store.inspect()
+            except ReviewRequired:
+                pass
+            else:
+                raise AssertionError('torn journal accepted')
+            assert observe(store,managed,lookup).action=='review'
+            assert plan(store,managed,index) is None
+            try:
+                reconcile(store,managed,lookup,before)
+            except ReviewRequired:
+                pass
+            else:
+                raise AssertionError('torn journal reconciled')
+            assert snapshot(private)==interrupted and db.read_bytes()==db_initial
+            assert final.read_bytes()==source.read_bytes() and not partial.exists()
+            assert lookup(RUN,report,'synthetic')=='missing'
+            print('Native torn published journal process interruption preserved for review PASS')
+            return
         if not lost_response:
             before=observe(store,managed,lookup)
             crash('published_flush')
@@ -271,3 +300,4 @@ if __name__=='__main__':
         exe=Path(sys.argv[1]).resolve()
         scenario(exe)
         scenario(exe,lost_response=True)
+        scenario(exe,corrupt_pending=True)

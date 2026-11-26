@@ -123,8 +123,19 @@ std::uint64_t process_cpu_100ns(){
     };
     return units(kernel)+units(user);
 }
-enum class FixtureStop { none, user_cancel, simulated_device_loss };
-int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false,bool hd=false,bool hd_extended=false,bool hd_sustained=false,FixtureStop stop=FixtureStop::none) {
+enum class FixtureStop { none, user_cancel, simulated_device_loss, sink_write_failure };
+// Own-process, bounded stage diagnostics; no system-wide handle inspection.
+void stage_resources(unsigned stage){
+    PROCESS_MEMORY_COUNTERS_EX m{};
+    m.cb=static_cast<DWORD>(sizeof(m));
+    DWORD handles=0;
+    if(!GetProcessMemoryInfo(GetCurrentProcess(),reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&m),m.cb)
+       || !GetProcessHandleCount(GetCurrentProcess(),&handles))
+        throw std::runtime_error("stage resource sample unavailable");
+    std::cout<<"HDStageResources "<<stage<<" "<<GetCurrentProcessId()<<" "<<m.PeakWorkingSetSize
+             <<" "<<m.WorkingSetSize<<" "<<m.PrivateUsage<<" "<<handles<<std::endl;
+}
+int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false,bool hd=false,bool hd_extended=false,bool hd_sustained=false,FixtureStop stop=FixtureStop::none,bool retention=false) {
     if(stop!=FixtureStop::none && (!hd || !live || !hd_extended || hd_sustained))return 2;
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
@@ -136,8 +147,10 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     }
     const auto spec=hd?ssc::media_fixture::hd_spec:ssc::media_fixture::low_spec;
     if(hd)std::cout<<"HDStage create-window"<<std::endl;
+    if(retention)stage_resources(0);
     Window window(hd);
     if(!window.handle){std::cerr<<"test window creation failed "<<GetLastError()<<'\n';return 1;}
+    if(retention)stage_resources(1);
     if(hd)std::cout<<"HDStage pump-window"<<std::endl;
     pump();
     if(hd)std::cout<<"HDStage activation-factory"<<std::endl;
@@ -172,10 +185,12 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     winrt::com_ptr<::IInspectable> inspectable;
     winrt::check_hresult(CreateDirect3D11DeviceFromDXGIDevice(dxgi.get(),inspectable.put()));
     auto runtime_device=inspectable.as<dx::Direct3D11::IDirect3DDevice>();
+    if(retention)stage_resources(2);
     if(hd)std::cout<<"HDStage create-pool"<<std::endl;
     auto pool=cap::Direct3D11CaptureFramePool::CreateFreeThreaded(runtime_device,dx::DirectXPixelFormat::B8G8R8A8UIntNormalized,2,size);
     if(hd)std::cout<<"HDStage create-session"<<std::endl;
     auto session=pool.CreateCaptureSession(item);
+    if(retention)stage_resources(3);
     LARGE_INTEGER frequency{},start{},now{};
     if(!QueryPerformanceFrequency(&frequency)||!QueryPerformanceCounter(&start)||frequency.QuadPart<=0||start.QuadPart<0)
         throw winrt::hresult_error(E_FAIL,L"QPC unavailable");
@@ -190,10 +205,11 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     if(live){
         if(hd)std::cout<<"HDStage start-worker"<<std::endl;
         if(std::filesystem::exists(std::filesystem::symlink_status(output)))return 2;
-        sink=std::make_unique<ssc::media_fixture::AsyncSink>(output,false,spec);
+        sink=std::make_unique<ssc::media_fixture::AsyncSink>(output,false,spec,stop==FixtureStop::sink_write_failure?119u:0u);
         worker=std::make_unique<supreme::recorder::Worker>(*sink,8,hd?spec.frame_bytes:32768u);
         if(worker->wait_ready()!=supreme::recorder::State::running)throw std::runtime_error("live worker startup");
     }
+    if(retention)stage_resources(4);
     auto offer=[&](supreme::recorder::Packet packet){
         if(!expected_coverage.observe(packet.pts,packet.duration))throw std::runtime_error("live handoff interval");
         const auto result=worker->offer(std::move(packet));
@@ -216,12 +232,18 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
         // Only the explicit bounded fixture paths enter here; no terminal packet
         // or sink finalization. The pending lookahead frame remains unoffered.
         close_capture.close();
-        worker->cancel();worker->join();
+        if(retention)stage_resources(5);
+        const bool failure=stop==FixtureStop::sink_write_failure;
+        if(failure)worker->stop();else worker->cancel();
+        worker->join();
+        if(retention)stage_resources(6);
         const auto stats=worker->stats();
         const auto q=worker->quality()[0];
         const auto selected=lookahead.count();
         const auto high=worker->high_water();
-        if(worker->state()!=supreme::recorder::State::cancelled || selected!=120 ||
+        const auto expected_state=failure?supreme::recorder::State::failed:supreme::recorder::State::cancelled;
+        if(worker->state()!=expected_state || sink->injected_failure()!=failure ||
+           (failure && (stats.written!=118 || stats.discarded!=1)) || selected!=120 ||
            stats.accepted!=selected-1 || !stats.written ||
            stats.written+stats.discarded!=stats.accepted || stats.dropped_full || stats.rejected_invalid ||
            q.accepted!=stats.accepted || q.written.packets!=stats.written ||
@@ -231,7 +253,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
         const bool exists=std::filesystem::exists(std::filesystem::symlink_status(path));
         const auto bytes=exists?std::filesystem::file_size(path):0;
         if(bytes>16u*1024u*1024u)throw std::runtime_error("HD cancelled output bound");
-        std::cout<<"HDFaultOutcome "<<reason<<" cancelled "<<selected<<" "<<stats.accepted<<" "
+        std::cout<<"HDFaultOutcome "<<reason<<(failure?" failed ":" cancelled ")<<selected<<" "<<stats.accepted<<" "
                  <<stats.written<<" "<<stats.discarded<<" "<<selected-stats.accepted<<" "
                  <<high<<" "<<stats.dropped_full<<" "<<stats.rejected_invalid<<std::endl;
         std::cout<<"HDFaultArtifact "<<(exists?1:0)<<" "<<bytes<<std::endl;
@@ -322,6 +344,8 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
                 else if(!dark.empty() && matches(pixels,true))light=std::move(pixels);
             }
             frame.Close();
+            if(stop==FixtureStop::sink_write_failure && lookahead.count()==120)
+                return stop_hd("sink-write-failure",5);
             if(stop==FixtureStop::user_cancel && lookahead.count()==120)
                 return stop_hd("user-cancel",3);
             // Controlled fixture-only pause; not a production capture technique.
@@ -336,12 +360,14 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     }
     if(hd)std::cout<<"HDStage close-capture"<<std::endl;
     close_capture.close();
+    if(retention)stage_resources(5);
     if(live){
         if(resize || lookahead.count()!=target || !written_before_stop){
             std::cerr<<"LiveIncomplete selected="<<lookahead.count()<<" observed="<<frames<<'\n';return frames?1:77;
         }
         const auto drain_begin=FixtureClock::now();
         offer(lookahead.finish());worker->stop();worker->join();
+        if(retention)stage_resources(6);
         const auto fixture_wall_end=FixtureClock::now();
         const auto q=worker->quality()[0];const auto& c=q.written;
         if(worker->state()!=supreme::recorder::State::finalized || c.packets!=target || q.accepted!=target ||
@@ -421,10 +447,12 @@ void lifecycle_sample(unsigned phase,bool gui=false){
     std::cout<<"HDLifecycleSample "<<phase<<" "<<GetCurrentProcessId()<<" "
              <<memory.PeakWorkingSetSize<<" "<<memory.WorkingSetSize<<" "<<memory.PrivateUsage<<" "<<handles<<std::endl;
 }
-int lifecycle(const std::filesystem::path& directory,bool faults=false){
+int lifecycle(const std::filesystem::path& directory,bool faults=false,bool retention=false){
     if(!std::filesystem::is_directory(directory) || std::filesystem::is_symlink(directory))return 2;
     struct Segment {bool sustained;FixtureStop stop;};
-    const std::vector<Segment> segments=faults?
+    const std::vector<Segment> segments=retention?
+        std::vector<Segment>{{false,FixtureStop::none},{false,FixtureStop::sink_write_failure},{false,FixtureStop::none}}:
+        faults?
         std::vector<Segment>{{false,FixtureStop::none},{false,FixtureStop::user_cancel},
                              {true,FixtureStop::none},{false,FixtureStop::simulated_device_loss},{false,FixtureStop::none}}:
         std::vector<Segment>{{false,FixtureStop::none},{true,FixtureStop::none},{false,FixtureStop::none}};
@@ -433,15 +461,20 @@ int lifecycle(const std::filesystem::path& directory,bool faults=false){
         files.push_back(directory/(L"segment-"+std::to_wstring(i+1)+L".mp4"));
         if(std::filesystem::exists(std::filesystem::symlink_status(files.back())))return 2;
     }
-    lifecycle_sample(0,faults);
+    lifecycle_sample(0,faults||retention);
     for(unsigned i=0;i<files.size();++i){
         const auto segment=segments[i];
         const auto count=segment.stop!=FixtureStop::none?120:segment.sustained?1200:600;
         std::cout<<"HDLifecycleBegin "<<i+1<<" "<<count<<std::endl;
-        const int status=run(files[i].c_str(),false,true,false,false,false,false,false,true,true,segment.sustained,segment.stop);
-        const int expected=segment.stop==FixtureStop::user_cancel?3:segment.stop==FixtureStop::simulated_device_loss?4:0;
+        const int status=run(files[i].c_str(),false,true,false,false,false,false,false,true,true,segment.sustained,segment.stop,retention);
+        const int expected=segment.stop==FixtureStop::user_cancel?3:segment.stop==FixtureStop::simulated_device_loss?4:segment.stop==FixtureStop::sink_write_failure?5:0;
         if(status!=expected){std::cerr<<"HDLifecycleIncomplete "<<i+1<<" "<<status<<'\n';return 1;}
-        lifecycle_sample(i+1,faults);
+        if(retention){
+            stage_resources(7);
+            Sleep(1000);pump();stage_resources(8);
+            Sleep(2000);pump();stage_resources(9);
+        }
+        lifecycle_sample(i+1,faults||retention);
         std::cout<<"HDLifecycleEnd "<<i+1<<std::endl;
     }
     return 0;
@@ -449,8 +482,9 @@ int lifecycle(const std::filesystem::path& directory,bool faults=false){
 }
 int wmain(int argc,wchar_t** argv){
     const bool faults=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-fault-lifecycle";
-    if(faults || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-lifecycle")){
-        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]),faults);}
+    const bool retention=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-write-failure-lifecycle";
+    if(retention || faults || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-lifecycle")){
+        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]),faults,retention);}
         catch(const winrt::hresult_error& e){std::cerr<<"HD lifecycle HRESULT "<<winrt::to_string(e.message())<<'\n';return 1;}
         catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     }

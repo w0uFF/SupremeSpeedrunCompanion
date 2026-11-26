@@ -5,6 +5,7 @@ from fixture_repeat import fields, trial
 
 COUNTS = (600, 1200, 600)
 FAULT_COUNTS = (600, 120, 1200, 120, 600)
+WRITE_COUNTS = (600, 120, 600)
 
 
 @dataclass(frozen=True)
@@ -18,7 +19,7 @@ class Resource:
 
 
 def split(text, counts=COUNTS):
-    if counts not in (COUNTS, FAULT_COUNTS):
+    if counts not in (COUNTS, FAULT_COUNTS, WRITE_COUNTS):
         raise ValueError('unsupported lifecycle sequence')
     if len(text) > (768_000 if counts == FAULT_COUNTS else 512_000):
         raise ValueError('lifecycle log bound')

@@ -78,15 +78,21 @@ class AsyncSink final:public supreme::recorder::Sink {
     std::unique_ptr<Foundation> mf_;
     ComPtr<IMFSinkWriter> writer_;
     DWORD video_=0,audio_=0;
+    const unsigned fail_write_;
+    unsigned writes_=0;
+    bool injected_=false;
     void release() noexcept {writer_.Reset();mf_.reset();com_.reset();}
 public:
-    explicit AsyncSink(const wchar_t* path,bool audio=true,VideoSpec spec=low_spec):path_(path),with_audio_(audio),spec_(spec){}
+    explicit AsyncSink(const wchar_t* path,bool audio=true,VideoSpec spec=low_spec,unsigned fail_write=0):path_(path),with_audio_(audio),spec_(spec),fail_write_(fail_write){}
+    // Test-only observation; caller may read only after Worker::join().
+    bool injected_failure() const noexcept{return injected_;}
     void begin() override {
         com_=std::make_unique<Com>();
         mf_=std::make_unique<Foundation>();
         writer_=open_writer(path_,with_audio_,video_,audio_,spec_);
     }
     void write(const supreme::recorder::Packet& packet) override {
+        if(fail_write_ && ++writes_==fail_write_){injected_=true;throw std::runtime_error("injected fixture sink write failure");}
         const bool video=packet.stream==supreme::recorder::Stream::video;
         if(!video && !with_audio_)throw std::runtime_error("audio stream disabled");
         const DWORD length=video?spec_.frame_bytes:pcm_bytes;
