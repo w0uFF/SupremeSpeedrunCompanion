@@ -171,10 +171,11 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
                 if(live){worker->cancel();worker->join();std::cerr<<"LiveResizeRejected "<<content.Width<<" "<<content.Height<<"\n";return 1;}
                 throw winrt::hresult_error(E_FAIL,L"frame dimensions mismatch");
             }
-            const auto device_status=simulated_loss && lookahead.count()>=5 ? DXGI_ERROR_DEVICE_REMOVED : device->GetDeviceRemovedReason();
+            const bool injected=simulated_loss && lookahead.count()>=5;
+            const auto device_status=injected ? DXGI_ERROR_DEVICE_REMOVED : device->GetDeviceRemovedReason();
             if(FAILED(device_status) && live){
                 worker->cancel();worker->join();
-                std::cerr<<(simulated_loss?"LiveSimulatedDeviceLoss ":"LiveDeviceFailure ")
+                std::cerr<<(injected?"LiveSimulatedDeviceLoss ":"LiveDeviceFailure ")
                          <<static_cast<int>(worker->state())<<"\n";
                 if(worker->state()!=supreme::recorder::State::cancelled)throw std::runtime_error("device failure cancellation");
                 return 1;

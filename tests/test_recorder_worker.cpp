@@ -1,3 +1,4 @@
+#include "src/modules/recorder/public/frame_lookahead.hpp"
 #include "src/modules/recorder/public/worker.hpp"
 #include <future>
 #include <iostream>
@@ -55,6 +56,25 @@ int main(){
         s.entered.get_future().wait();w.stop();s.release.set_value();w.join();
         CHECK(w.state()==State::failed && s.aborted && !s.finalized);
         CHECK(w.stats().written==1 && w.stats().discarded==0 && w.offer(video(10))==Offer::closed);
+    }
+    {
+        GateSink s;Worker w(s,1,32768);FrameLookahead look;
+        CHECK(w.wait_ready()==State::running);
+        auto frame=[](std::uint64_t t){return TimedFrame{t,std::vector<std::uint8_t>(fixture_bytes,16)};};
+        CHECK(!look.push(frame(0)));
+        auto packet=look.push(frame(400000));
+        const auto first=w.offer(std::move(*packet));
+        if(first!=Offer::accepted){s.release.set_value();return 1;}
+        s.entered.get_future().wait();
+        const auto second=w.offer(std::move(*look.push(frame(800000))));
+        const auto full=w.offer(std::move(*look.push(frame(1200000))));
+        w.cancel();s.release.set_value();w.join();
+        CHECK(second==Offer::accepted && full==Offer::full);
+        CHECK(w.state()==State::cancelled && s.aborted && !s.finalized);
+        const auto n=w.stats();const auto q=w.quality()[0];
+        CHECK(n.accepted==2 && n.written==1 && n.dropped_full==1 && n.discarded==1);
+        CHECK(q.dropped_duration==400000 && q.discarded==1 && w.high_water()==1);
+        CHECK(w.offer(look.finish())==Offer::closed);
     }
     try {GateSink s;Worker w(s,128,16u*1024u*1024u);return 1;}catch(const std::invalid_argument&){}
     return 0;
