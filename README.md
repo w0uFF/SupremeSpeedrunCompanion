@@ -6,7 +6,7 @@ Supreme Speedrun Companion (SSC) is an optional Windows mod in development for S
 
 SSC is **not a new version of Time Attack, a replacement for Online Time Attack, or a compulsory anti-cheat**. It is a companion for the existing game and its speedrunning community, intended to bring recording, timing, quick retries, run management and submission preparation into one place.
 
-> **Development status: v0.0.14-p0 — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, synthetic video encoding, isolated test-window capture and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
+> **Development status: v0.0.15-p0 — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, native run-library storage, synthetic video encoding, isolated test-window capture and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
 
 ## Why build it?
 
@@ -59,7 +59,7 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure --no-tests=error
 ```
 
-Windows core: 30 test targets including native profile persistence and launcher-state projection. Portable Linux: configure without -A Win32 (Windows-only targets excluded). Run all development tools outside the game directory. The offline supreme_diagnostic reports unavailable engine data by design.
+Windows core: 33 test targets including native profile persistence, launcher-state projection, native run-library and attempt-settings evidence binding. Portable Linux: configure without -A Win32 (Windows-only targets excluded). Run all development tools outside the game directory. The offline supreme_diagnostic reports unavailable engine data by design.
 
 - [Project status](PROJECT_STATUS.md) — latest verified commit, exact CI evidence and blockers.
 - [Architecture](docs/architecture/MODULES.md) — independently testable module boundaries.
@@ -68,6 +68,7 @@ Windows core: 30 test targets including native profile persistence and launcher-
 - [Windows baseline](docs/testing/WINDOWS_BASELINE.md) — safe disposable-copy observations, no installation.
 - [Recording feasibility](docs/architecture/RECORDING_FEASIBILITY.md) — synthetic and isolated capture test scope.
 - [Engine map](docs/engine/ENGINE_MAP.md) — version-specific static research.
+- [Run-library contract](src/modules/run_library/README.md) and [attempt-settings evidence contract](docs/contracts/ATTEMPT_SETTINGS_EVIDENCE.md) — independently tested foundations, not in-game features.
 - [Test matrix](docs/testing/TEST_MATRIX.md) and [changelog](CHANGELOG.md) — development history.
 
 Read-only reference classifier: `python tools/preflight.py <copied-game-root>`. Offline research: `python tools/native_xrefs.py <original.exe> --compare <patched.exe>` (GNU objdump), `python tools/replay_samples.py <replay.dat>`. Optional baseline snapshots: `python tools/baseline_snapshot.py snapshot <game-root>` and `python tools/baseline_snapshot.py compare <before.json> <after.json>`. None establish runtime compatibility or eligibility.

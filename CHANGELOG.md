@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.15-p0 — native run library and immutable settings evidence
+- Add independently tested WinSQLite adapter with insert-only record semantics, exact schema identity, separate Unicode labels/favorites, bounded history and comparable local PB queries. Preserve unknown database versions and schemas; no automatic migration.
+- Bind a redacted immutable C++ attempt settings snapshot to run/session IDs and optional schema-2 archive diagnostic; independent Python verification and negative fixtures. No eligibility claim or live recording.
+- Static research identifies per-player candidate timing accumulator, reset and conditional completion paths; proposed observation boundary documented. G1 remains blocked.
+- Correct SQL null final IGT constraint exposed by initial native regression. Final Windows core 33/33 each, media 5/5, capture 3 pass/1 skip, storage 1/1, inert DLL 1/1. Prior PR66 baseline fixture passed; v0.0.15 manifest rerun pending at preparation. No release.
+
 ## v0.0.14-p0 — reviewed loader fixture and native launcher configuration
 - Actual PR66 source-loader fixture passed, including manifest parsing, initializer lifecycle, gating and Rust-serialized launcher state consumed by native SSC preview; no game or actual launcher UI execution.
 - Native bounded read-only launcher JSON adapter, Win32 preview, representative cross-language conformance, immutable owned attempt settings.
