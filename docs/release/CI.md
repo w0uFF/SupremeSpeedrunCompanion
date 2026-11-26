@@ -23,3 +23,5 @@ T18 media job runs three named opt-in tests: video-only, synchronous A/V and asy
 Final T18 exact code/test commit ab0bcf82ededc13ac2271334b072e4ca730aa01a verified from actual run 45777278765 logs: 19/19 Debug and Release, 3/3 media, release skipped. Subsequent documentation-only commit records evidence without changing build/test inputs.
 
 T19: 20 portable targets, separate media job, unchanged approval and artifact policy.
+
+Final T19 code/test commit 8f005bda4557498bc1d3ab0e7c77e0963b783fb9 verified in run 45782226376 (20/20 per core configuration, 4/4 media, 2/2 capture feasibility, development release skipped). Standalone WGC C++20 target only, SSC_CAPTURE_PROBES=ON. CTest exit 77 is skip/BLOCKED, never validated capture. No Actions artifact or release changes. Storage probe not part of CI/default build.

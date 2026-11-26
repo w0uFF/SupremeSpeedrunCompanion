@@ -1,8 +1,8 @@
 # Changelog
 
 ## v0.0.10-p0 — recording quality and clock mapping
-- Add separate own-window WGC metadata and own-process WASAPI activation probes; hosted execution pending.
-- Add opt-in paced 10-second synthetic A/V test and archive quality sidecar; hosted execution pending.
+- Add separate own-window WGC metadata and own-process WASAPI activation probes; Windows feasibility verified (WGC frame metadata, WASAPI activation only).
+- Add opt-in paced 10-second synthetic A/V test and archive quality sidecar; Windows test verified (10 seconds, 500 packets, quality sidecar archive).
 - Verify v0.0.9 final Windows CI. Add per-stream worker handoff counters, gap and queue high-water statistics, bounded QPC timestamp mapping and pure tests. Additional static result-presentation evidence; no native timing claim.
 
 ## v0.0.9-p0 — offline recorder lifecycle and evidence publication
@@ -64,3 +64,5 @@
 
 ## v0.0.1-p0
 Initial private discovery: archive fingerprints, static engine candidate map, portable observation contract, offline diagnostic MVC and module lifecycle prototype. No changes to gameplay, files, loader or Windows installation.
+
+T19 validation: exact source/test revision Windows 20/20 Debug and Release, 4/4 media and 2/2 capture feasibility. Corrected wrapper syntax and isolated WGC C++20 compile. Added locally tested standalone SQLite feasibility source; no new runtime dependency.

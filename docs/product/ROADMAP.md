@@ -17,3 +17,5 @@ P0-T18: worker lifecycle, run repository port and schema 2 evidence/partial publ
 P0-T18 final: independent core and real synthetic asynchronous H.264/AAC -> schema 2 archive chain verified in hosted Windows x86 CI. P0-T19: independent capture feasibility, recording-quality coverage/clock mapping, persistent C++ adapter evaluation and actual native result research. G1/G2/G3/G4 remain blocked or not run.
 
 P0-T19: per-stream quality and clock mapping; continue sustained synthetic and capture feasibility. G1 unchanged.
+
+P0-T19 final: verified sustained synthetic recording, quality sidecar, isolated WGC frame metadata and process audio activation; local SQLite feasibility. P0-T20: verify actual pixels and audio signal in independent fixtures, clock mapping and capture-to-encoder integration, WinSQLite evaluation, native result research. G1 unchanged.

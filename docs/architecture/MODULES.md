@@ -18,3 +18,5 @@ T18 additions: recorder Worker owns bounded FIFO and worker-thread Sink lifetime
 T18 follow-up: optional standalone synthetic media probe consumes recorder Worker and implements its Sink; no production dependency on Media Foundation added to bootstrap. The Python probe wrapper exercises experimental archive_publish after successful synthetic encode/decode. No live capture.
 
 T19: recorder quality helper is pure, used by Worker; QPC conversion requires explicit common epoch, no additional engine dependency.
+
+T19 isolated optional WGC and process-loopback probes have no bootstrap dependencies. Synthetic media wrapper exports a hashed quality diagnostic separate from eligibility. Standalone local SQLite experiment not linked to any module; Repository port remains unchanged.

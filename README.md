@@ -41,3 +41,5 @@ T17: see docs/contracts/EVIDENCE_ARCHIVE.md and PREFERENCES_PORT.md. Optional Wi
 T18 offline components: src/modules/recorder/README.md, src/modules/run_library/README.md and docs/contracts/RUN_MANIFEST.md. No live capture, verified submission or native installation.
 
 T19: docs/contracts/RECORDING_QUALITY.md describes handoff-quality statistics, not gameplay coverage.
+
+T19 Windows offline CI verified 20 portable targets in Debug and Release, four media tests and two limited capture feasibility tests. WGC acquired frame metadata from a test window; WASAPI initialized an own-process capture service, not audio sampling. No installable game mod. See docs/architecture/RECORDING_FEASIBILITY.md and STORAGE_FEASIBILITY.md.

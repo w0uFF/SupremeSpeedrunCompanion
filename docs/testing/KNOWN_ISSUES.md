@@ -28,3 +28,5 @@
 - Schema 2 is provisional caller-supplied metadata. Hardlink publication requires a supporting filesystem and trusted quiescent directories, no power-loss durability or automatic import/recovery. Run repository is an interface only.
 
 - T19 per-stream handoff statistics cannot establish actual decoded coverage, missing producer samples before/after observed span, black video or valid audio. Clock domain mapping still requires platform verification.
+
+- T19 WGC frame metadata feasibility verified, not decoded pixel integrity, resize/device loss, full-screen game or renderer compatibility. WASAPI capture service initialized, no actual audio samples or isolation/synchronization proof. Ten-second synthetic test is low-resolution and not an in-game performance benchmark. SQLite local test is not a Windows or production repository adapter.
