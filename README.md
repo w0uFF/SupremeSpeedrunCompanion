@@ -78,3 +78,5 @@ GitHub-hosted Windows x86 CI tests Debug and Release; see [CI policy](docs/relea
 T34 verified: controlled HD abort/restart scopes and process/GUI resource observations; actual game remains unverified.
 
 T35 verified in isolated automated fixtures: injected recorder write failure, staged resource measurements and torn-journal refusal. G1 remains blocked; no gameplay recording claim.
+
+T36 candidate (branch only): controlled resource isolation, deterministic fixture finalization failure and restart, and stronger torn-journal regression. Windows validation pending; no gameplay or installation claim.
