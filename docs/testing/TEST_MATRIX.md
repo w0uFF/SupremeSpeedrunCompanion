@@ -110,3 +110,6 @@ Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Rel
 - TEST-T18-INPUTS PASS: SHA-256 of all ten supplied inputs matches docs/engine/INPUT_INVENTORY.md. Original Supreme.exe separately extracted read-only; hash matches.
 - TEST-T18-CI NOT_RUN at commit preparation: 19 portable CTest targets configured. Local container cannot clone GitHub (DNS unavailable); only isolated new tests were run locally, not full v0.0.9 regression. Hosted CI will establish exact commit regression.
 - G1/G2/G3/G4 BLOCKED or NOT_RUN; no gameplay, live capture, archive import or official time validation.
+
+- TEST-T18-AV NOT_RUN at preparation: actual Media Foundation synthetic AAC/H.264 mux and decode candidate, separate opt-in Windows media job; no Windows SDK or runtime locally.
+- TEST-T18-STATIC OBSERVED_STATIC: original hash verified, objdump RVA 0x23e15..0x23e67 and PE IAT mapping 0x46d47c to Menu::Discard_Page; no execution.

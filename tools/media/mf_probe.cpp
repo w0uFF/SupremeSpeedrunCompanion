@@ -33,7 +33,43 @@ ComPtr<IMFMediaType> type(const GUID& subtype) {
     check(t->SetUINT32(MF_MT_INTERLACE_MODE,MFVideoInterlace_Progressive),"interlace");
     return t;
 }
-void encode(const wchar_t* path) {
+constexpr UINT32 sample_rate=48000, channels=2, block_align=4, pcm_frames=sample_rate/fps;
+constexpr DWORD pcm_bytes=pcm_frames*block_align;
+ComPtr<IMFMediaType> audio_type(bool compressed) {
+    ComPtr<IMFMediaType> t;
+    check(MFCreateMediaType(t.GetAddressOf()),"create audio media type");
+    check(t->SetGUID(MF_MT_MAJOR_TYPE,MFMediaType_Audio),"audio major");
+    check(t->SetGUID(MF_MT_SUBTYPE,compressed?MFAudioFormat_AAC:MFAudioFormat_PCM),"audio subtype");
+    check(t->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS,channels),"audio channels");
+    check(t->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND,sample_rate),"audio rate");
+    check(t->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE,16),"audio bits");
+    check(t->SetUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND,compressed?16000u:sample_rate*block_align),"audio byte rate");
+    if(!compressed) check(t->SetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT,block_align),"audio alignment");
+    return t;
+}
+void write_audio(IMFSinkWriter* writer,DWORD stream,UINT32 index) {
+    ComPtr<IMFMediaBuffer> buffer;
+    check(MFCreateMemoryBuffer(pcm_bytes,buffer.GetAddressOf()),"create PCM buffer");
+    BYTE* data=nullptr;
+    check(buffer->Lock(&data,nullptr,nullptr),"lock PCM");
+    for(UINT32 i=0;i<pcm_frames;++i) {
+        const auto value=static_cast<UINT16>(((index*pcm_frames+i)/24u)%2u?8000:-8000);
+        for(UINT32 ch=0;ch<channels;++ch) {
+            const auto offset=i*block_align+ch*2u;
+            data[offset]=static_cast<BYTE>(value & 0xffu);
+            data[offset+1]=static_cast<BYTE>(value>>8);
+        }
+    }
+    check(buffer->Unlock(),"unlock PCM");
+    check(buffer->SetCurrentLength(pcm_bytes),"PCM length");
+    ComPtr<IMFSample> sample;
+    check(MFCreateSample(sample.GetAddressOf()),"create audio sample");
+    check(sample->AddBuffer(buffer.Get()),"attach PCM");
+    check(sample->SetSampleTime(static_cast<LONGLONG>(index)*period),"audio timestamp");
+    check(sample->SetSampleDuration(period),"audio duration");
+    check(writer->WriteSample(stream,sample.Get()),"write PCM");
+}
+void encode(const wchar_t* path,bool with_audio) {
     ComPtr<IMFSinkWriter> writer;
     check(MFCreateSinkWriterFromURL(path,nullptr,nullptr,writer.GetAddressOf()),"create MP4 sink writer");
     auto output=type(MFVideoFormat_H264);
@@ -43,6 +79,12 @@ void encode(const wchar_t* path) {
     auto input=type(MFVideoFormat_NV12);
     check(input->SetUINT32(MF_MT_DEFAULT_STRIDE,width),"stride");
     check(writer->SetInputMediaType(stream,input.Get(),nullptr),"NV12 input");
+    DWORD audio_stream=0;
+    if(with_audio) {
+        auto audio_out=audio_type(true),audio_in=audio_type(false);
+        check(writer->AddStream(audio_out.Get(),&audio_stream),"add AAC stream");
+        check(writer->SetInputMediaType(audio_stream,audio_in.Get(),nullptr),"PCM input");
+    }
     check(writer->BeginWriting(),"begin writing");
     for(UINT32 i=0;i<frames;++i) {
         ComPtr<IMFMediaBuffer> buffer;
@@ -59,10 +101,11 @@ void encode(const wchar_t* path) {
         check(sample->SetSampleTime(static_cast<LONGLONG>(i)*period),"sample time");
         check(sample->SetSampleDuration(period),"sample duration");
         check(writer->WriteSample(stream,sample.Get()),"write sample");
+        if(with_audio) write_audio(writer.Get(),audio_stream,i);
     }
     check(writer->Finalize(),"finalize MP4");
 }
-void decode(const wchar_t* path) {
+LONGLONG decode(const wchar_t* path) {
     ComPtr<IMFSourceReader> reader;
     check(MFCreateSourceReaderFromURL(path,nullptr,reader.GetAddressOf()),"open finalized MP4");
     constexpr DWORD video=static_cast<DWORD>(MF_SOURCE_READER_FIRST_VIDEO_STREAM);
@@ -109,10 +152,78 @@ void decode(const wchar_t* path) {
     }
     if(!eos || count!=frames) throw std::runtime_error("frame count or EOS mismatch");
     std::cout<<"Decoded "<<count<<" H264 frames, "<<width<<'x'<<height<<", monotonic timestamps and luma pattern verified\n";
+    return previous+period;
+}
+void decode_audio(const wchar_t* path,LONGLONG video_end) {
+    ComPtr<IMFSourceReader> reader;
+    check(MFCreateSourceReaderFromURL(path,nullptr,reader.GetAddressOf()),"open audio from MP4");
+    constexpr DWORD audio=static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM);
+    check(reader->SetStreamSelection(static_cast<DWORD>(MF_SOURCE_READER_ALL_STREAMS),FALSE),"disable streams for audio");
+    check(reader->SetStreamSelection(audio,TRUE),"select audio");
+    ComPtr<IMFMediaType> native;
+    check(reader->GetNativeMediaType(audio,0,native.GetAddressOf()),"read encoded audio type");
+    GUID codec{};
+    check(native->GetGUID(MF_MT_SUBTYPE,&codec),"encoded audio subtype");
+    if(codec!=MFAudioFormat_AAC) throw std::runtime_error("expected AAC");
+    ComPtr<IMFMediaType> request;
+    check(MFCreateMediaType(request.GetAddressOf()),"decode audio type");
+    check(request->SetGUID(MF_MT_MAJOR_TYPE,MFMediaType_Audio),"decode audio major");
+    check(request->SetGUID(MF_MT_SUBTYPE,MFAudioFormat_PCM),"decode audio PCM");
+    check(reader->SetCurrentMediaType(audio,nullptr,request.Get()),"request PCM decode");
+    ComPtr<IMFMediaType> actual;
+    check(reader->GetCurrentMediaType(audio,actual.GetAddressOf()),"decoded PCM type");
+    UINT32 rate=0,num=0,bits=0;
+    check(actual->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND,&rate),"decoded rate");
+    check(actual->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS,&num),"decoded channels");
+    check(actual->GetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE,&bits),"decoded bits");
+    if(rate!=sample_rate || num!=channels || bits!=16) throw std::runtime_error("unexpected PCM format");
+    constexpr LONGLONG tolerance=1000000; // 100 ms exploratory bound, not a gameplay requirement.
+    bool eos=false,have=false,signal=false;
+    LONGLONG first=0,previous=0,end=0;
+    UINT32 total_frames=0;
+    for(unsigned calls=0;calls<256 && !eos;++calls) {
+        DWORD flags=0; LONGLONG timestamp=0;
+        ComPtr<IMFSample> sample;
+        check(reader->ReadSample(audio,0,nullptr,&flags,&timestamp,sample.GetAddressOf()),"read PCM");
+        if(flags & (MF_SOURCE_READERF_ERROR|MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED))
+            throw std::runtime_error("unexpected audio state change");
+        eos=(flags & MF_SOURCE_READERF_ENDOFSTREAM)!=0;
+        if(!sample) continue;
+        if(timestamp < -tolerance || timestamp > video_end+tolerance || (have && timestamp<=previous))
+            throw std::runtime_error("audio timestamp order or bounds");
+        if(!have) first=timestamp;
+        have=true;previous=timestamp;
+        ComPtr<IMFMediaBuffer> buffer;
+        check(sample->ConvertToContiguousBuffer(buffer.GetAddressOf()),"contiguous PCM");
+        BYTE* data=nullptr;DWORD length=0;
+        check(buffer->Lock(&data,nullptr,&length),"lock decoded PCM");
+        const bool valid=length>0 && length<=1024u*1024u && length%block_align==0;
+        if(valid) {
+            for(DWORD i=0;i<length;i+=2) {
+                const int raw=static_cast<int>(data[i])+256*static_cast<int>(data[i+1]);
+                const int value=raw>=32768?raw-65536:raw;
+                if(value>200 || value< -200) signal=true;
+            }
+        }
+        check(buffer->Unlock(),"unlock decoded PCM");
+        if(!valid) throw std::runtime_error("invalid PCM length");
+        const UINT32 decoded=length/block_align;
+        if(decoded>sample_rate || total_frames>sample_rate-decoded) throw std::runtime_error("excess decoded samples");
+        total_frames+=decoded;
+        end=timestamp+static_cast<LONGLONG>(decoded)*10000000/sample_rate;
+    }
+    constexpr UINT32 input_frames=frames*pcm_frames;
+    constexpr UINT32 padding=sample_rate/10;
+    if(!eos || !have || !signal || total_frames<input_frames-padding || total_frames>input_frames+padding ||
+       first < -tolerance || first > tolerance || end < video_end-tolerance || end > video_end+tolerance)
+        throw std::runtime_error("audio coverage/signal or A/V endpoint mismatch");
+    std::cout<<"Decoded AAC PCM frames="<<total_frames<<", first_100ns="<<first
+             <<", audio_end_100ns="<<end<<", video_end_100ns="<<video_end<<", endpoint tolerance verified\n";
 }
 }
 int wmain(int argc,wchar_t** argv) {
-    if(argc!=2 || GetFileAttributesW(argv[1])!=INVALID_FILE_ATTRIBUTES) return 2;
-    try { Com com; Foundation mf; encode(argv[1]); decode(argv[1]); return 0; }
+    const bool with_audio=argc==3 && std::wstring(argv[2])==L"--av";
+    if((argc!=2 && !with_audio) || GetFileAttributesW(argv[1])!=INVALID_FILE_ATTRIBUTES) return 2;
+    try { Com com; Foundation mf; encode(argv[1],with_audio); const auto end=decode(argv[1]); if(with_audio) decode_audio(argv[1],end); return 0; }
     catch(const std::exception& e){std::cerr<<e.what()<<'\n'; return 1;}
 }
