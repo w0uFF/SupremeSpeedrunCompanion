@@ -43,14 +43,15 @@ struct Window {
     explicit Window(bool hd=false){
         WNDCLASSW cls{};cls.lpfnWndProc=paint_window;cls.hInstance=GetModuleHandleW(nullptr);cls.lpszClassName=L"SSC_T20_OwnWindow";
         if(!RegisterClassW(&cls))return;
-        handle=CreateWindowExW(0,cls.lpszClassName,L"SSC synthetic capture test",WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-                               40,40,hd?1344:320,hd?800:240,nullptr,nullptr,cls.hInstance,nullptr);
+        const DWORD style=hd?static_cast<DWORD>(WS_POPUP|WS_VISIBLE):static_cast<DWORD>(WS_OVERLAPPEDWINDOW|WS_VISIBLE);
+        handle=CreateWindowExW(0,cls.lpszClassName,L"SSC synthetic capture test",style,
+                               hd?0:40,hd?0:40,hd?1280:320,hd?720:240,nullptr,nullptr,cls.hInstance,nullptr);
         if(handle)UpdateWindow(handle);
     }
     ~Window(){if(handle)DestroyWindow(handle);}
     void bright(){SetWindowLongPtrW(handle,GWLP_USERDATA,1);InvalidateRect(handle,nullptr,FALSE);UpdateWindow(handle);}
 };
-// Map only a centered 160x96 crop of the own window. No desktop capture or scaling.
+// Map only a bounded centered crop of the own window. No desktop capture or scaling.
 std::vector<std::uint8_t> read_crop(ID3D11Device* device,const cap::Direct3D11CaptureFrame& frame,ssc::media_fixture::VideoSpec spec=ssc::media_fixture::low_spec) {
     const UINT w=spec.frame_width,h=spec.frame_height;
     auto access=frame.Surface().as<::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess>();
@@ -119,6 +120,14 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     auto interop=winrt::get_activation_factory<cap::GraphicsCaptureItem,IGraphicsCaptureItemInterop>();
     winrt::check_hresult(interop->CreateForWindow(window.handle,winrt::guid_of<cap::GraphicsCaptureItem>(),winrt::put_abi(item)));
     const auto size=item.Size();
+    if(hd){
+        RECT client{}, outer{};
+        if(!GetClientRect(window.handle,&client) || !GetWindowRect(window.handle,&outer))
+            throw std::runtime_error("HD own-window geometry unavailable");
+        std::cout<<"HDWindowGeometry "<<client.right-client.left<<" "<<client.bottom-client.top<<" "
+                 <<outer.right-outer.left<<" "<<outer.bottom-outer.top<<" "<<size.Width<<" "<<size.Height
+                 <<" "<<GetSystemMetrics(SM_CXSCREEN)<<" "<<GetSystemMetrics(SM_CYSCREEN)<<std::endl;
+    }
     if(size.Width<=0 || size.Height<=0 || size.Width>(hd?1536:1024) || size.Height>1024 ||
        (hd && (size.Width<1280 || size.Height<720)))
         throw winrt::hresult_error(E_FAIL,L"unexpected capture item size");
@@ -322,7 +331,7 @@ int wmain(int argc,wchar_t** argv){
     try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture,extended,simulated_loss,marathon,hd);}
     catch(const winrt::hresult_error& e){
         const auto hr=e.code().value;
-        std::cerr<<"WGC HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<'\n';
+        std::cerr<<"WGC HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<" "<<winrt::to_string(e.message())<<'\n';
         if(hr==E_ACCESSDENIED || hr==E_NOTIMPL || hr==REGDB_E_CLASSNOTREG){std::cout<<"BLOCKED: capture platform/policy unavailable\n";return 77;}
         return 1;
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
