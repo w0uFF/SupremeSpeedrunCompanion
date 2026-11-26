@@ -144,3 +144,7 @@ Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Rel
 - TEST-T19-FINAL-CORE PASS: same run, job 139780213928, MSVC 19.52.37029.0 x86; 20/20 Debug and Release; development release skipped. https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45782226376
 - TEST-T19-SQLITE-LOCAL PASS: exact standalone source tools/storage/sqlite_probe.cpp compiled Debian GCC 14.2.0 with -std=c++17 -Wall -Wextra -Wpedantic -Werror and -lsqlite3, system SQLite 3.46.1; fresh private temp db exit 0, second invocation same path exit 2. Blob hash dde158f02ce9e790763af69379196d3319f30b77. No default build target or production DB adapter, not Windows-tested.
 - G1/G2/G3/G4 BLOCKED or NOT_RUN; no actual game capture, authoritative native race timing or full evidence import.
+
+## P0-T20
+- Baseline PASS run 45782546029, exact 064b2cbe52b74555bf2c2583fc297132c1877be8, jobs 139781254496 (20/20 each), 139781254967 (4/4), 139781255032 (2/2), release skipped.
+- Capture primitives PASS local: Debian GCC 14.2.0, g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -I. tests/test_capture_primitives.cpp -o primitives && ./primitives, exit 0. Repeat with -fsanitize=undefined -fno-sanitize-recover=all, exit 0. Exact source/test Git blob hashes checked. Full local checkout failed DNS; no full Linux regression claim. 10/10 supplied reference SHA-256 values match inventory. Windows CI pending.

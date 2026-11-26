@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.11-p0 — capture primitives and isolated platform experiments
+- Verify v0.0.10 Windows baseline. Add bounded BGRA-to-NV12 conversion and source audio discontinuity/position counters, independent C++17 tests.
+
 ## v0.0.10-p0 — recording quality and clock mapping
 - Add separate own-window WGC metadata and own-process WASAPI activation probes; Windows feasibility verified (WGC frame metadata, WASAPI activation only).
 - Add opt-in paced 10-second synthetic A/V test and archive quality sidecar; Windows test verified (10 seconds, 500 packets, quality sidecar archive).
