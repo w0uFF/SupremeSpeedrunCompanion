@@ -45,3 +45,25 @@ All raw reference files and verbose local logs are retained in the private resea
 Linux commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Release); cmake --build <fresh build> --parallel 4; ctest --test-dir <fresh build> --output-on-failure --no-tests=error. Local source build inputs were compared with main Git blob hashes before edits; uploaded CMake and new Python code/test blobs match locally tested files. GNU objdump -d -Mintel --start-address=<preferred VA> --stop-address=<end> for static disassembly; map RVAs to raw sections for comparison. No runtime game test, official timing comparison or new sanitizer run performed in T15. Windows symlink test may skip if privilege unavailable.
 
 Actual previous Windows CI: MSVC 19.52.37029.0, x86 compiler, Python 3.12.10, 8/8 Debug and Release. https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45752930744
+
+## P0-T16 — v0.0.7-p0
+
+| Test ID | Result | Evidence |
+|---|---|---|
+| TEST-T15-WIN-001 | PASS | Actual Windows x86 run 45753602966, job 139686916040, commit 8ae9d86d5c1e0a77473db0e10308724b1aab4058; Debug and Release 9/9; release skipped |
+| TEST-T16-TIME-001 | PASS Linux | P0_independent_timing: synthetic clock and real steady_clock; Windows QPC branch not executed locally |
+| TEST-T16-STORAGE-001 | PASS | six Python unittest cases including persistence across reopen, comparability and malformed values |
+| TEST-T16-EVIDENCE-001 | PASS | four Python unittest cases including golden digest and invalid paths |
+| TEST-T16-API-001 | PASS | three Python unittest cases, no network |
+| TEST-T16-STATIC-001 | PASS | Recomputed Supreme.exe hash; objdump exact range 0x427151..0x427196; presentation constant observed |
+| TEST-T16-REPLAY-001 | PASS | 55 recognized, 6 unsupported; aggregate header timings only |
+| TEST-T16-REGRESSION-001 | PASS | Linux Debug 13/13, exit 0 |
+| TEST-T16-REGRESSION-002 | PASS | Linux Release 13/13, exit 0 |
+| TEST-T16-REGRESSION-003 | PASS | Linux Debug + UBSan 13/13, exit 0, no reported sanitizer error |
+| TEST-T16-INPUTS-001 | PASS | sha256sum -c against immutable input manifest: 10/10 unchanged before and after |
+| TEST-T16-WIN-001 | NOT_RUN at commit preparation | Inspect new Windows CI logs; actual QPC smoke check in test_timing.cpp |
+| TEST-CAPTURE / ONLINE / NATIVE | BLOCKED/NOT_RUN | No recorder, transport, native loader or game launch |
+
+Environment: Linux GCC 14.2.0, CMake 3.31.6, Python 3.13.5, SQLite 3.46.1. From fresh copy of local v0.0.6 build inputs verified against current Git tree blobs: cmake -S . -B <build> -DCMAKE_BUILD_TYPE=Debug (repeat Release), cmake --build <build> --parallel 4, ctest --test-dir <build> --output-on-failure --no-tests=error; UBSan Debug adds -DCMAKE_CXX_FLAGS="-fsanitize=undefined -fno-sanitize-recover=all" and equivalent C flags. All final source/test/CMake blobs compared to locally tested content before commit. No Windows game, storage crash-recovery or actual media backend test. Windows symlink fixture may skip when privilege unavailable. See docs/contracts for scopes and limitations.
+
+Previous Windows logs: MSVC 19.52.37029.0, x86 compiler, Python 3.12.10, 9/9 Debug and Release; https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45753602966

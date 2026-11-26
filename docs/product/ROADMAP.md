@@ -7,3 +7,5 @@ Release channels: development (not installable at P0), beta and stable only afte
 P0-T14: offline menu/selection/lifecycle/clock reference mapping and replay position summary completed as partial discovery in v0.0.5-p0. P0-T15: Windows baseline, maintainer extension review, actual menu registration producer and race result event research. G1 remains blocked; no new native offsets activated.
 
 P0-T15: registry/ownership and result-presentation mapping, Windows baseline diagnostic and proposed integration lifecycle complete as partial discovery. P0-T16: collect actual Windows baseline, seek upstream contract review, continue result producer and actual race identity investigation. G1 remains blocked; no candidate hooks active.
+
+P0-T16: parallel offline foundations — timing interval, reference storage, inventory and API preview. P0-T17: Windows CI, independent synthetic media feasibility and archive staging, continued native research. Native gate unchanged; no upstream availability dependency for isolated work.

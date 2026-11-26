@@ -83,3 +83,7 @@ Saved_Data/Defaults.txt contains default_environment, default_level, default_day
 ### Additional original/keyboard compatibility check
 
 Nine selected executable byte windows in the original and supplied keyboard-patched build match exactly. See docs/testing/t15/byte-windows.json (RVA, length, SHA-256). This check covers only selected byte ranges, not whole functions, control flow, runtime relocation or hook coexistence. Use the existing build fingerprints and PE raw-section mapping to reproduce. No native capability enabled.
+
+## P0-T16 — additional presentation field disambiguation
+
+Recomputed original Supreme.exe SHA-256 (matches build profile). Fresh GNU objdump -d -Mintel --start-address=0x427151 --stop-address=0x427196 on the original PE: RVAs 0x27157 and 0x27161 write IEEE-754 0x41f00000 (30.0) to preferred VAs 0x488944 and 0x488954 respectively. RVA 0x27179 loads source 0x488948 and 0x2717e copies five DWORDs into the borrowed result object obtained via owner+0x14 then +0x1ec. Thus global 0x488954 maps to the candidate result prefix +0xc on this path and can be assigned a constant 30.0. Its exact meaning, when valid, units and authoritative final IGT producer remain unknown. Do not equate the x87-loaded presentation field or dirty flag to official race finish. No native integration changes.

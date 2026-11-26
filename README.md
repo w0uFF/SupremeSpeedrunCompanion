@@ -2,7 +2,7 @@
 
 An optional, community-driven speedrunning companion for Supreme Snowboarding (Boarder Zone).
 
-**Status: P0 discovery — not an installable mod.** Current revision v0.0.6-p0 adds native registry/result ownership research and paired baseline file diagnostics to the verified v0.0.5 baseline. Native loader compatibility (G1), race timing, recording and menu integration have not been validated. Do not copy development files into your game directory.
+**Status: P0 discovery — not an installable mod.** Current revision v0.0.7-p0 adds an independent clock interval, local persistence, evidence inventory and offline submission preview to the verified v0.0.6 baseline. Native loader compatibility (G1), race timing, recording and menu integration have not been validated. Do not copy development files into your game directory.
 
 ## Project goals
 
@@ -14,7 +14,7 @@ An optional, community-driven speedrunning companion for Supreme Snowboarding (B
 
 ## Build and test
 
-C++17, CMake 3.16+, C99 and Python 3 (required for full tests). Windows Visual Studio Build Tools:
+C++17, CMake 3.16+, C99 and Python 3.10+ (required for full tests). Windows Visual Studio Build Tools:
 
 ```powershell
 cmake -S . -B build -A Win32
@@ -22,7 +22,7 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure --no-tests=error
 ```
 
-Portable Linux: configure without -A Win32, then build and run CTest. Nine baseline CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
+Portable Linux: configure without -A Win32, then build and run CTest. Thirteen baseline CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
 
 Read-only reference classifier: `python tools/preflight.py <copied-game-root>`. Exact on-disk matches are not runtime support or competition eligibility. For local research, `python tools/native_xrefs.py <original.exe> --compare <patched.exe>` requires GNU objdump; `python tools/replay_samples.py <replay.dat>` reports candidate coordinates and header timing without an official verdict. Use only trusted local reference copies. See docs/engine/ENGINE_MAP.md.
 
@@ -33,3 +33,5 @@ GitHub-hosted Windows x86 CI builds and tests Debug and Release. No Actions arti
 The original game, launcher binaries, private recordings, credentials, and raw reference research are not redistributed. The project license is pending maintainer selection; no redistribution or upstream license permissions are implied. Launcher auto-update integration is proposed, not agreed with upstream.
 
 Optional paired diagnostic for a closed disposable game copy: `python tools/baseline_snapshot.py snapshot <game-root>` and `python tools/baseline_snapshot.py compare <before.json> <after.json>`. See docs/testing/WINDOWS_BASELINE.md. This never passes the loader gate.
+
+T16 standalone components: src/modules/timing/README.md and docs/contracts/OFFLINE_LIBRARY.md, EVIDENCE_INVENTORY.md, SUBMISSION_PREVIEW.md. Reference Python implementations are offline development tools, not dependencies of the native companion. No runtime, eligibility or release claims.

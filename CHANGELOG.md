@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.7-p0 — independent timing, local data and evidence foundations
+- Verify v0.0.6 Windows x86 logs, 9/9 Debug and Release.
+- Add injected monotonic interval and QPC/steady-clock platform adapter, isolated from game events.
+- Add standalone SQLite preference/history/PB reference store, bounded evidence inventory and non-dispatchable Speedrun.com request preview.
+- Add four CTest targets; Linux Debug/Release/Debug+UBSan 13/13. CI floor thirteen.
+- Document additional presentation constant evidence, replay pre/post-roll coverage and capture feasibility. No native hooks, capture, network dispatch or release approval.
+
 ## v0.0.6-p0 — baseline evidence and native object lifetime research
 - Verify v0.0.5 Windows x86 CI logs (8/8 Debug and Release).
 - Map menu list registry producer, allocation/destruction boundaries, default selection reads and borrowed result presentation object; document mutating result consumer and remaining unknowns.
