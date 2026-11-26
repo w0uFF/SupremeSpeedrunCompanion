@@ -63,3 +63,5 @@ T31 candidate expected core46, media6, capture11 with separate extended HD case;
 T32 expected core47/media6/capture12; repeat case requires two successful full extended HD children. Version CMake/manifest/generator synchronized0.0.23-p0; no permission/release gate changes.
 
 T33 expected core48/media6/capture13. Additional lifecycle timeout440s and capture job15min to allow 3 clips; previous case timeouts/acceptance, release permission and gate unchanged. CMake/manifest/generator0.0.24-p0.
+
+T34 expected core49/media6/capture14; new fault lifecycle CTest timeout480s, capture job20min, version metadata0.0.25-p0; existing gates unchanged.

@@ -228,7 +228,7 @@ def launcher_manifest():
         if kind == 'number':
             param.update(min=allowed[0], max=allowed[1], step=1)
         controls.append(param)
-    return {'name': 'Supreme Speedrun Companion (development prototype)', 'version': '0.0.24-p0',
+    return {'name': 'Supreme Speedrun Companion (development prototype)', 'version': '0.0.25-p0',
             'description': 'Inert diagnostic only. No recording, hooks or game changes. Do not install before G1 review.',
             'dlls': [{'path': 'SSCNative.dll', 'initialize': 'SSCInitialize', 'enable_if': 'load_diagnostic'}],
             'parameters': controls, 'configuration': dict(defaults(), load_diagnostic=False, profile_name='', use_launcher_overrides=False),

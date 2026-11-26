@@ -123,7 +123,9 @@ std::uint64_t process_cpu_100ns(){
     };
     return units(kernel)+units(user);
 }
-int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false,bool hd=false,bool hd_extended=false,bool hd_sustained=false) {
+enum class FixtureStop { none, user_cancel, simulated_device_loss };
+int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false,bool hd=false,bool hd_extended=false,bool hd_sustained=false,FixtureStop stop=FixtureStop::none) {
+    if(stop!=FixtureStop::none && (!hd || !live || !hd_extended || hd_sustained))return 2;
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
@@ -210,6 +212,31 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
         }
         ~CloseCapture(){if(!session_closed)try{session.Close();}catch(...){}if(!pool_closed)try{pool.Close();}catch(...){}}
     } close_capture{session,pool};
+    const auto stop_hd=[&](const char* reason,int status){
+        // Only the explicit bounded fixture paths enter here; no terminal packet
+        // or sink finalization. The pending lookahead frame remains unoffered.
+        close_capture.close();
+        worker->cancel();worker->join();
+        const auto stats=worker->stats();
+        const auto q=worker->quality()[0];
+        const auto selected=lookahead.count();
+        const auto high=worker->high_water();
+        if(worker->state()!=supreme::recorder::State::cancelled || selected!=120 ||
+           stats.accepted!=selected-1 || !stats.written ||
+           stats.written+stats.discarded!=stats.accepted || stats.dropped_full || stats.rejected_invalid ||
+           q.accepted!=stats.accepted || q.written.packets!=stats.written ||
+           q.discarded!=stats.discarded || q.dropped_full || q.rejected_invalid || !high || high>8)
+            throw std::runtime_error("HD cancellation accounting");
+        const auto path=std::filesystem::path(output);
+        const bool exists=std::filesystem::exists(std::filesystem::symlink_status(path));
+        const auto bytes=exists?std::filesystem::file_size(path):0;
+        if(bytes>16u*1024u*1024u)throw std::runtime_error("HD cancelled output bound");
+        std::cout<<"HDFaultOutcome "<<reason<<" cancelled "<<selected<<" "<<stats.accepted<<" "
+                 <<stats.written<<" "<<stats.discarded<<" "<<selected-stats.accepted<<" "
+                 <<high<<" "<<stats.dropped_full<<" "<<stats.rejected_invalid<<std::endl;
+        std::cout<<"HDFaultArtifact "<<(exists?1:0)<<" "<<bytes<<std::endl;
+        return status;
+    };
     const auto fixture_wall_begin=FixtureClock::now();
     const auto cpu_begin=(marathon || hd)?process_cpu_100ns():std::uint64_t{0};
     if(hd)std::cout<<"HDStage start-capture"<<std::endl;
@@ -239,9 +266,11 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
                 if(live){worker->cancel();worker->join();std::cerr<<"LiveResizeRejected "<<content.Width<<" "<<content.Height<<"\n";return 1;}
                 throw winrt::hresult_error(E_FAIL,L"frame dimensions mismatch");
             }
-            const bool injected=simulated_loss && lookahead.count()>=5;
+            const bool hd_injected=stop==FixtureStop::simulated_device_loss && lookahead.count()>=120;
+            const bool injected=hd_injected || (simulated_loss && lookahead.count()>=5);
             const auto device_status=injected ? DXGI_ERROR_DEVICE_REMOVED : device->GetDeviceRemovedReason();
             if(FAILED(device_status) && live){
+                if(hd_injected){frame.Close();return stop_hd("simulated-device-loss",4);}
                 worker->cancel();worker->join();
                 std::cerr<<(injected?"LiveSimulatedDeviceLoss ":"LiveDeviceFailure ")
                          <<static_cast<int>(worker->state())<<"\n";
@@ -293,6 +322,8 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
                 else if(!dark.empty() && matches(pixels,true))light=std::move(pixels);
             }
             frame.Close();
+            if(stop==FixtureStop::user_cancel && lookahead.count()==120)
+                return stop_hd("user-cancel",3);
             // Controlled fixture-only pause; not a production capture technique.
             if((long_fixture || extended || marathon || hd) && !paused && lookahead.count()>=100){
                 paused=true;
@@ -371,37 +402,55 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
              <<", increasing QPC-correlated timestamps (coarse one-second sanity bound)\n";
     return 0;
 }
-void lifecycle_sample(unsigned phase){
+void lifecycle_sample(unsigned phase,bool gui=false){
     PROCESS_MEMORY_COUNTERS_EX memory{};
     memory.cb=static_cast<DWORD>(sizeof(memory));
     DWORD handles=0;
     if(!GetProcessMemoryInfo(GetCurrentProcess(),reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory),memory.cb)
        || !GetProcessHandleCount(GetCurrentProcess(),&handles))
         throw std::runtime_error("lifecycle resource sample unavailable");
+    if(gui){
+        SetLastError(ERROR_SUCCESS);
+        const DWORD gdi=GetGuiResources(GetCurrentProcess(),GR_GDIOBJECTS);
+        if(!gdi && GetLastError()!=ERROR_SUCCESS)throw std::runtime_error("GDI sample unavailable");
+        SetLastError(ERROR_SUCCESS);
+        const DWORD user=GetGuiResources(GetCurrentProcess(),GR_USEROBJECTS);
+        if(!user && GetLastError()!=ERROR_SUCCESS)throw std::runtime_error("USER sample unavailable");
+        std::cout<<"HDFaultGuiSample "<<phase<<" "<<GetCurrentProcessId()<<" "<<gdi<<" "<<user<<std::endl;
+    }
     std::cout<<"HDLifecycleSample "<<phase<<" "<<GetCurrentProcessId()<<" "
              <<memory.PeakWorkingSetSize<<" "<<memory.WorkingSetSize<<" "<<memory.PrivateUsage<<" "<<handles<<std::endl;
 }
-int lifecycle(const std::filesystem::path& directory){
+int lifecycle(const std::filesystem::path& directory,bool faults=false){
     if(!std::filesystem::is_directory(directory) || std::filesystem::is_symlink(directory))return 2;
-    const std::array<std::filesystem::path,3> files{
-        directory/L"segment-1.mp4",directory/L"segment-2.mp4",directory/L"segment-3.mp4"};
-    for(const auto& file:files)if(std::filesystem::exists(std::filesystem::symlink_status(file)))return 2;
-    lifecycle_sample(0);
+    struct Segment {bool sustained;FixtureStop stop;};
+    const std::vector<Segment> segments=faults?
+        std::vector<Segment>{{false,FixtureStop::none},{false,FixtureStop::user_cancel},
+                             {true,FixtureStop::none},{false,FixtureStop::simulated_device_loss},{false,FixtureStop::none}}:
+        std::vector<Segment>{{false,FixtureStop::none},{true,FixtureStop::none},{false,FixtureStop::none}};
+    std::vector<std::filesystem::path> files;
+    for(std::size_t i=0;i<segments.size();++i){
+        files.push_back(directory/(L"segment-"+std::to_wstring(i+1)+L".mp4"));
+        if(std::filesystem::exists(std::filesystem::symlink_status(files.back())))return 2;
+    }
+    lifecycle_sample(0,faults);
     for(unsigned i=0;i<files.size();++i){
-        const bool sustained=i==1;
-        std::cout<<"HDLifecycleBegin "<<i+1<<" "<<(sustained?1200:600)<<std::endl;
-        const int status=run(files[i].c_str(),false,true,false,false,false,false,false,true,true,sustained);
-        if(status!=0){std::cerr<<"HDLifecycleIncomplete "<<i+1<<" "<<status<<'\n';return 1;}
-        // All run-local capture, worker, window and apartment resources have left scope.
-        lifecycle_sample(i+1);
+        const auto segment=segments[i];
+        const auto count=segment.stop!=FixtureStop::none?120:segment.sustained?1200:600;
+        std::cout<<"HDLifecycleBegin "<<i+1<<" "<<count<<std::endl;
+        const int status=run(files[i].c_str(),false,true,false,false,false,false,false,true,true,segment.sustained,segment.stop);
+        const int expected=segment.stop==FixtureStop::user_cancel?3:segment.stop==FixtureStop::simulated_device_loss?4:0;
+        if(status!=expected){std::cerr<<"HDLifecycleIncomplete "<<i+1<<" "<<status<<'\n';return 1;}
+        lifecycle_sample(i+1,faults);
         std::cout<<"HDLifecycleEnd "<<i+1<<std::endl;
     }
     return 0;
 }
 }
 int wmain(int argc,wchar_t** argv){
-    if(argc==3 && std::wstring_view(argv[1])==L"--live-hd720-lifecycle"){
-        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]));}
+    const bool faults=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-fault-lifecycle";
+    if(faults || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-lifecycle")){
+        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]),faults);}
         catch(const winrt::hresult_error& e){std::cerr<<"HD lifecycle HRESULT "<<winrt::to_string(e.message())<<'\n';return 1;}
         catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     }
