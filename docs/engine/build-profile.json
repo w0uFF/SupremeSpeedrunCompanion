@@ -1,0 +1,166 @@
+{
+  "id": "supremelight-9617efe6-display180-keyboard01-static-v1",
+  "files": {
+    "HMG_3DE.dll": {
+      "reference": "f2d709aedb51d8fc88cd5847afeeee06ccfa6335b3a86fd290744c304d9e214f"
+    },
+    "HMG_BNI.dll": {
+      "reference": "85b2fbf5758a1fea36dfea1004d32df8ef96bece4f7c780a77081a7b93ae3821"
+    },
+    "HMG_Cetsup.dll": {
+      "reference": "0a3236a31708b913b3cc62ebfba306e3019a69e5ed09dd0a67be0c507abad149"
+    },
+    "HMG_Cetsup_DI.dll": {
+      "reference": "d09c263764ce6b72d121946b7f5bd8324c87a235ddbe01e91bbd054fa800454c"
+    },
+    "HMG_Cetsup_Win32.dll": {
+      "reference": "c8eaacec5352fb5af159e455ac9f55e660dfd66bd815e6bceb49aff2a6be0a36"
+    },
+    "HMG_Grandma.dll": {
+      "reference": "b705f91dc16c25001daff03afd3d51e0290ba3515886f7ffb49fb50be1408bde"
+    },
+    "HMG_HTL_2.dll": {
+      "reference": "d47bdbedcc6deaa4c71b7d6bca05511fa338a01820c6177fdcb4bcdf38f34471"
+    },
+    "HMG_Kernel.dll": {
+      "reference": "814b7c5f32a17553c168cade2474e5ae9caec8b7fff4bd41090312ad097fdf15"
+    },
+    "HMG_Legacy.dll": {
+      "reference": "e013468b8110973f1a2dbcbe3f1690571863756871fc92fec2021e9bba3d8906"
+    },
+    "HMG_OSD.dll": {
+      "reference": "82847559296009164e40f2eae1da82ef9c91b30aee45b25eb111d6207c61d665"
+    },
+    "HMG_Profiler.dll": {
+      "reference": "b8f16991bc1d8b3ae969e4119beb0fa8f801113eb8a3847796972cd3fc54149f"
+    },
+    "HMG_Sound.dll": {
+      "reference": "bae6efc50ce78ebb82e3816d32f86c3e223781d920871209b72492829efe51e6"
+    },
+    "HMG_Tenor.dll": {
+      "reference": "5f3ece32a2b384b6b65789dc4ee0182e2c73fb38a46248b6d43a762a0259cd1f"
+    },
+    "HMG_Tenor_WSA.dll": {
+      "reference": "30d9e8fbbb7e35f7ab04e74e9225680a1c1a9d3540a8fcabffa7bae6b1773e61"
+    },
+    "Main_Menu.dll": {
+      "reference": "aed413babf03cb64596415f8fe9a1af043da3c2f6590e4dffe1dd37ac71098f9"
+    },
+    "SR_UIT.dll": {
+      "reference": "2de78ccbb7f7c6676aaddae19d1261d7c38f0f3d100a64405c646ea8ad0f1c69"
+    },
+    "Supreme_Game.dll": {
+      "reference": "b1cc9c71f33b729f67f0cc28d8f1da8aec72e76509373c506abaccfce7d0350b"
+    },
+    "Supreme_Server.dll": {
+      "reference": "5d7776b8990e3182cd34a6bcb63fd6961a101dd73c23ce609c4cd8bb16a03079"
+    },
+    "UIT.dll": {
+      "reference": "728f56f90a69babf53d9f095d0f6cc1c2133635f6ba54d5ed8ab90cc3b1bdb91"
+    },
+    "hmsDecod.dll": {
+      "reference": "e42bb612dd1ae3b220526b1df55fc9e07f759b1520dcbb184093b83d197d041a"
+    },
+    "sr.dll": {
+      "reference": "7eb24cee148a9cc04e97d7d39027c46ad595f33d542e660560241721a04a15df"
+    },
+    "srDD_DirectX6.dll": {
+      "reference": "de3a2fc8e3b7bb8dbe96164b86c1fa54b48d80890c358e00e3d4c4a5ef231464"
+    },
+    "srDD_DirectX7.dll": {
+      "reference": "98d7a4a8f7e84fdc7f58e6149d391bbac44974c87c1f2a20e992e85937d9e50a"
+    },
+    "srDD_Glide3x.dll": {
+      "reference": "73b51ef74069448a675c698dab41791899f37a45183458d284fa126d8695bae4"
+    },
+    "srDD_OpenGL.dll": {
+      "reference": "ae63eeea26f348680e8b62d3e171560ca47839519980f1b206ee25188992ab32"
+    },
+    "srDD_Software2.dll": {
+      "reference": "b395e66c556b0468a8cce5fedede3988079ee1ddca0c152b51b833fdc1d47ccf"
+    },
+    "srEXT_JPEGImporter.dll": {
+      "reference": "f9a137f741ce3636c8d994990f92200f890ffd378a5f09ed9aafd858e5c52164"
+    },
+    "srEXT_default.dll": {
+      "reference": "0b7ae0bfff31667b0b9853f48db4422e769cd792f58210958708e1aa6aae55d3"
+    },
+    "srVP_486.dll": {
+      "reference": "1030f5e5320d8cf92552e4bf2ae7b3bab5123492d243eb227a9519c90fd55a43"
+    },
+    "srVP_AMD3DNow.dll": {
+      "reference": "dbde4630b0cfc59e08d0e136616fa76ed7f89ce210228b955f9bc222aa476164"
+    },
+    "srVP_Generic.dll": {
+      "reference": "c0cd508ac4f2976f53e30ba9133e6ec1befdd822b2ab88b4fc7a20e6b3802a10"
+    },
+    "srVP_KNI.dll": {
+      "reference": "4ea34b63e327a3b534d91de173db41f5267b7c0f8cba8e3913abc07648f8e449"
+    },
+    "srVP_Pentium.dll": {
+      "reference": "b0b8b836bb67a40ee61d2c562d11613a06fda6dcdbdcd54b4e44cc4c804ed194"
+    },
+    "srVP_PentiumII.dll": {
+      "reference": "6ca3779b0b86931e60601fc855cd3fc325d654619f028fb6db557742aa437a85"
+    },
+    "srVP_PentiumMMX.dll": {
+      "reference": "cfc0bc276eb9f4f8d6c887601a299b5d76a367c3fed3f78074f749be9eadb015"
+    },
+    "srVP_PentiumPro.dll": {
+      "reference": "e74e056f93ceff26d5c3bb44a6d77777fbcbd14a7e6d35c7a3329e3929d7117d"
+    },
+    "srVP_x86.dll": {
+      "reference": "ab8d7afd661bb07993625c86c90622d66c14ca79425afdbbeda656e5f85277be"
+    },
+    "Supreme.exe": {
+      "original": "615fd47962cd174b51f1e466acc7b84d64ce87526c52271c9e12200c730a5c8c",
+      "keyboard_v01": "f7bc9074e41244fb5a9a3ab53a4e433ac14564fb47206a5e3c91caf975531e02"
+    },
+    "Display_Config.exe": {
+      "bundled": "9b15a419b7df1b9771d7f0be4fa423229bc395c36a23cba0b99a294bd35fe529",
+      "display_v180": "2f43d99d5f294d81c3b9e4da40bd8a26ccb6c7bafd99a747fae8e83b1363861b"
+    },
+    "winmm.dll": {
+      "display_v180": "589fb68d98c4f71258f4f9dc1192d9d041ac7967c0f5d2e26340ee8634803dcb"
+    }
+  },
+  "engine_files": [
+    "HMG_3DE.dll",
+    "HMG_BNI.dll",
+    "HMG_Cetsup.dll",
+    "HMG_Cetsup_DI.dll",
+    "HMG_Cetsup_Win32.dll",
+    "HMG_Grandma.dll",
+    "HMG_HTL_2.dll",
+    "HMG_Kernel.dll",
+    "HMG_Legacy.dll",
+    "HMG_OSD.dll",
+    "HMG_Profiler.dll",
+    "HMG_Sound.dll",
+    "HMG_Tenor.dll",
+    "HMG_Tenor_WSA.dll",
+    "Main_Menu.dll",
+    "SR_UIT.dll",
+    "Supreme_Game.dll",
+    "Supreme_Server.dll",
+    "UIT.dll",
+    "hmsDecod.dll",
+    "sr.dll",
+    "srDD_DirectX6.dll",
+    "srDD_DirectX7.dll",
+    "srDD_Glide3x.dll",
+    "srDD_OpenGL.dll",
+    "srDD_Software2.dll",
+    "srEXT_JPEGImporter.dll",
+    "srEXT_default.dll",
+    "srVP_486.dll",
+    "srVP_AMD3DNow.dll",
+    "srVP_Generic.dll",
+    "srVP_KNI.dll",
+    "srVP_Pentium.dll",
+    "srVP_PentiumII.dll",
+    "srVP_PentiumMMX.dll",
+    "srVP_PentiumPro.dll",
+    "srVP_x86.dll"
+  ]
+}

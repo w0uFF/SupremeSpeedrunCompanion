@@ -1,0 +1,5 @@
+# Roadmap
+
+P0: evidence, loader compatibility, engine/asset research and modular offline foundations. G1 remains blocked. P0-CI01: GitHub version control, Windows hosted CI, gated diagnostic pre-releases. P0-T14 onward: native menu registration, race and timing event mapping, upstream extension interface, safe runtime smoke tests. P1: race observer and dual timing. P2: recording and evidence export. P3: native Speedrun menu, nine Time Attack tracks, All Tracks sequencing, Championship, preferences, history and playback. P4: competitive integrity. P5: independent moderator validator. P6: community beta and release, optional Speedrun.com account/submission/video publishing/leaderboard integration after rules and authorization validation. P7+: ghosts and deeper analysis.
+
+Release channels: development (not installable at P0), beta and stable only after applicable gates. Proposed Xinfe launcher integration must remain optional; no update mid-run, verify compatibility and checksums, preserve rollback and user runs. No endorsement, agreement or API is assumed.

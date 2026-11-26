@@ -1,0 +1,4 @@
+# categories — prototype v1
+Purpose: Catalog and proposed practice-plan validation; no policy authority.
+
+Public surface: `public/catalog.hpp: catalog, find, valid_plan`. Required dependencies: none. Optional dependencies: none in P0. Owned state/config/files: read-only constexpr catalog; no persistence; no config namespace or migration yet. Single caller/owner thread, synchronous bounded model operations, no startup side effects, resource release by object destruction; no background tasks to cancel. Engine capabilities: none; synthetic fixtures only. Failure: unknown category/invalid plan rejected. Disable/remove by omitting prototype target; production bootstrap does not reference it. Tests: `tests/test_workflow.cpp`, CTest `P0_workflow_models`. Compatibility: prototype v1, not serialized or a native ABI; review before integration.

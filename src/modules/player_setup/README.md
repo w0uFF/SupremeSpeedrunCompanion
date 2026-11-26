@@ -1,0 +1,4 @@
+# player_setup — prototype v1
+Purpose: Resolve saved loadout through injected availability and recording intent; no actual menu or capture.
+
+Public surface: `public/setup.hpp: Availability, resolve, capture_intent, proof`. Required dependencies: injected Availability only. Optional dependencies: none in P0. Owned state/config/files: no persisted choices; caller owns saved data; no config namespace or migration yet. Single caller/owner thread, synchronous bounded model operations, no startup side effects, resource release by object destruction; no background tasks to cancel. Engine capabilities: none; synthetic fixtures only. Failure: unknown/unavailable choices reopen selection; training off. Disable/remove by omitting prototype target; production bootstrap does not reference it. Tests: `tests/test_workflow.cpp`, CTest `P0_workflow_models`. Compatibility: prototype v1, not serialized or a native ABI; review before integration.

@@ -2,7 +2,7 @@
 
 An optional, community-driven speedrunning companion for Supreme Snowboarding (Boarder Zone).
 
-**Status: P0 discovery — not an installable mod.** The current offline development baseline is `v0.0.4-p0`; the source import is pending. Native loader compatibility (G1), race timing, recording, and in-game menu integration have not been validated on Windows. Do not copy development files into your game directory.
+**Status: P0 discovery — not an installable mod.** This repository starts from the verified offline source snapshot v0.0.4-p0. Native loader compatibility (G1), race timing, recording and menu integration have not been validated. Do not copy development files into your game directory.
 
 ## Project goals
 
@@ -10,10 +10,24 @@ An optional, community-driven speedrunning companion for Supreme Snowboarding (B
 - Remembered character and snowboard selection, weather choice, automatic race sequencing, and training mode.
 - Automatic/manual recording, independent real-time and native in-game timing, input overlays, replays, and run management.
 - Local submission packages and optional, player-confirmed Speedrun.com API submission.
-- Preserve the original gameplay, Display Config compatibility, and existing keyboard persistence patch.
+- Preserve original gameplay, Display Config compatibility, and the keyboard persistence patch.
+
+## Build and test
+
+C++17, CMake 3.16+, C99 and Python 3 (required for full tests). Windows Visual Studio Build Tools:
+
+```powershell
+cmake -S . -B build -A Win32
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure --no-tests=error
+```
+
+Portable Linux: configure without -A Win32, then build and run CTest. Seven baseline CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
+
+Read-only reference classifier: `python tools/preflight.py <copied-game-root>`. Exact on-disk matches are not runtime support or competition eligibility. The other research scripts are intended for trusted local copies only.
 
 ## Development and distribution
 
-C++17, CMake, Windows x86 (Win32), portable offline tests, and modular MVC/ports-and-adapters architecture. GitHub-hosted Windows runners are planned for compilation and regression tests. Release packages will be development pre-releases until human validation and release approval. No Actions artifact storage is required.
+GitHub-hosted Windows x86 CI builds and tests Debug and Release. No Actions artifact storage. Automated development pre-releases are gated by a maintainer-approved LICENSE and SSC_RELEASE_APPROVED repository variable. Release assets are offline diagnostics, not installable game mods. Native integration remains blocked by G1. See PROJECT_STATUS.md and docs/release/CI.md.
 
-The original game, launcher binaries, private recordings, credentials, and unreviewed reference material are not redistributed here. The project license is pending maintainer selection; no redistribution or upstream license permissions are implied. Launcher auto-update integration is proposed, not agreed with upstream.
+The original game, launcher binaries, private recordings, credentials, and raw reference research are not redistributed. The project license is pending maintainer selection; no redistribution or upstream license permissions are implied. Launcher auto-update integration is proposed, not agreed with upstream.
