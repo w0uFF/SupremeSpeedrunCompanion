@@ -43,4 +43,14 @@ class RetentionTests(unittest.TestCase):
             with self.assertRaises(ValueError): failure(bad,1234)
 
 
+    def test_exact_finalize_failure(self):
+        data=failed().replace('sink-write-failure failed 120 119 118 1 1','sink-finalize-failure failed 120 120 120 0 0')
+        f=failure(data,1234,True)
+        self.assertEqual((f.accepted,f.written,f.discarded,f.pending),(120,120,0,0))
+        for bad in (data.replace('120 120 120 0 0','120 119 119 0 1'),
+                    data.replace('failed 120','finalized 120'),data+'\nLiveHandoff 120 0 1 1 0 1 0 0'):
+            with self.assertRaises(ValueError): failure(bad,1234,True)
+        with self.assertRaises(ValueError): failure(data,1234)
+
+
 if __name__=='__main__': unittest.main()

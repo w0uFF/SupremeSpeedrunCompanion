@@ -50,3 +50,6 @@ T33: standalone WGC probe owns fixed three recording scopes and process resource
 T34 fixture-only cancellation and injected device-status branches in standalone WGC probe; fixture_fault_lifecycle parser and independent decoder compose existing lifecycle/timeline contracts. No production recorder or journal API changes.
 
 T35 fixture-only sink write counter and post-join injection evidence; production Worker interface unchanged. fixture_retention.py consumes existing lifecycle/fault/timeline parsers; run_hd_write_failure.py composes display scope, actual capture and independent decode. Native retry fixture extends existing process interruption scenario. No production dependencies.
+
+## T36 fixture-only boundaries
+`fixture_isolation.hpp` owns scoped resource probes; `fixture_isolation.py` validates evidence and `run_fixture_isolation.py` orchestrates independent children and decodes. Existing WGC fixture shares scoped device creation and close guards. Optional `--finalize` in existing failure runner uses existing retention and lifecycle parsers. `mf_fixture_sink.hpp` owns fault injection. No production Worker or engine adapter interface change.

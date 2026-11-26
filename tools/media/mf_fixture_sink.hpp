@@ -81,11 +81,14 @@ class AsyncSink final:public supreme::recorder::Sink {
     const unsigned fail_write_;
     unsigned writes_=0;
     bool injected_=false;
+    const bool fail_finalize_;
+    bool injected_finalize_=false;
     void release() noexcept {writer_.Reset();mf_.reset();com_.reset();}
 public:
-    explicit AsyncSink(const wchar_t* path,bool audio=true,VideoSpec spec=low_spec,unsigned fail_write=0):path_(path),with_audio_(audio),spec_(spec),fail_write_(fail_write){}
+    explicit AsyncSink(const wchar_t* path,bool audio=true,VideoSpec spec=low_spec,unsigned fail_write=0,bool fail_finalize=false):path_(path),with_audio_(audio),spec_(spec),fail_write_(fail_write),fail_finalize_(fail_finalize){}
     // Test-only observation; caller may read only after Worker::join().
     bool injected_failure() const noexcept{return injected_;}
+    bool injected_finalize_failure() const noexcept{return injected_finalize_;}
     void begin() override {
         com_=std::make_unique<Com>();
         mf_=std::make_unique<Foundation>();
@@ -114,7 +117,10 @@ public:
         check(sample->SetSampleDuration(static_cast<LONGLONG>(packet.duration)),"worker sample duration");
         check(writer_->WriteSample(video?video_:audio_,sample.Get()),"worker write");
     }
-    void finalize() override {check(writer_->Finalize(),"worker finalize");release();}
+    void finalize() override {
+        if(fail_finalize_){injected_finalize_=true;throw std::runtime_error("injected fixture sink finalization failure");}
+        check(writer_->Finalize(),"worker finalize");release();
+    }
     void abort() noexcept override {release();}
 };
 }

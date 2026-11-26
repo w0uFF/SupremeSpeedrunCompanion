@@ -41,3 +41,6 @@ T33 supplementary: exported Enter Input* argument and selected Keyboard/Mouse/Jo
 T34 static evidence: AI-owned input object independently allocated, typed AI_Player_Input and replaced/deleted through AI+0x1cc, passed to common Player wrapper. Runtime validation must check actual class/ownership and selected player throughout AI/replay/restart transitions. No authoritative result or input observer enabled.
 
 T35: nonnull input forwarding and null reset wrapper differ; null argument skips assignment, so input presence alone cannot establish current human control. Alternate and vector-input result producers need mode-specific runtime correlation after G1. See ENGINE_MAP.md.
+
+## T36 identity constraints
+The candidate finish-result slot +0x50 is shared by Player and AI_Player. A finish event alone must not establish human identity. After G1, independently correlate selected player/controller identity, instance generation and mode-specific result producer, including AI, replay and restart transitions. Null reset wrapper presence is not a reliable ownership signal. Existing official IGT remains authoritative; no hook or runtime admission.
