@@ -7,6 +7,8 @@
 #include <wrl/client.h>
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
 #include <cstring>
 #include <memory>
 #include "src/modules/recorder/public/worker.hpp"
@@ -155,7 +157,14 @@ public:
     void finalize() override {check(writer_->Finalize(),"worker finalize");release();}
     void abort() noexcept override {release();}
 };
-void encode_async(const wchar_t* path,bool paced) {
+void encode_async(const wchar_t* path,bool paced,const wchar_t* raw=nullptr) {
+    std::vector<std::uint8_t> captured;
+    if(raw){
+        std::ifstream input(std::filesystem::path(raw),std::ios::binary);
+        captured.resize(2u*bytes);
+        if(!input.read(reinterpret_cast<char*>(captured.data()),static_cast<std::streamsize>(captured.size())) || input.peek()!=std::char_traits<char>::eof())
+            throw std::runtime_error("invalid captured NV12 fixture");
+    }
     using namespace supreme::recorder;
     AsyncSink sink(path);
     Worker worker(sink,32,32768);
@@ -165,8 +174,11 @@ void encode_async(const wchar_t* path,bool paced) {
         if(paced) std::this_thread::sleep_until(epoch+std::chrono::milliseconds(40)*i);
         const auto pts=static_cast<std::uint64_t>(i)*static_cast<std::uint64_t>(period);
         Packet video{Stream::video,pts,static_cast<std::uint64_t>(period),std::vector<std::uint8_t>(bytes)};
-        std::fill_n(video.bytes.data(),width*height,static_cast<BYTE>(i<frames/2?48:192));
-        std::fill_n(video.bytes.data()+width*height,width*height/2,static_cast<BYTE>(128));
+        if(raw)std::copy_n(captured.data()+(i<frames/2?0u:bytes),bytes,video.bytes.data());
+        else{
+            std::fill_n(video.bytes.data(),width*height,static_cast<BYTE>(i<frames/2?48:192));
+            std::fill_n(video.bytes.data()+width*height,width*height/2,static_cast<BYTE>(128));
+        }
         Packet audio{Stream::audio,pts,static_cast<std::uint64_t>(period),std::vector<std::uint8_t>(pcm_bytes)};
         fill_audio(audio.bytes.data(),i);
         if(worker.offer(std::move(video))!=Offer::accepted || worker.offer(std::move(audio))!=Offer::accepted)
@@ -309,13 +321,14 @@ void decode_audio(const wchar_t* path,LONGLONG video_end) {
 }
 int wmain(int argc,wchar_t** argv) {
     const bool sustained=argc==3 && std::wstring(argv[2])==L"--sustained-av";
-    const bool asynchronous=sustained || (argc==3 && std::wstring(argv[2])==L"--async-av");
+    const bool captured=argc==4 && std::wstring(argv[2])==L"--captured-av";
+    const bool asynchronous=captured || sustained || (argc==3 && std::wstring(argv[2])==L"--async-av");
     if(sustained) frames=250;
     const bool with_audio=asynchronous || (argc==3 && std::wstring(argv[2])==L"--av");
     if((argc!=2 && !with_audio) || GetFileAttributesW(argv[1])!=INVALID_FILE_ATTRIBUTES) return 2;
     try {
         Com com; Foundation mf;
-        if(asynchronous) encode_async(argv[1],sustained); else encode(argv[1],with_audio);
+        if(asynchronous) encode_async(argv[1],sustained,captured?argv[3]:nullptr); else encode(argv[1],with_audio);
         const auto end=decode(argv[1]);
         if(with_audio) decode_audio(argv[1],end);
         return 0;

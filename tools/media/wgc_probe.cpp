@@ -10,6 +10,10 @@
 #include <winrt/Windows.Graphics.DirectX.h>
 #include <winrt/Windows.Graphics.DirectX.Direct3D11.h>
 #include <iostream>
+#include <filesystem>
+#include <fstream>
+#include <vector>
+#include "src/modules/recorder/public/pixel_conversion.hpp"
 #include "src/modules/recorder/public/quality.hpp"
 namespace {
 namespace cap=winrt::Windows::Graphics::Capture;
@@ -18,16 +22,69 @@ struct Apartment {
     Apartment(){winrt::init_apartment(winrt::apartment_type::multi_threaded);}
     ~Apartment(){winrt::uninit_apartment();}
 };
+LRESULT CALLBACK paint_window(HWND hwnd,UINT message,WPARAM wp,LPARAM lp) {
+    if(message==WM_PAINT){
+        PAINTSTRUCT ps{};auto dc=BeginPaint(hwnd,&ps);
+        RECT rect{};GetClientRect(hwnd,&rect);
+        const auto color=GetWindowLongPtrW(hwnd,GWLP_USERDATA)?WHITE_BRUSH:BLACK_BRUSH;
+        FillRect(dc,&rect,static_cast<HBRUSH>(GetStockObject(color)));
+        EndPaint(hwnd,&ps);return 0;
+    }
+    return DefWindowProcW(hwnd,message,wp,lp);
+}
 struct Window {
-    HWND handle=CreateWindowExW(0,L"STATIC",L"SSC synthetic capture test",WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-                               40,40,320,240,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);
+    HWND handle=nullptr;
+    Window(){
+        WNDCLASSW cls{};cls.lpfnWndProc=paint_window;cls.hInstance=GetModuleHandleW(nullptr);cls.lpszClassName=L"SSC_T20_OwnWindow";
+        if(!RegisterClassW(&cls))return;
+        handle=CreateWindowExW(0,cls.lpszClassName,L"SSC synthetic capture test",WS_OVERLAPPEDWINDOW|WS_VISIBLE,
+                               40,40,320,240,nullptr,nullptr,cls.hInstance,nullptr);
+        if(handle)UpdateWindow(handle);
+    }
     ~Window(){if(handle)DestroyWindow(handle);}
+    void bright(){SetWindowLongPtrW(handle,GWLP_USERDATA,1);InvalidateRect(handle,nullptr,FALSE);UpdateWindow(handle);}
 };
+// Map only a centered 160x96 crop of the own window. No desktop capture or scaling.
+std::vector<std::uint8_t> read_crop(ID3D11Device* device,const cap::Direct3D11CaptureFrame& frame) {
+    constexpr UINT w=160,h=96;
+    auto access=frame.Surface().as<::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess>();
+    winrt::com_ptr<ID3D11Texture2D> texture;
+    winrt::check_hresult(access->GetInterface(__uuidof(ID3D11Texture2D),texture.put_void()));
+    D3D11_TEXTURE2D_DESC desc{};texture->GetDesc(&desc);
+    const auto content=frame.ContentSize();
+    if(desc.Format!=DXGI_FORMAT_B8G8R8A8_UNORM || desc.SampleDesc.Count!=1 || content.Width<static_cast<int>(w) ||
+       content.Height<static_cast<int>(h) || static_cast<UINT>(content.Width)>desc.Width ||
+       static_cast<UINT>(content.Height)>desc.Height)
+        throw winrt::hresult_error(E_FAIL,L"unexpected texture layout");
+    const auto x=(static_cast<UINT>(content.Width)-w)/2,y=(static_cast<UINT>(content.Height)-h)/2;
+    D3D11_BOX box{x,y,0,x+w,y+h,1};
+    D3D11_TEXTURE2D_DESC crop{};crop.Width=w;crop.Height=h;crop.MipLevels=1;crop.ArraySize=1;
+    crop.Format=desc.Format;crop.SampleDesc.Count=1;crop.Usage=D3D11_USAGE_STAGING;crop.CPUAccessFlags=D3D11_CPU_ACCESS_READ;
+    winrt::com_ptr<ID3D11Texture2D> staging;
+    winrt::check_hresult(device->CreateTexture2D(&crop,nullptr,staging.put()));
+    winrt::com_ptr<ID3D11DeviceContext> context;device->GetImmediateContext(context.put());
+    context->CopySubresourceRegion(staging.get(),0,0,0,0,texture.get(),0,&box);
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    winrt::check_hresult(context->Map(staging.get(),0,D3D11_MAP_READ,0,&mapped));
+    try{
+        if(mapped.RowPitch<4*w || mapped.RowPitch>1024*1024)throw std::runtime_error("invalid mapped row pitch");
+        auto data=supreme::recorder::bgra_to_nv12(static_cast<const std::uint8_t*>(mapped.pData),
+                         static_cast<std::size_t>(mapped.RowPitch)*h,mapped.RowPitch,w,h);
+        context->Unmap(staging.get(),0);return data;
+    }catch(...){context->Unmap(staging.get(),0);throw;}
+}
+bool matches(const std::vector<std::uint8_t>& data,bool bright){
+    constexpr std::size_t plane=160*96;
+    if(data.size()!=plane+plane/2)return false;
+    for(std::size_t i=0;i<plane;++i)if(bright?data[i]<220:data[i]>35)return false;
+    for(std::size_t i=plane;i<data.size();++i)if(data[i]<120 || data[i]>136)return false;
+    return true;
+}
 void pump() {
     MSG msg{};
     while(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageW(&msg);}
 }
-int run() {
+int run(const wchar_t* output) {
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
@@ -67,8 +124,9 @@ int run() {
     if(!begin)throw winrt::hresult_error(E_FAIL,L"QPC conversion unavailable");
     session.StartCapture();
     unsigned frames=0;std::int64_t last=-1;
-    const auto deadline=GetTickCount64()+5000;
-    while(GetTickCount64()<deadline && frames<3){
+    std::vector<std::uint8_t> dark,light;
+    const auto deadline=GetTickCount64()+8000;
+    while(GetTickCount64()<deadline && (output?light.empty():frames<3)){
         pump();
         if(auto frame=pool.TryGetNextFrame()){
             const auto time=frame.SystemRelativeTime().count();
@@ -82,6 +140,11 @@ int run() {
                (static_cast<std::uint64_t>(time)<*begin && *begin-static_cast<std::uint64_t>(time)>10000000))
                 throw winrt::hresult_error(E_FAIL,L"frame dimensions or timestamp mismatch");
             last=time;++frames;
+            if(output){
+                auto pixels=read_crop(device.get(),frame);
+                if(dark.empty() && matches(pixels,false)){dark=std::move(pixels);window.bright();}
+                else if(!dark.empty() && matches(pixels,true))light=std::move(pixels);
+            }
             frame.Close();
         }
         SetWindowTextW(window.handle,(GetTickCount64()/100)%2?L"SSC synthetic capture A":L"SSC synthetic capture B");
@@ -89,6 +152,18 @@ int run() {
         Sleep(25);
     }
     session.Close();pool.Close();
+    if(output){
+        if(dark.empty() || light.empty()){
+            std::cerr<<"own-window pixel pattern missing, frames="<<frames<<'\n';
+            return frames?1:77;
+        }
+        if(std::filesystem::exists(std::filesystem::symlink_status(output)))return 2;
+        std::ofstream file(std::filesystem::path(output),std::ios::binary);
+        for(const auto* data:{&dark,&light})file.write(reinterpret_cast<const char*>(data->data()),static_cast<std::streamsize>(data->size()));
+        file.close();if(!file)return 1;
+        std::cout<<"WGC actual dark and bright 160x96 crops converted to NV12, all luma/chroma samples verified\n";
+        return 0;
+    }
     if(frames<3){
         std::cout<<"BLOCKED: only "<<frames<<" own-window frames received; interactive compositor test required\n";return 77;
     }
@@ -97,12 +172,13 @@ int run() {
     return 0;
 }
 }
-int main(){
-    try{return run();}
+int wmain(int argc,wchar_t** argv){
+    if(argc>2)return 2;
+    try{return run(argc==2?argv[1]:nullptr);}
     catch(const winrt::hresult_error& e){
         const auto hr=e.code().value;
         std::cerr<<"WGC HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<'\n';
         if(hr==E_ACCESSDENIED || hr==E_NOTIMPL || hr==REGDB_E_CLASSNOTREG){std::cout<<"BLOCKED: capture platform/policy unavailable\n";return 77;}
         return 1;
-    }
+    }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
 }
