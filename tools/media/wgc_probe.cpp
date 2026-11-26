@@ -51,7 +51,7 @@ struct Window {
                                hd?0:40,hd?0:40,hd?1280:320,hd?720:240,nullptr,nullptr,cls.hInstance,nullptr);
         if(handle)UpdateWindow(handle);
     }
-    ~Window(){if(handle)DestroyWindow(handle);if(registered)UnregisterClassW(MAKEINTATOM(registered),GetModuleHandleW(nullptr));}
+    ~Window(){if(handle)DestroyWindow(handle);if(registered)UnregisterClassW(L"SSC_T20_OwnWindow",GetModuleHandleW(nullptr));}
     void bright(){SetWindowLongPtrW(handle,GWLP_USERDATA,1);InvalidateRect(handle,nullptr,FALSE);UpdateWindow(handle);}
 };
 // Map only a bounded centered crop of the own window. No desktop capture or scaling.

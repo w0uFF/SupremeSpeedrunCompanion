@@ -28,6 +28,8 @@ def main():
             print(decode.stderr,end='',flush=True)
             decode.check_returncode()
             t=verify_clip(clip,decode.stdout,count,path.stat().st_size)
+            if t.peak_bytes > resources[i].peak:
+                raise ValueError('post-scope peak below capture peak')
             print(f'HDLifecycleVerified {i} {count} {t.pts_delta_100ns}',flush=True)
         for r in resources[1:]:
             print(f'HDLifecycleDelta {r.phase} private_bytes={r.private-resources[0].private} working_bytes={r.working-resources[0].working} handles={r.handles-resources[0].handles}')

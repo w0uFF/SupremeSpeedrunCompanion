@@ -57,3 +57,5 @@ G1 owner evidence, authoritative finish/human identity, actual audio MMRESULT=2,
 T31: longer HD capture actual measurements pending. Resource growth is observational, not leak proof. Bound filesystem identity detects ordinary substitution; no authenticity, hostile-race, atomic cross-file or power-loss guarantee. Owner baseline and G1, actual audio MMRESULT=2, device recovery and official finish/human identity unresolved.
 
 T32 repeated independent captures measure process variability, not same-process long session leak freedom. Injected native response loss models ambiguous outcome, not actual SQLite transaction interruption or power loss. No G1 or audio resolution.
+
+T33 same-process lifecycle metrics are descriptive; capture/encoder re-created per clip, not persistent continuous game session, no leak guarantee or calibrated gameplay overhead. Native journal boundary failures are process death, not physical power loss. G1, actual audio and device recovery remain blocked.
