@@ -44,3 +44,5 @@ T35: nonnull input forwarding and null reset wrapper differ; null argument skips
 
 ## T36 identity constraints
 The candidate finish-result slot +0x50 is shared by Player and AI_Player. A finish event alone must not establish human identity. After G1, independently correlate selected player/controller identity, instance generation and mode-specific result producer, including AI, replay and restart transitions. Null reset wrapper presence is not a reliable ownership signal. Existing official IGT remains authoritative; no hook or runtime admission.
+
+T37: candidate owner+0xb8 callback with receiver+0x1c dispatch slot+0x50; owner+0x144 selected-object equality branch requires dynamic identity/lifetime and mode-specific official IGT confirmation. See ENGINE_MAP.md. G1 still blocked.
