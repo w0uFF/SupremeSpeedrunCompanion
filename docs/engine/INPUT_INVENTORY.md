@@ -50,3 +50,5 @@ All five mounted ZIPs (Project GPT Docs v1.0.0, Keyboard Persistence v0.1, Displ
 T30: five mounted original ZIPs hashed before and after private static inspection, all unchanged. Other 13 historical sources unavailable for fresh check. Supreme_Game.dll exact SHA256 b1cc9c71f33b729f67f0cc28d8f1da8aec72e76509373c506abaccfce7d0350b verified. No execution or redistribution.
 
 T31 original mounted five archives rechecked via sha256sum -c, unchanged; private original EXE, Supreme_Game.dll, Main_Menu.dll hashes match prior inventory. No execution or redistribution. Other13 historical sources not rechecked.
+
+T33 private original EXE and DLL fingerprints rechecked against inventory, original archives unchanged; no execution or redistribution. Other13 historical inputs unavailable for recheck.

@@ -33,3 +33,7 @@ T30: shared Player+0x14c is replay-related, with Replay.dat construction and rep
 T31: trace original EXE Game::Make_Text_Results() row+0x18 conversion, completed/incomplete string branches, leading zero/punctuation and string vector insertion; Main_Menu text-line consumption. Observe final screen digits vs raw timer/row value across controlled game modes after G1; don't conflate row+0x31 with valid human finish. Race/Replay controller vtables differ; selected-object lifecycle still unproven. See ENGINE_MAP.md exact RVAs.
 
 T32: trace conditional result regeneration in EXE Game::Cycle diagnostic path and alternate caller with mode-like 3..4 condition. Do not use result text generation as finish-event uniqueness proof. Race_Controller cast skips one spatial adjustment branch, not a human-identity predicate. Exact runtime relation still requires G1/G2 controlled observation.
+
+T33: dirty-state candidate byte written even on missing named result row, and cycle helper copies/ranks result rows. Compare actual object identity and lifecycle, completed human event, rendered official result and raw timer only after G1; dirty-state/regeneration/rank list is not attempt proof. See ENGINE_MAP.md.
+
+T33 supplementary: exported Enter Input* argument and selected Keyboard/Mouse/Joystick provenance to Player+0x114 traced statically. Do not conflate input-state write +0x10 with result-regeneration state; verify actual input class/selected player across restart, replay, AI and menu transitions after G1. See ENGINE_MAP.md.

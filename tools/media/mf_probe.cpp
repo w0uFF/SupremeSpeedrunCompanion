@@ -368,7 +368,7 @@ int wmain(int argc,wchar_t** argv) {
                 timeline.push_back({pts,duration});
             }
             if(!input.eof() || (timeline.size()!=60 && timeline.size()!=240 && timeline.size()!=600 && timeline.size()!=1200) || timeline.front().pts!=0 || timeline.back().duration!=supreme::recorder::fixture_tail)throw std::runtime_error("live decode bounds");
-            if(live_hd && timeline.size()!=240 && timeline.size()!=600)throw std::runtime_error("HD capture frame count");
+            if(live_hd && timeline.size()!=240 && timeline.size()!=600 && timeline.size()!=1200)throw std::runtime_error("HD capture frame count");
             frames=static_cast<UINT32>(timeline.size());
             (void)decode(argv[1],&timeline,live_hd?hd_spec:low_spec);return 0;
         }

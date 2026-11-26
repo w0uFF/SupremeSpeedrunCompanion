@@ -61,3 +61,5 @@ T30 corrected capture VERIFIED_AUTOMATED: implementation dee725313bf2accf6959b40
 T31 candidate expected core46, media6, capture11 with separate extended HD case; CMake/manifest/generator 0.0.22-p0. No release permissions or approval change. Local portable 33/33, strict C++ summary PASS. Native/capture and exact PR66 pending.
 
 T32 expected core47/media6/capture12; repeat case requires two successful full extended HD children. Version CMake/manifest/generator synchronized0.0.23-p0; no permission/release gate changes.
+
+T33 expected core48/media6/capture13. Additional lifecycle timeout440s and capture job15min to allow 3 clips; previous case timeouts/acceptance, release permission and gate unchanged. CMake/manifest/generator0.0.24-p0.

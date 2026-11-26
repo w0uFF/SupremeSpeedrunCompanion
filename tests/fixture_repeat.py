@@ -27,14 +27,16 @@ def fields(text, tag, count):
     return tuple(map(int, match.groups()))
 
 
-def trial(text):
+def trial(text, expected_count=600):
+    if expected_count not in (600, 1200):
+        raise ValueError('unsupported HD trial count')
     if len(text) > 256_000:
         raise ValueError('fixture output bound')
     count, wall, cpu, median, p95, p99, maximum, drain = fields(text, 'LivePerformance', 8)
     sw, sh, w, h, peak, working, private, size, bound = fields(text, 'LiveResources', 9)
     n, first, end, coverage, gap, high, drop, discard = fields(text, 'LiveHandoff', 8)
     decoded = re.findall(r'^LiveDecode count=([0-9]+) max_abs_delta_100ns=([0-9]+)$', text, re.M)
-    if (count != 600 or n != count or first != 0 or not 15_000_000 <= wall <= 90_000_000
+    if (count != expected_count or n != count or first != 0 or not (15_000_000 if expected_count == 600 else 30_000_000) <= wall <= 90_000_000
             or not 0 < cpu or not 0 <= median <= p95 <= p99 <= maximum <= wall
             or not 0 <= drain <= wall or not 1280 <= sw <= 1536 or not 720 <= sh <= 1024
             or (w, h) != (1280, 720) or not 0 < working <= peak or private <= 0
