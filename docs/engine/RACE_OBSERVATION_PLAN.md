@@ -48,3 +48,5 @@ The candidate finish-result slot +0x50 is shared by Player and AI_Player. A fini
 T37: candidate owner+0xb8 callback with receiver+0x1c dispatch slot+0x50; owner+0x144 selected-object equality branch requires dynamic identity/lifetime and mode-specific official IGT confirmation. See ENGINE_MAP.md. G1 still blocked.
 
 T38: selected-object helper uses generic tree Parent import; trace owner+0x144 producer and lifetime before human identity. Result-row conversion contains negative approx -1/60 constant and unsigned divisions, so compare exact source semantics against official displayed time before promoting any IGT formula. G1/G2 blocked.
+
+T39: COMMUNITY-001 revision1 requires engine-loaded track/difficulty before pre-start and through result, per attempt/leg; stale/unknown fail closed for proposed proof. Read-only asset inventory confirms nine race track/difficulty pairs plus Practice/Easy; not runtime evidence. G1/G2 remain blocked; no hooks. Trace selected vs actually loaded resource, verify transitions and official IGT.

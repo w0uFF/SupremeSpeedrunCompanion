@@ -53,3 +53,5 @@ T35 fixture-only sink write counter and post-join injection evidence; production
 
 ## T36 fixture-only boundaries
 `fixture_isolation.hpp` owns scoped resource probes; `fixture_isolation.py` validates evidence and `run_fixture_isolation.py` orchestrates independent children and decodes. Existing WGC fixture shares scoped device creation and close guards. Optional `--finalize` in existing failure runner uses existing retention and lifecycle parsers. `mf_fixture_sink.hpp` owns fault injection. No production Worker or engine adapter interface change.
+
+T39 adds submission/public/track_claims.hpp, pure per-leg typed claim agreement using categories public catalog only. No runtime source, archive parser, video/replay inspection, attempt binding, proof or eligibility. Existing draft review unchanged. Tested in workflow target and standalone smoke; native tests pending. See docs/product/COMMUNITY_ACCEPTANCE.md.
