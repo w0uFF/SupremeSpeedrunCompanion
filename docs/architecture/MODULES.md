@@ -38,3 +38,5 @@ T25: offline index_archive controller depends on verified archive report and inj
 T26: pure recorder frame_lookahead, shared MF test-only sink, standalone WGC producer with concurrent Worker. No bootstrap/engine dependency. Offline archive_status injects read-only lookup via ssc_index compare/presence, no writes/repair; local admission PROPOSED only. ADR-016.
 
 T28: isolated synthetic_journal_store adapter depends on pure synthetic_admission Context/Journal and Python standard library; fixed private snapshot names, append-only transitions and read-only inspection. No native repository, archive or bootstrap wiring. Fixture performance summary is a test-only pure C++ helper consumed by standalone WGC probe, no production recorder change. ADR-018.
+
+T29: tools/synthetic_recovery.py composes pure synthetic model, Store and archive_status with injected read-only lookup. It writes only an explicit journal snapshot after reinspection. Existing archive publication and native index remain independently callable, no bootstrap integration. Media fixture gains fixed 720p synthetic spec and measured resource reporting; no production recorder change. ADR-019.

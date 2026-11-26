@@ -19,3 +19,5 @@ Required synthetic tests: terminal duplicate, restart generation mismatch, missi
 T27 follow-up: capture completeness is an explicit immutable bool bound at terminal and verification, not inferred from archive presence. Incomplete synthetic evidence can be retained, never authorized as local/PB. Confirmed matching final/index with stale journal phase requests explicit journal reconciliation rather than silently reporting none. Unknown/invalid facts require review. No journal persistence yet. Follow-up CI pending.
 
 T27 final verified exact implementation 83c89e0336cc781bf2fa70cd22754f89c2acf31a, Windows run 45861739545, pure model local 5/5. T28 candidate `tools/synthetic_journal_store.py` implements a separate synthetic-only append-only snapshot store; no archive or native DB integration. See SYNTHETIC_JOURNAL_STORE.md. G1/G2 and local authority remain blocked.
+
+T29 candidate coordinator integrates synthetic fixture journal with independent verified archive/read-only index facts. It does not implement a local attempt producer, eligibility, approved mapping, or native admission. See SYNTHETIC_RECOVERY.md. G1/G2 unchanged.

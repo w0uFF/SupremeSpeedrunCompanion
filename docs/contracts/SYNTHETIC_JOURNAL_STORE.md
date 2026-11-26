@@ -9,3 +9,5 @@ Explicit append checks identity and full chain. Exact latest retry returns ident
 Local verified tests: Python 3.13.5 Linux x86_64 six tests; real subprocess os._exit(91) after partial write, after flush/fsync, and after hardlink publication; valid retries and invalid preservation; canonical parser, wrong ID, missing predecessor, no-replace destination conflict, capture completeness. Exact blob hashes in PROJECT_STATUS.md. Windows tests registered, pending. No production bootstrap dependency or public evidence schema change.
 
 T28 final: persistence tests passed local Linux and both Windows configurations. See PROJECT_STATUS.md for exact run evidence. No durability or production authority expansion.
+
+T29 candidate: synthetic recovery coordinator uses Store.inspect and explicit Store.append only after rechecking archive/index facts. See SYNTHETIC_RECOVERY.md. It cannot repair or publish archives or insert rows; no persistence format change. Local process-death/decision tests passed; native integration pending.

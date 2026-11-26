@@ -23,6 +23,19 @@ with tempfile.TemporaryDirectory() as directory:
     result.check_returncode()
     if not output.is_file() or not 0 < output.stat().st_size <= 16 * 1024 * 1024:
         raise RuntimeError('missing or oversized synthetic media output')
+    if sys.argv[2:] == ['--hd720']:
+        matches=re.findall(r'^HDPerformance ([0-9 ]+)$',result.stdout,re.M)
+        assert len(matches)==1
+        values=list(map(int,matches[0].split()))
+        assert len(values)==14
+        count,wall,cpu,median,p95,p99,maximum,drain,peak,working,private,size,high,bound=values
+        assert count==250 and wall>=9900000 and cpu>0 and 0<=drain<=wall
+        assert 0<=median<=p95<=p99<=maximum and peak>=working>0 and private>0
+        assert size==output.stat().st_size and 1<=high<=8 and bound==8*1280*720*3//2
+        decoded=[tuple(map(int,x)) for x in re.findall(r'^TimedPTS (\d+) (\d+) (\d+)$',result.stdout,re.M)]
+        assert len(decoded)==count and all(i==j and e==j*400000 and abs(a-e)<=20000 for j,(i,e,a) in enumerate(decoded))
+        assert 'Decoded 250 H264 frames, 1280x720' in result.stdout
+        print('720p synthetic encoder resource fixture verified; not a game/capture performance measurement')
     if sys.argv[2:] in (['--async-av'], ['--sustained-av'], ['--extended-av']):
         final = root / 'synthetic.zip'
         metadata = dict(run_id='1'*32, session_id='2'*32, created_utc='2026-01-02T03:04:05Z',
