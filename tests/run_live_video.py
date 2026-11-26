@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from fixture_display import hosted_hd_mode
 
 hd=len(sys.argv)==4 and sys.argv[3]=='--hd720'
 marathon=len(sys.argv)==4 and sys.argv[3]=='--marathon'
@@ -13,7 +14,8 @@ expected_count=240 if hd else 1200 if marathon else 600 if extended else 240 if 
 with tempfile.TemporaryDirectory() as directory:
     root=Path(directory)
     output=root/'live.mp4'
-    result=subprocess.run([sys.argv[1],'--live-hd720' if hd else '--live-marathon' if marathon else '--live-extended' if extended else '--live-long' if long_fixture else '--live',str(output)],capture_output=True,text=True,timeout=50 if hd else 95 if marathon else 50 if extended else 25)
+    with hosted_hd_mode(hd):
+        result=subprocess.run([sys.argv[1],'--live-hd720' if hd else '--live-marathon' if marathon else '--live-extended' if extended else '--live-long' if long_fixture else '--live',str(output)],capture_output=True,text=True,timeout=50 if hd else 95 if marathon else 50 if extended else 25)
     print(result.stdout,end='')
     print(result.stderr,end='')
     if result.returncode==77:

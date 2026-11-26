@@ -87,6 +87,22 @@ bool matches(const std::vector<std::uint8_t>& data,bool bright,ssc::media_fixtur
     for(std::size_t i=plane;i<data.size();++i)if(data[i]<120 || data[i]>136)return false;
     return true;
 }
+// Bounded spatial diagnostics for a rejected bright frame, not acceptance criteria.
+void diagnose_bright(const std::vector<std::uint8_t>& data,ssc::media_fixture::VideoSpec spec){
+    const auto w=static_cast<std::size_t>(spec.frame_width),h=static_cast<std::size_t>(spec.frame_height);
+    if(data.size()!=w*h*3/2)return;
+    std::size_t bright=0,neutral_errors=0;
+    std::size_t min_x=w,max_x=0;
+    for(std::size_t x=0;x<w;++x)for(std::size_t y=0;y<h;++y){
+        if(data[y*w+x]>=220)++bright;
+        else{min_x=std::min(min_x,x);max_x=std::max(max_x,x);}
+    }
+    for(std::size_t i=w*h;i<data.size();++i)if(data[i]<120 || data[i]>136)++neutral_errors;
+    std::cout<<"HDBrightMismatch "<<bright<<" "<<w*h<<" "<<min_x<<" "<<max_x<<" "<<neutral_errors;
+    for(auto x:{std::size_t{0},w/4,w/2,w*3/4,w-1})
+        std::cout<<" "<<static_cast<unsigned>(data[(h/2)*w+x]);
+    std::cout<<std::endl;
+}
 void pump() {
     MSG msg{};
     while(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageW(&msg);}
@@ -188,6 +204,8 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     if(marathon || hd)processing_us.reserve(target);
     std::uint64_t written_before_stop=0;
     bool paused=false;
+    ULONGLONG bright_at=0;
+    unsigned bright_diagnostics=0;
     const auto deadline=GetTickCount64()+(hd?40000u:marathon?80000u:extended?40000u:long_fixture?20000u:live?10000u:8000u);
     while(GetTickCount64()<deadline && (live?lookahead.count()<target:timed?sequence.size()<target:output?light.empty():frames<3)){
         pump();
@@ -226,10 +244,16 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
                         if(auto packet=lookahead.push({static_cast<std::uint64_t>(time),std::move(pixels)}))offer(std::move(*packet));
                         if(marathon || hd)processing_us.push_back(elapsed_us(processing_begin,FixtureClock::now()));
                         std::cout<<"LiveFrame "<<count<<" "<<time<<"\n";
-                        if(lookahead.count()==target/2)window.bright();
+                        if(lookahead.count()==target/2){window.bright();bright_at=GetTickCount64();}
                         if(resize && lookahead.count()==5 && !SetWindowPos(window.handle,nullptr,0,0,400,300,SWP_NOMOVE|SWP_NOZORDER))throw std::runtime_error("test resize failed");
                         written_before_stop=worker->stats().written;
-                    }else ++skipped_pattern;
+                    }else{
+                        ++skipped_pattern;
+                        if(hd && bright_at && count>=target/2 && bright_diagnostics<3 &&
+                           GetTickCount64()-bright_at>=1000ull*(bright_diagnostics+1u)){
+                            diagnose_bright(pixels,spec);++bright_diagnostics;
+                        }
+                    }
                 }else if(timed){
                     const bool expected=sequence.size()>=target/2;
                     if(matches(pixels,expected)){

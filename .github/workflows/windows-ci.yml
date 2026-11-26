@@ -142,6 +142,8 @@ jobs:
         with:
           persist-credentials: false
       - name: Build and execute independent capture feasibility probes
+        env:
+          SSC_CI_HD_DISPLAY: '1'
         shell: pwsh
         run: |
           cmake -S . -B capture-build -A Win32 -DSSC_CAPTURE_PROBES=ON -DSSC_MEDIA_PROBE=ON
