@@ -53,3 +53,5 @@ T27 final implementation 83c89e0336cc781bf2fa70cd22754f89c2acf31a; run 458617395
 T27 exact 83c89e0336cc781bf2fa70cd22754f89c2acf31a passed Windows 45861739545 and PR66 45861731467; merge baseline 5b26d230577d1cef0f9963eac8d275935dcd347d, docs-only tree. T28 candidate floor 39, capture regex includes live_marathon_video; manifest, CMake and generator 0.0.19-p0, existing conformance assertion preserved. No release/artifact permission or dependency change. New CI pending.
 
 T29 candidate raises core floor to41 and includes media hd720_probe in existing regex; capture suite unchanged. Version metadata aligned at0.0.20-p0; PR66 triggered by manifest/CMake/generator changes. No release approval or permissions change. Candidate CI pending.
+
+T30 core floor43, capture regex includes live_hd720_video; existing media6, release permissions/gate unchanged. CMake/manifest/generator synchronized at0.0.21-p0. Candidate CI pending.

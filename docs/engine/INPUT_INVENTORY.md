@@ -46,3 +46,5 @@ T26 all 18 immutable inputs SHA-256 checked before and after static research; al
 
 ### T27 reference recheck
 All five mounted ZIPs (Project GPT Docs v1.0.0, Keyboard Persistence v0.1, Display Config 1.8.0, SupremeLight 9617efe6, Launcher-maincodeberg) matched recorded inventory before/after static research. Other 13 previously inventoried inputs were not mounted and not freshly rechecked. Private extracted original Supreme.exe SHA-256 615fd47962cd174b51f1e466acc7b84d64ce87526c52271c9e12200c730a5c8c; Supreme_Game.dll b1cc9c71f33b729f67f0cc28d8f1da8aec72e76509373c506abaccfce7d0350b; Main_Menu.dll aed413babf03cb64596415f8fe9a1af043da3c2f6590e4dffe1dd37ac71098f9. No execution, edits or redistribution.
+
+T30: five mounted original ZIPs hashed before and after private static inspection, all unchanged. Other 13 historical sources unavailable for fresh check. Supreme_Game.dll exact SHA256 b1cc9c71f33b729f67f0cc28d8f1da8aec72e76509373c506abaccfce7d0350b verified. No execution or redistribution.

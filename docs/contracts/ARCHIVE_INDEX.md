@@ -25,3 +25,5 @@ tools/archive_status.py accepts explicit directory, nonlocal origin/run ID, uses
 T27 follow-up candidate tests read-only inspection with verified final plus separate invalid pending (preserve both, identical index, review) and valid archive at wrong run ID (identity mismatch, missing index, review). Verify database bytes unchanged. No production recovery policy or local origin change. Synthetic private journal model separate from native bridge. Follow-up CI pending.
 
 T29 synthetic recovery coordinator observes existing archive_status and native compare/presence only; journal reconciliation separate and explicit, no change to nonlocal publication or native schema. Native integration fixture exercises real child termination after archive publication and after index insertion; no power-loss or cross-file transaction guarantee. Candidate CI pending.
+
+T30 explicit synthetic retry adapter uses existing verified no-replace publish and injected native insert port. Fresh plan required, no index insertion during archive retry, no journal mutation, no imported/local promotion. Native interruption fixture registered; existing index schema unchanged.
