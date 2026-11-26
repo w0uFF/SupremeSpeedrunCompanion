@@ -6,6 +6,7 @@
 #include <mfreadwrite.h>
 #include <wrl/client.h>
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <memory>
 #include "src/modules/recorder/public/worker.hpp"
@@ -14,7 +15,8 @@
 #include <string>
 using Microsoft::WRL::ComPtr;
 namespace {
-constexpr UINT32 width=160, height=96, fps=25, frames=12;
+constexpr UINT32 width=160, height=96, fps=25;
+UINT32 frames=12; // Set before constructing any worker; standalone probe only.
 constexpr DWORD bytes=width*height*3/2;
 constexpr LONGLONG period=10000000/fps;
 void check(HRESULT hr, const char* step) {
@@ -153,12 +155,14 @@ public:
     void finalize() override {check(writer_->Finalize(),"worker finalize");release();}
     void abort() noexcept override {release();}
 };
-void encode_async(const wchar_t* path) {
+void encode_async(const wchar_t* path,bool paced) {
     using namespace supreme::recorder;
     AsyncSink sink(path);
     Worker worker(sink,32,32768);
     if(worker.wait_ready()!=State::running) throw std::runtime_error("worker start failed");
+    const auto epoch=std::chrono::steady_clock::now();
     for(UINT32 i=0;i<frames;++i) {
+        if(paced) std::this_thread::sleep_until(epoch+std::chrono::milliseconds(40)*i);
         const auto pts=static_cast<std::uint64_t>(i)*static_cast<std::uint64_t>(period);
         Packet video{Stream::video,pts,static_cast<std::uint64_t>(period),std::vector<std::uint8_t>(bytes)};
         std::fill_n(video.bytes.data(),width*height,static_cast<BYTE>(i<frames/2?48:192));
@@ -174,6 +178,17 @@ void encode_async(const wchar_t* path) {
     if(worker.state()!=State::finalized || stats.accepted!=2u*frames || stats.written!=stats.accepted ||
        stats.dropped_full || stats.rejected_invalid || stats.discarded)
         throw std::runtime_error("worker finalization or counters");
+    const auto quality=worker.quality();
+    for(std::size_t index=0;index<quality.size();++index) {
+        const auto& q=quality[index];const auto& c=q.written;
+        if(q.accepted!=frames || c.packets!=frames || c.first!=0 || c.duration!=static_cast<std::uint64_t>(frames)*static_cast<std::uint64_t>(period) ||
+           c.end!=c.duration || c.internal_gap()!=0 || q.dropped_full || q.discarded || q.rejected_invalid)
+            throw std::runtime_error("stream quality mismatch");
+        std::cout<<"StreamQuality "<<(index==0?"video":"audio")<<" "<<q.accepted<<" "<<c.packets<<" "
+                 <<c.first<<" "<<c.end<<" "<<c.duration<<" "<<*c.internal_gap()<<" "
+                 <<q.dropped_full<<" "<<q.dropped_duration<<" "<<q.rejected_invalid<<" "<<q.discarded<<"\n";
+    }
+    std::cout<<"QueueHighWater "<<worker.high_water()<<"\n";
     std::cout<<"Async worker finalized "<<stats.written<<" packets without observed queue drops\n";
 }
 LONGLONG decode(const wchar_t* path) {
@@ -200,7 +215,7 @@ LONGLONG decode(const wchar_t* path) {
     UINT32 count=0;
     LONGLONG previous=-1;
     bool eos=false;
-    for(unsigned calls=0;calls<128 && !eos;++calls) {
+    for(unsigned calls=0;calls<frames+128 && !eos;++calls) {
         DWORD flags=0; LONGLONG timestamp=0;
         ComPtr<IMFSample> sample;
         check(reader->ReadSample(video,0,nullptr,&flags,&timestamp,sample.GetAddressOf()),"decode sample");
@@ -252,7 +267,7 @@ void decode_audio(const wchar_t* path,LONGLONG video_end) {
     bool eos=false,have=false,signal=false;
     LONGLONG first=0,previous=0,end=0;
     UINT32 total_frames=0;
-    for(unsigned calls=0;calls<256 && !eos;++calls) {
+    for(unsigned calls=0;calls<frames*4+256 && !eos;++calls) {
         DWORD flags=0; LONGLONG timestamp=0;
         ComPtr<IMFSample> sample;
         check(reader->ReadSample(audio,0,nullptr,&flags,&timestamp,sample.GetAddressOf()),"read PCM");
@@ -279,11 +294,11 @@ void decode_audio(const wchar_t* path,LONGLONG video_end) {
         check(buffer->Unlock(),"unlock decoded PCM");
         if(!valid) throw std::runtime_error("invalid PCM length");
         const UINT32 decoded=length/block_align;
-        if(decoded>sample_rate || total_frames>sample_rate-decoded) throw std::runtime_error("excess decoded samples");
+        if(decoded>frames*pcm_frames+sample_rate || total_frames>frames*pcm_frames+sample_rate-decoded) throw std::runtime_error("excess decoded samples");
         total_frames+=decoded;
         end=timestamp+static_cast<LONGLONG>(decoded)*10000000/sample_rate;
     }
-    constexpr UINT32 input_frames=frames*pcm_frames;
+    const UINT32 input_frames=frames*pcm_frames;
     constexpr UINT32 padding=sample_rate/10;
     if(!eos || !have || !signal || total_frames<input_frames-padding || total_frames>input_frames+padding ||
        first < -tolerance || first > tolerance || end < video_end-tolerance || end > video_end+tolerance)
@@ -293,12 +308,14 @@ void decode_audio(const wchar_t* path,LONGLONG video_end) {
 }
 }
 int wmain(int argc,wchar_t** argv) {
-    const bool asynchronous=argc==3 && std::wstring(argv[2])==L"--async-av";
+    const bool sustained=argc==3 && std::wstring(argv[2])==L"--sustained-av";
+    const bool asynchronous=sustained || (argc==3 && std::wstring(argv[2])==L"--async-av");
+    if(sustained) frames=250;
     const bool with_audio=asynchronous || (argc==3 && std::wstring(argv[2])==L"--av");
     if((argc!=2 && !with_audio) || GetFileAttributesW(argv[1])!=INVALID_FILE_ATTRIBUTES) return 2;
     try {
         Com com; Foundation mf;
-        if(asynchronous) encode_async(argv[1]); else encode(argv[1],with_audio);
+        if(asynchronous) encode_async(argv[1],sustained); else encode(argv[1],with_audio);
         const auto end=decode(argv[1]);
         if(with_audio) decode_audio(argv[1],end);
         return 0;
