@@ -365,10 +365,10 @@ int wmain(int argc,wchar_t** argv) {
         Com com; Foundation mf;
         if(timed){
             std::ifstream input(std::filesystem::path(argv[3]),std::ios::binary);
-            const auto captured=supreme::recorder::read_timed_frames(input);
-            const auto intervals=supreme::recorder::frame_intervals(captured);
-            frames=static_cast<UINT32>(captured.size());
-            encode_timed(argv[1],captured);
+            const auto timed_frames=supreme::recorder::read_timed_frames(input);
+            const auto intervals=supreme::recorder::frame_intervals(timed_frames);
+            frames=static_cast<UINT32>(timed_frames.size());
+            encode_timed(argv[1],timed_frames);
             (void)decode(argv[1],&intervals);
             return 0;
         }
