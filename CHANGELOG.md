@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.10-p0 — recording quality and clock mapping
+- Verify v0.0.9 final Windows CI. Add per-stream worker handoff counters, gap and queue high-water statistics, bounded QPC timestamp mapping and pure tests. Additional static result-presentation evidence; no native timing claim.
+
 ## v0.0.9-p0 — offline recorder lifecycle and evidence publication
 - Verified final v0.0.8 Windows core and synthetic video CI.
 - Added bounded recorder worker, per-stream timestamp checks, drain/cancel/failure lifecycle and separate drop counters; fake sink tests only.

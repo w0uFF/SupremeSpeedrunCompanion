@@ -1,4 +1,5 @@
 #pragma once
+#include "src/modules/recorder/public/quality.hpp"
 #include <array>
 #include <condition_variable>
 #include <cstdint>
@@ -33,6 +34,9 @@ class Worker {
     std::array<std::uint64_t,2> end_{};
     State state_=State::starting;
     Stats stats_;
+    std::array<StreamQuality,2> quality_{};
+    std::size_t high_water_=0;
+    static std::size_t index(Stream stream) noexcept {return stream==Stream::video?0u:1u;}
     std::thread thread_;
     void run() noexcept {
         try {
@@ -51,12 +55,14 @@ class Worker {
                 }
                 Packet packet=std::move(queue_.front()); queue_.pop_front();
                 lock.unlock(); sink_.write(packet); lock.lock(); ++stats_.written;
+                quality_[index(packet.stream)].written.observe(packet.pts,packet.duration);
             }
             changed_.notify_all();
         } catch (...) {
             sink_.abort();
             std::lock_guard<std::mutex> lock(mutex_);
             stats_.discarded=stats_.accepted-stats_.written;
+            for(auto& stream:quality_) stream.discarded=stream.accepted-stream.written.packets;
             queue_.clear(); state_=State::failed; changed_.notify_all();
         }
     }
@@ -75,13 +81,20 @@ public:
         if((packet.stream!=Stream::video && packet.stream!=Stream::audio) || packet.bytes.empty() ||
            packet.bytes.size()>max_packet_ || packet.bytes.capacity()>max_packet_ || !packet.duration ||
            packet.pts>std::numeric_limits<std::uint64_t>::max()-packet.duration) {
-            ++stats_.rejected_invalid; return Offer::invalid;
+            ++stats_.rejected_invalid;
+            if(packet.stream==Stream::video || packet.stream==Stream::audio) ++quality_[index(packet.stream)].rejected_invalid;
+            return Offer::invalid;
         }
-        const auto i=packet.stream==Stream::video?0u:1u;
-        if(packet.pts<end_[i]) {++stats_.rejected_invalid;return Offer::invalid;}
-        if(queue_.size()==slots_) {end_[i]=packet.pts+packet.duration;++stats_.dropped_full;return Offer::full;}
+        const auto i=index(packet.stream);
+        if(packet.pts<end_[i]) {++stats_.rejected_invalid;++quality_[i].rejected_invalid;return Offer::invalid;}
+        if(queue_.size()==slots_) {
+            end_[i]=packet.pts+packet.duration;++stats_.dropped_full;++quality_[i].dropped_full;
+            quality_[i].dropped_duration+=packet.duration;return Offer::full;
+        }
         const auto end=packet.pts+packet.duration;
-        queue_.push_back(std::move(packet)); end_[i]=end; ++stats_.accepted; changed_.notify_one(); return Offer::accepted;
+        queue_.push_back(std::move(packet)); end_[i]=end; ++stats_.accepted; ++quality_[i].accepted;
+        if(queue_.size()>high_water_)high_water_=queue_.size();
+        changed_.notify_one(); return Offer::accepted;
     }
     void stop() {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -90,12 +103,16 @@ public:
     void cancel() {
         std::lock_guard<std::mutex> lock(mutex_);
         if(state_==State::starting || state_==State::running || state_==State::draining) {
-            stats_.discarded+=static_cast<std::uint64_t>(queue_.size());queue_.clear();state_=State::cancelling;changed_.notify_all();
+            stats_.discarded+=static_cast<std::uint64_t>(queue_.size());
+            for(const auto& packet:queue_) ++quality_[index(packet.stream)].discarded;
+            queue_.clear();state_=State::cancelling;changed_.notify_all();
         }
     }
     State wait_ready() {std::unique_lock<std::mutex> lock(mutex_);changed_.wait(lock,[this]{return state_!=State::starting;});return state_;}
     void join(){if(thread_.joinable())thread_.join();}
     State state() const {std::lock_guard<std::mutex> lock(mutex_);return state_;}
     Stats stats() const {std::lock_guard<std::mutex> lock(mutex_);return stats_;}
+    std::array<StreamQuality,2> quality() const {std::lock_guard<std::mutex> lock(mutex_);return quality_;}
+    std::size_t high_water() const {std::lock_guard<std::mutex> lock(mutex_);return high_water_;}
 };
 }

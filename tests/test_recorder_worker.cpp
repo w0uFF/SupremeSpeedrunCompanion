@@ -29,6 +29,10 @@ int main(){
         CHECK(w.state()==State::finalized && s.finalized && !s.aborted);
         const auto n=w.stats();CHECK(n.accepted==2 && n.written==2 && n.dropped_full==1 && n.rejected_invalid==1 && n.discarded==0);
         CHECK(s.seen==std::vector<std::uint64_t>({0,10}));
+        const auto q=w.quality();
+        CHECK(q[0].accepted==2 && q[0].written.packets==2 && q[0].written.duration==20);
+        CHECK(q[0].written.internal_gap()==0 && q[0].dropped_full==1 && q[0].dropped_duration==10);
+        CHECK(q[0].rejected_invalid==1 && !q[1].written.internal_gap() && w.high_water()==1);
     }
     for(bool failure:{false,true}){
         GateSink s;s.fail=failure;Worker w(s,2,16);CHECK(w.wait_ready()==State::running);
@@ -38,6 +42,7 @@ int main(){
         CHECK(second==Offer::accepted && s.aborted && !s.finalized);
         CHECK(w.state()==(failure?State::failed:State::cancelled));
         const auto n=w.stats();CHECK(n.accepted==2 && n.discarded==(failure?2u:1u) && n.written==(failure?0u:1u));
+        const auto q=w.quality();CHECK(q[0].discarded==(failure?1u:0u) && q[1].discarded==1);
     }
     try {GateSink s;Worker w(s,128,16u*1024u*1024u);return 1;}catch(const std::invalid_argument&){}
     return 0;

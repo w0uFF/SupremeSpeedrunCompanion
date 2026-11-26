@@ -2,7 +2,7 @@
 
 An optional, community-driven speedrunning companion for Supreme Snowboarding (Boarder Zone).
 
-**Status: P0 discovery — not an installable mod.** Current revision v0.0.9-p0 adds a bounded recorder worker, run repository interface and experimental schema 2 evidence metadata/publication. Native loader compatibility (G1), race timing, recording and menu integration have not been validated. Do not copy development files into your game directory.
+**Status: P0 discovery — not an installable mod.** Current revision v0.0.10-p0 adds per-stream recorder quality statistics and common-origin QPC timestamp conversion. Native loader compatibility (G1), race timing, recording and menu integration have not been validated. Do not copy development files into your game directory.
 
 ## Project goals
 
@@ -22,7 +22,7 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure --no-tests=error
 ```
 
-Portable Linux: configure without -A Win32, then build and run CTest. Nineteen portable CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
+Portable Linux: configure without -A Win32, then build and run CTest. Twenty portable CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
 
 Read-only reference classifier: `python tools/preflight.py <copied-game-root>`. Exact on-disk matches are not runtime support or competition eligibility. For local research, `python tools/native_xrefs.py <original.exe> --compare <patched.exe>` requires GNU objdump; `python tools/replay_samples.py <replay.dat>` reports candidate coordinates and header timing without an official verdict. Use only trusted local reference copies. See docs/engine/ENGINE_MAP.md.
 
@@ -39,3 +39,5 @@ T16 standalone components: src/modules/timing/README.md and docs/contracts/OFFLI
 T17: see docs/contracts/EVIDENCE_ARCHIVE.md and PREFERENCES_PORT.md. Optional Windows media test documented in docs/architecture/RECORDING_FEASIBILITY.md. None are installable game components or approved submission tooling.
 
 T18 offline components: src/modules/recorder/README.md, src/modules/run_library/README.md and docs/contracts/RUN_MANIFEST.md. No live capture, verified submission or native installation.
+
+T19: docs/contracts/RECORDING_QUALITY.md describes handoff-quality statistics, not gameplay coverage.

@@ -16,3 +16,5 @@ No feature depends on engine offsets. All new code removable with its isolated t
 T18 additions: recorder Worker owns bounded FIFO and worker-thread Sink lifetime calls; independent from capture_boundary ledger and timing port. run_library Repository source-level interface and pure comparison; no persistence adapter. tools/run_manifest and archive_publish extend evidence_archive with optional schema 2 and explicit verified partial publication/recovery. All offline, no bootstrap wiring.
 
 T18 follow-up: optional standalone synthetic media probe consumes recorder Worker and implements its Sink; no production dependency on Media Foundation added to bootstrap. The Python probe wrapper exercises experimental archive_publish after successful synthetic encode/decode. No live capture.
+
+T19: recorder quality helper is pure, used by Worker; QPC conversion requires explicit common epoch, no additional engine dependency.

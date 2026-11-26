@@ -26,3 +26,5 @@
 
 - T18 worker uses a short mutex and allocations, cooperative cancellation only; blocking sink can delay join. No production sink adapter, race timestamps, audio/video capture or performance validation.
 - Schema 2 is provisional caller-supplied metadata. Hardlink publication requires a supporting filesystem and trusted quiescent directories, no power-loss durability or automatic import/recovery. Run repository is an interface only.
+
+- T19 per-stream handoff statistics cannot establish actual decoded coverage, missing producer samples before/after observed span, black video or valid audio. Clock domain mapping still requires platform verification.

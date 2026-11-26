@@ -127,3 +127,9 @@ Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Rel
 - TEST-T18-MEDIA-ARCHIVE PASS: same run, job 139763888598: 3/3 media tests. Async worker finalized 24 packets with no observed queue drops, decoded 12 H.264 frames and 23552 PCM sample frames, audio end 4906666/video end 4800000 100 ns units; actual log "Synthetic async MP4 archived, published without overwrite, and independently verified; eligibility unverified". Temporary synthetic files only, no upload.
 - TEST-T18-WRAPPER-LOCAL PASS: Python 3.13.5 executed exact wrapper (blob 796dca5c1332e6c01217f3a56556df034f9af291) with a local ffmpeg-generated 160x96 H.264/AAC synthetic fixture as subprocess, archive path verification passed; not a Windows or worker test. No new dependency in repository.
 - Final input hashes recomputed, all ten match the recorded immutable inventory. Full local checkout remained unavailable; no claim of full Linux CTest. This follow-up commit changes documentation only; last code/test revision verified above. https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45777278765
+
+## P0-T19
+- TEST-T18-DOC-WIN PASS: exact commit c9ef54e14973cdfc43ee2961f6232a8f967736d3, run 45777481519, actual jobs 139764562866 (19/19 each), 139764563258 (3/3 media incl archive); release skipped.
+- TEST-T19-QUALITY PASS local: Debian GCC 14.2.0, g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -I. tests/test_recording_quality.cpp -o quality && ./quality; exit 0. Repeat -fsanitize=undefined -fno-sanitize-recover=all; exit 0. Git blob hashes match uploaded new header and test. Integrated worker CI pending.
+- TEST-T19-INPUT PASS: sha256sum of all ten supplied input ZIP/MD references matches prior inventory. Local clone failed DNS; no full Linux CTest executed.
+- TEST-T19-STATIC OBSERVED_STATIC: original exe and Supreme_Game.dll hashes confirmed, objdump -d -Mintel and objdump -p as documented in ENGINE_MAP.md.
