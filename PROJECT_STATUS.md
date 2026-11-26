@@ -18,3 +18,5 @@ G1 still requires owner disposable Windows baseline, actual supported loader pro
 Next P0-T25: verify final CI and PR66 rerun, collect baseline if provided, continue independent archive-to-index verified ingestion/provenance and recoverable pending/finalized records, continuous own-window capture timestamp integration and original timer/display correlation research. Do not enable hooks until G1; no official IGT or rule approval claim.
 
 T25 candidate v0.0.16: standalone verified archive admission and native index bridge, imported/synthetic only, recoverable partial/final, no local admission. Windows tests pending.
+
+T25 bounded own-window timed capture handoff and actual timestamp encoding/decoding test added, no game/audio/continuous real-time pipeline claim. CI pending.

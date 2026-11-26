@@ -15,6 +15,7 @@
 #include <vector>
 #include "src/modules/recorder/public/pixel_conversion.hpp"
 #include "src/modules/recorder/public/quality.hpp"
+#include "src/modules/recorder/public/timed_frames.hpp"
 namespace {
 namespace cap=winrt::Windows::Graphics::Capture;
 namespace dx=winrt::Windows::Graphics::DirectX;
@@ -84,7 +85,7 @@ void pump() {
     MSG msg{};
     while(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageW(&msg);}
 }
-int run(const wchar_t* output) {
+int run(const wchar_t* output,bool timed=false) {
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
@@ -125,8 +126,11 @@ int run(const wchar_t* output) {
     session.StartCapture();
     unsigned frames=0;std::int64_t last=-1;
     std::vector<std::uint8_t> dark,light;
+    std::vector<supreme::recorder::TimedFrame> sequence;
+    unsigned skipped_pattern=0;
+    constexpr std::size_t target=12;
     const auto deadline=GetTickCount64()+8000;
-    while(GetTickCount64()<deadline && (output?light.empty():frames<3)){
+    while(GetTickCount64()<deadline && (timed?sequence.size()<target:output?light.empty():frames<3)){
         pump();
         if(auto frame=pool.TryGetNextFrame()){
             const auto time=frame.SystemRelativeTime().count();
@@ -142,7 +146,13 @@ int run(const wchar_t* output) {
             last=time;++frames;
             if(output){
                 auto pixels=read_crop(device.get(),frame);
-                if(dark.empty() && matches(pixels,false)){dark=std::move(pixels);window.bright();}
+                if(timed){
+                    const bool expected=sequence.size()>=target/2;
+                    if(matches(pixels,expected)){
+                        sequence.push_back({static_cast<std::uint64_t>(time),std::move(pixels)});
+                        if(sequence.size()==target/2)window.bright();
+                    }else ++skipped_pattern;
+                }else if(dark.empty() && matches(pixels,false)){dark=std::move(pixels);window.bright();}
                 else if(!dark.empty() && matches(pixels,true))light=std::move(pixels);
             }
             frame.Close();
@@ -152,6 +162,18 @@ int run(const wchar_t* output) {
         Sleep(25);
     }
     session.Close();pool.Close();
+    if(timed){
+        if(sequence.size()!=target){
+            std::cerr<<"timed own-window frame pattern incomplete, selected="<<sequence.size()<<" observed="<<frames<<'\n';
+            return frames?1:77;
+        }
+        if(std::filesystem::exists(std::filesystem::symlink_status(output)))return 2;
+        std::ofstream file(std::filesystem::path(output),std::ios::binary);
+        supreme::recorder::write_timed_frames(file,sequence);
+        file.close();if(!file)return 1;
+        std::cout<<"TimedWGC "<<sequence.size()<<" "<<frames<<" "<<skipped_pattern<<" "<<sequence.front().time<<" "<<sequence.back().time<<"\n";
+        return 0;
+    }
     if(output){
         if(dark.empty() || light.empty()){
             std::cerr<<"own-window pixel pattern missing, frames="<<frames<<'\n';
@@ -173,8 +195,9 @@ int run(const wchar_t* output) {
 }
 }
 int wmain(int argc,wchar_t** argv){
-    if(argc>2)return 2;
-    try{return run(argc==2?argv[1]:nullptr);}
+    const bool timed=argc==3 && std::wstring_view(argv[1])==L"--timed";
+    if(argc>2 && !timed)return 2;
+    try{return run(timed?argv[2]:argc==2?argv[1]:nullptr,timed);}
     catch(const winrt::hresult_error& e){
         const auto hr=e.code().value;
         std::cerr<<"WGC HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<'\n';

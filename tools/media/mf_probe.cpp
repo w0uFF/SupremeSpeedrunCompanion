@@ -12,6 +12,7 @@
 #include <cstring>
 #include <memory>
 #include "src/modules/recorder/public/worker.hpp"
+#include "src/modules/recorder/public/timed_frames.hpp"
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -121,20 +122,22 @@ void encode(const wchar_t* path,bool with_audio) {
 // Real worker adapter for synthetic packets only. COM/MF initialized and released on the worker thread.
 class AsyncSink final:public supreme::recorder::Sink {
     const wchar_t* path_;
+    bool with_audio_;
     std::unique_ptr<Com> com_;
     std::unique_ptr<Foundation> mf_;
     ComPtr<IMFSinkWriter> writer_;
     DWORD video_=0,audio_=0;
     void release() noexcept {writer_.Reset();mf_.reset();com_.reset();}
 public:
-    explicit AsyncSink(const wchar_t* path):path_(path){}
+    explicit AsyncSink(const wchar_t* path,bool audio=true):path_(path),with_audio_(audio){}
     void begin() override {
         com_=std::make_unique<Com>();
         mf_=std::make_unique<Foundation>();
-        writer_=open_writer(path_,true,video_,audio_);
+        writer_=open_writer(path_,with_audio_,video_,audio_);
     }
     void write(const supreme::recorder::Packet& packet) override {
         const bool video=packet.stream==supreme::recorder::Stream::video;
+        if(!video && !with_audio_)throw std::runtime_error("audio stream disabled");
         const DWORD length=video?bytes:pcm_bytes;
         constexpr auto max_timestamp=static_cast<std::uint64_t>(std::numeric_limits<LONGLONG>::max());
         if(packet.bytes.size()!=length || packet.pts>max_timestamp ||
@@ -203,7 +206,29 @@ void encode_async(const wchar_t* path,bool paced,const wchar_t* raw=nullptr) {
     std::cout<<"QueueHighWater "<<worker.high_water()<<"\n";
     std::cout<<"Async worker finalized "<<stats.written<<" packets without observed queue drops\n";
 }
-LONGLONG decode(const wchar_t* path) {
+void encode_timed(const wchar_t* path,const std::vector<supreme::recorder::TimedFrame>& captured) {
+    using namespace supreme::recorder;
+    const auto intervals=frame_intervals(captured);
+    AsyncSink sink(path,false);
+    Worker worker(sink,24,32768);
+    if(worker.wait_ready()!=State::running)throw std::runtime_error("timed worker start");
+    Coverage expected;
+    for(std::size_t i=0;i<captured.size();++i){
+        const auto interval=intervals[i];
+        Packet video{Stream::video,interval.pts,interval.duration,captured[i].pixels};
+        if(!expected.observe(interval.pts,interval.duration) || worker.offer(std::move(video))!=Offer::accepted)
+            throw std::runtime_error("timed worker offer");
+    }
+    worker.stop();worker.join();
+    const auto q=worker.quality()[0];
+    const auto& c=q.written;
+    if(worker.state()!=State::finalized || q.accepted!=captured.size() || c.packets!=expected.packets ||
+       c.first!=expected.first || c.end!=expected.end || c.duration!=expected.duration ||
+       c.internal_gap()!=expected.internal_gap() || q.dropped_full || q.discarded || q.rejected_invalid)
+        throw std::runtime_error("timed worker quality");
+    std::cout<<"TimedHandoff "<<c.packets<<" "<<c.first<<" "<<c.end<<" "<<c.duration<<" "<<*c.internal_gap()<<" "<<worker.high_water()<<"\n";
+}
+LONGLONG decode(const wchar_t* path,const std::vector<supreme::recorder::FrameInterval>* timeline=nullptr) {
     ComPtr<IMFSourceReader> reader;
     check(MFCreateSourceReaderFromURL(path,nullptr,reader.GetAddressOf()),"open finalized MP4");
     constexpr DWORD video=static_cast<DWORD>(MF_SOURCE_READER_FIRST_VIDEO_STREAM);
@@ -236,6 +261,14 @@ LONGLONG decode(const wchar_t* path) {
         eos=(flags & MF_SOURCE_READERF_ENDOFSTREAM)!=0;
         if(!sample) continue;
         if(count>=frames || timestamp<=previous) throw std::runtime_error("invalid sample sequence");
+        if(timeline){
+            const auto expected=static_cast<LONGLONG>((*timeline)[count].pts);
+            // Exploratory mux timestamp tolerance (2 ms); do not claim exact preservation.
+            constexpr LONGLONG tolerance=20000;
+            if(timestamp<expected-tolerance || timestamp>expected+tolerance)
+                throw std::runtime_error("decoded timestamp differs from captured timeline");
+            std::cout<<"TimedPTS "<<count<<" "<<expected<<" "<<timestamp<<"\n";
+        }
         previous=timestamp;
         ComPtr<IMFMediaBuffer> buffer;
         check(sample->ConvertToContiguousBuffer(buffer.GetAddressOf()),"contiguous decoded buffer");
@@ -250,7 +283,7 @@ LONGLONG decode(const wchar_t* path) {
     }
     if(!eos || count!=frames) throw std::runtime_error("frame count or EOS mismatch");
     std::cout<<"Decoded "<<count<<" H264 frames, "<<width<<'x'<<height<<", monotonic timestamps and luma pattern verified\n";
-    return previous+period;
+    return previous+(timeline?static_cast<LONGLONG>(timeline->back().duration):period);
 }
 void decode_audio(const wchar_t* path,LONGLONG video_end) {
     ComPtr<IMFSourceReader> reader;
@@ -320,15 +353,25 @@ void decode_audio(const wchar_t* path,LONGLONG video_end) {
 }
 }
 int wmain(int argc,wchar_t** argv) {
+    const bool timed=argc==4 && std::wstring(argv[2])==L"--timed-video";
     const bool extended=argc==3 && std::wstring(argv[2])==L"--extended-av";
     const bool sustained=extended || (argc==3 && std::wstring(argv[2])==L"--sustained-av");
     const bool captured=argc==4 && std::wstring(argv[2])==L"--captured-av";
     const bool asynchronous=captured || sustained || (argc==3 && std::wstring(argv[2])==L"--async-av");
     if(sustained) frames=extended?750u:250u;
     const bool with_audio=asynchronous || (argc==3 && std::wstring(argv[2])==L"--av");
-    if((argc!=2 && !with_audio) || GetFileAttributesW(argv[1])!=INVALID_FILE_ATTRIBUTES) return 2;
+    if((argc!=2 && !with_audio && !timed) || GetFileAttributesW(argv[1])!=INVALID_FILE_ATTRIBUTES) return 2;
     try {
         Com com; Foundation mf;
+        if(timed){
+            std::ifstream input(std::filesystem::path(argv[3]),std::ios::binary);
+            const auto captured=supreme::recorder::read_timed_frames(input);
+            const auto intervals=supreme::recorder::frame_intervals(captured);
+            frames=static_cast<UINT32>(captured.size());
+            encode_timed(argv[1],captured);
+            (void)decode(argv[1],&intervals);
+            return 0;
+        }
         if(asynchronous) encode_async(argv[1],sustained,captured?argv[3]:nullptr); else encode(argv[1],with_audio);
         const auto end=decode(argv[1]);
         if(with_audio) decode_audio(argv[1],end);
