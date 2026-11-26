@@ -65,3 +65,5 @@ T32 expected core47/media6/capture12; repeat case requires two successful full e
 T33 expected core48/media6/capture13. Additional lifecycle timeout440s and capture job15min to allow 3 clips; previous case timeouts/acceptance, release permission and gate unchanged. CMake/manifest/generator0.0.24-p0.
 
 T34 expected core49/media6/capture14; new fault lifecycle CTest timeout480s, capture job20min, version metadata0.0.25-p0; existing gates unchanged.
+
+T35 expected core50/media6/capture15; add write-failure case330s CTest and child210s, capture job20min retained. Version CMake/manifest/generator0.0.26-p0. Release permissions and gates unchanged.
