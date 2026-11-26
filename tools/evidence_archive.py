@@ -8,6 +8,7 @@ import struct
 import zipfile
 from evidence_inventory import inventory, safe_name, ROLES
 from baseline_snapshot import linked
+import run_manifest
 
 MAX_TOTAL = 1024**3
 MAX_DIRECTORY = 128 * 1024
@@ -85,9 +86,10 @@ def verify(path):
         if len(raw) > MAX_MANIFEST:
             raise ValueError('manifest too large')
         manifest = json.loads(raw, object_pairs_hook=unique_object)
-        if (not isinstance(manifest, dict) or set(manifest) != {'schema', 'scope', 'files'}
-                or type(manifest['schema']) is not int or manifest['schema'] != 1
-                or manifest['scope'] != 'experimental_evidence_archive' or not isinstance(manifest['files'], list)):
+        if (not isinstance(manifest, dict) or type(manifest.get('schema')) is not int
+                or manifest['schema'] not in (1, 2) or manifest.get('scope') != 'experimental_evidence_archive'
+                or not isinstance(manifest.get('files'), list)
+                or (manifest['schema'] == 1 and set(manifest) != {'schema', 'scope', 'files'})):
             raise ValueError('unsupported manifest')
         listed = set()
         total = 0
@@ -109,19 +111,28 @@ def verify(path):
                     raise ValueError('evidence digest mismatch')
         if listed != set(names) - {MANIFEST}:
             raise ValueError('unlisted member')
-    return {'schema': 1, 'files_verified': len(listed), 'bytes_verified': total,
-            'integrity_matches_manifest': True, 'eligibility_verified': False, 'complete_submission': False}
+    report = {'schema': manifest['schema'], 'files_verified': len(listed), 'bytes_verified': total,
+              'integrity_matches_manifest': True, 'eligibility_verified': False, 'complete_submission': False}
+    if manifest['schema'] == 2:
+        run_manifest.validate(manifest)
+        if raw != json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode('utf-8'):
+            raise ValueError('noncanonical schema 2 manifest')
+        report.update(run_id=manifest['run_id'], manifest_sha256=hashlib.sha256(raw).hexdigest())
+    return report
 
 
-def create(root, selected, output):
+def create(root, selected, output, *, metadata=None):
     """Exclusive new output; on failure remove only the partial file created here."""
     root, output = Path(root), Path(output)
     report = inventory(root, selected)
     entries = report['files']
     if sum(e['size'] for e in entries) > MAX_TOTAL:
         raise ValueError('archive exceeds total bound')
-    manifest = json.dumps({'schema': 1, 'scope': 'experimental_evidence_archive', 'files': entries},
-                          sort_keys=True, separators=(',', ':')).encode('utf-8')
+    data = ({'schema': 1, 'scope': 'experimental_evidence_archive', 'files': entries}
+            if metadata is None else run_manifest.build(metadata, entries))
+    manifest = json.dumps(data, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    if len(manifest) > MAX_MANIFEST:
+        raise ValueError('manifest exceeds bound')
     # Require a separate output directory; do not write into the evidence staging directory.
     if root.resolve() in (output.parent.resolve(), *output.parent.resolve().parents):
         raise ValueError('output must be outside staging directory')

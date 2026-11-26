@@ -1,0 +1,44 @@
+#include "src/modules/recorder/public/worker.hpp"
+#include <future>
+#include <iostream>
+using namespace supreme::recorder;
+#define CHECK(x) do {if(!(x)){std::cerr<<"line "<<__LINE__<<'\n';return 1;}}while(false)
+struct GateSink final:Sink {
+    std::promise<void> entered, release;
+    std::shared_future<void> permit=release.get_future().share();
+    bool fail=false, finalized=false, aborted=false;
+    std::vector<std::uint64_t> seen;
+    void begin() override {}
+    void write(const Packet& p) override {
+        if(seen.empty()){entered.set_value();permit.wait();}
+        if(fail)throw std::runtime_error("fixture");
+        seen.push_back(p.pts);
+    }
+    void finalize() override {finalized=true;}
+    void abort() noexcept override {aborted=true;}
+};
+Packet video(std::uint64_t pts){return {Stream::video,pts,10,{1,2}};}
+int main(){
+    {
+        GateSink s; Worker w(s,1,16); CHECK(w.wait_ready()==State::running);
+        auto first=w.offer(video(0)); if(first!=Offer::accepted){s.release.set_value();return 1;}
+        s.entered.get_future().wait();
+        const auto second=w.offer(video(10)), full=w.offer(video(20)), stale=w.offer(video(19));
+        w.stop();const auto closed=w.offer(video(30));s.release.set_value();w.join();
+        CHECK(second==Offer::accepted && full==Offer::full && stale==Offer::invalid && closed==Offer::closed);
+        CHECK(w.state()==State::finalized && s.finalized && !s.aborted);
+        const auto n=w.stats();CHECK(n.accepted==2 && n.written==2 && n.dropped_full==1 && n.rejected_invalid==1 && n.discarded==0);
+        CHECK(s.seen==std::vector<std::uint64_t>({0,10}));
+    }
+    for(bool failure:{false,true}){
+        GateSink s;s.fail=failure;Worker w(s,2,16);CHECK(w.wait_ready()==State::running);
+        auto first=w.offer(video(0));if(first!=Offer::accepted){s.release.set_value();return 1;}
+        s.entered.get_future().wait();const auto second=w.offer({Stream::audio,0,10,{3}});
+        if(failure)w.stop();else w.cancel();s.release.set_value();w.join();
+        CHECK(second==Offer::accepted && s.aborted && !s.finalized);
+        CHECK(w.state()==(failure?State::failed:State::cancelled));
+        const auto n=w.stats();CHECK(n.accepted==2 && n.discarded==(failure?2u:1u) && n.written==(failure?0u:1u));
+    }
+    try {GateSink s;Worker w(s,128,16u*1024u*1024u);return 1;}catch(const std::invalid_argument&){}
+    return 0;
+}

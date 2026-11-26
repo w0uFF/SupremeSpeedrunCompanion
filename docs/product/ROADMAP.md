@@ -11,3 +11,5 @@ P0-T15: registry/ownership and result-presentation mapping, Windows baseline dia
 P0-T16: parallel offline foundations — timing interval, reference storage, inventory and API preview. P0-T17: Windows CI, independent synthetic media feasibility and archive staging, continued native research. Native gate unchanged; no upstream availability dependency for isolated work.
 
 P0-T17: experimental archive roundtrip/verifier, preferences storage port, split comparison and media probe. Next: verify separate Windows media test, improve archive provenance/recovery and storage adapters, continue native finish/identity research. G1/G3/G4 unchanged.
+
+P0-T18: worker lifecycle, run repository port and schema 2 evidence/partial publication. Next: Windows regression, AAC/A-V feasibility, real backend integration and native observation. G1 through G4 unchanged.

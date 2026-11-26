@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.9-p0 — offline recorder lifecycle and evidence publication
+- Verified final v0.0.8 Windows core and synthetic video CI.
+- Added bounded recorder worker, per-stream timestamp checks, drain/cancel/failure lifecycle and separate drop counters; fake sink tests only.
+- Added C++ run repository port and comparison helper, no production adapter.
+- Added opt-in schema 2 run manifest, canonical digest and verified partial publication without overwrite, retaining schema 1 support.
+- Isolated Linux tests pass; 19 portable CTest targets configured; exact hosted CI pending. No runtime or release authorization.
+
 ## v0.0.8-p0 — offline archive and media feasibility
 - Verify v0.0.7 Windows x86 logs, 13/13 Debug and Release.
 - Add bounded stored ZIP archive creation and independent verification; no eligibility verdict or extraction.

@@ -100,3 +100,13 @@ Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Rel
 - TEST-T17-WIN-002 PASS: same commit, job 139705335614, core 16/16 Debug and 16/16 Release from actual logs.
 - TEST-T17-ARCHIVE-002 FAIL reproduced, then PASS: crafted ZIP64 EOCD/locator fixture accepted by original verifier despite classic-only contract. Added explicit ZIP64 locator rejection, new seventh archive unittest passes. Re-executed all portable CTest targets on existing Debug/Release/UBSan builds with updated Python source: 16/16 each, no sanitizer report. New commit Windows CI pending.
 - https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45759324352
+
+## P0-T18 — v0.0.9-p0 independent core
+
+- TEST-T17-FINAL-WIN PASS: run 45759479502, commit 5c56048cef89aa868abebdc2325a11d3a2c158b9, actual jobs 139705835560 and 139705835199. MSVC 19.52.37029.0 x86; 16/16 Debug and Release, 1/1 synthetic video (12 decoded frames), release skipped.
+- TEST-T18-WORKER PASS Linux: GCC 14.2.0, g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -pthread -I. tests/test_recorder_worker.cpp; run exit 0. Optimized -O2 same flags, 50 executions with 5-second timeout each passed; Debug UBSan -fsanitize=undefined -fno-sanitize-recover=all exit 0. Deterministic gated fake sink, no media execution.
+- TEST-T18-REPO PASS Linux: g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -I. tests/test_run_repository.cpp, exit 0. Pure comparison only, not persistence.
+- TEST-T18-MANIFEST PASS Linux: python tests/test_run_manifest.py -v, six cases, exit 0. Reconstructed exact baseline evidence_archive.py, evidence_inventory.py and baseline_snapshot.py from GitHub source; Git blob hashes checked before modifications. New and modified source/test blobs match locally executed content.
+- TEST-T18-INPUTS PASS: SHA-256 of all ten supplied inputs matches docs/engine/INPUT_INVENTORY.md. Original Supreme.exe separately extracted read-only; hash matches.
+- TEST-T18-CI NOT_RUN at commit preparation: 19 portable CTest targets configured. Local container cannot clone GitHub (DNS unavailable); only isolated new tests were run locally, not full v0.0.9 regression. Hosted CI will establish exact commit regression.
+- G1/G2/G3/G4 BLOCKED or NOT_RUN; no gameplay, live capture, archive import or official time validation.

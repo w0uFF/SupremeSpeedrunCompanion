@@ -7,3 +7,5 @@ Schema: manifest.json is UTF-8 JSON object with schema=1, scope=experimental_evi
 Tests: tests/test_evidence_archive.py (seven cases: roundtrip, exclusive destination, mutation mismatch, traversal/collision/extra member, duplicate manifest key, bound/cleanup, ZIP64 footer rejection and compression). CTest P0_evidence_archive. No game files involved. Future G4 requires immutable manifest provenance, crash recovery, larger file policy and independent validator integration.
 
 T17 follow-up: a constructed ZIP64 EOCD/locator with an apparently valid classic footer was accepted by Python zipfile despite the initial classic footer check. Explicitly reject the ZIP64 locator at the standard offset before handing input to zipfile. A synthetic regression proves the standard library accepts the fixture while the prototype rejects it. This addresses that specific bypass; it is not comprehensive untrusted archive security validation.
+
+T18: optional schema 2 run metadata and exact manifest digest; schema 1 behavior preserved. See RUN_MANIFEST.md for new fields and explicit partial publication/recovery. No new runtime or eligibility claims.

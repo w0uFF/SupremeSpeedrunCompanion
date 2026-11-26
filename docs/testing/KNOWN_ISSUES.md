@@ -23,3 +23,6 @@
 - T17 archive is experimental, stored-only, 1 GiB total; no complete evidence schema, crash-safe publication, playback, import/extraction or authenticity. Do not assume arbitrary ZIP compatibility.
 - Preferences storage adapter remains test-only in C++; no production backend or run-store integration. Replay comparison needs caller-confirmed matching identity; no official IGT.
 - Media probe is synthetic and Windows-only; compile/runtime/codec support pending CI, no audio, live capture or performance validation.
+
+- T18 worker uses a short mutex and allocations, cooperative cancellation only; blocking sink can delay join. No real sink adapter, race timestamps, audio/video capture or performance validation.
+- Schema 2 is provisional caller-supplied metadata. Hardlink publication requires a supporting filesystem and trusted quiescent directories, no power-loss durability or automatic import/recovery. Run repository is an interface only.
