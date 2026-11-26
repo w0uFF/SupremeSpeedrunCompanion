@@ -15,21 +15,23 @@ from synthetic_admission import Context, Journal
 from synthetic_journal_store import Store, ReviewRequired
 from synthetic_recovery import observe, reconcile
 from synthetic_retry import plan, execute
+from synthetic_index_port import BoundSyntheticIndex
+import synthetic_index_port
 
 RUN='a'*32
 
 
 def ports(exe, db):
-    return (lambda i,r,o:native_status(exe,db,i,r,o),
-            lambda r,o:ix.native_index(exe,db,r,o))
+    return BoundSyntheticIndex.bind(db,exe)
 
 
 def child():
     exe,db,managed,private=map(Path,sys.argv[2:6])
     point=sys.argv[6]
     store=Store(private,RUN)
-    lookup,insert=ports(exe,db)
-    expected=plan(store,managed,lookup)
+    index=ports(exe,db)
+    lookup=index.lookup
+    expected=plan(store,managed,index)
     if point=='after_link':
         assert expected.action=='retry_archive_publication'
         original=os.link
@@ -39,13 +41,14 @@ def child():
         archive_publish.os.link=stop_after_link
     elif point=='after_insert':
         assert expected.action=='retry_index'
-        original=insert
-        def insert(report,origin):
-            assert original(report,origin)=='inserted'
+        original=synthetic_index_port._insert
+        def stop_after_insert(exe_path,db_path,report,origin):
+            assert original(exe_path,db_path,report,origin)=='inserted'
             os._exit(91)
+        synthetic_index_port._insert=stop_after_insert
     else:
         raise ValueError('invalid fixture point')
-    execute(store,managed,lookup,insert,expected)
+    execute(store,managed,index,expected)
     raise AssertionError('process exit not reached')
 
 
@@ -75,19 +78,20 @@ def scenario(exe):
         store=Store(private,RUN)
         for entry in (j,t,v):
             store.append(entry)
-        lookup,insert=ports(exe,db)
+        index=ports(exe,db)
+        lookup=index.lookup
         final=managed/('synthetic-'+RUN+'.zip')
         partial=final.with_name(final.name+'.partial')
         ix.copy_new(source,partial)
         initial=snapshot(private)
         db_initial=db.read_bytes()
-        expected=plan(store,managed,lookup)
+        expected=plan(store,managed,index)
         assert expected.action=='retry_archive_publication'
         # A separate final copy is a conflict, even if its bytes match.
         final.write_bytes(source.read_bytes())
         conflict=snapshot(managed)
         try:
-            execute(store,managed,lookup,insert,expected)
+            execute(store,managed,index,expected)
         except ReviewRequired:
             pass
         else:
@@ -100,26 +104,53 @@ def scenario(exe):
             assert result.returncode==91
         crash('after_link')
         assert os.path.samefile(final,partial) and snapshot(private)==initial and db.read_bytes()==db_initial
-        alias=plan(store,managed,lookup)
+        alias=plan(store,managed,index)
         assert alias.action=='retry_archive_alias_cleanup'
-        assert execute(store,managed,lookup,insert,alias)=='alias_cleaned'
+        assert execute(store,managed,index,alias)=='alias_cleaned'
         assert not partial.exists() and final.read_bytes()==source.read_bytes()
         assert snapshot(private)==initial and db.read_bytes()==db_initial
         reconcile(store,managed,lookup,observe(store,managed,lookup))
         published=snapshot(private)
-        expected=plan(store,managed,lookup)
+        expected=plan(store,managed,index)
         assert expected.action=='retry_index'
         # Actual conflicting origin row must not be promoted or overwritten.
         conflict_dir=root/'conflict'
         conflict_dir.mkdir()
         conflict_db=conflict_dir/'runs.sqlite'
         subprocess.run([exe,'init',conflict_db],check=True,timeout=15)
-        assert ix.native_index(exe,conflict_db,report,'imported')=='inserted'
-        conflicting_lookup,conflicting_insert=ports(exe,conflict_db)
-        conflict_bytes=conflict_db.read_bytes()
-        assert plan(store,managed,conflicting_lookup) is None
+        conflicting_index=ports(exe,conflict_db)
+        # Even two empty databases with identical read-only facts are different identities.
+        other_bytes=conflict_db.read_bytes()
+        assert plan(store,managed,conflicting_index).action=='retry_index'
         try:
-            execute(store,managed,conflicting_lookup,conflicting_insert,expected)
+            execute(store,managed,conflicting_index,expected)
+        except ReviewRequired:
+            pass
+        else:
+            raise AssertionError('different empty index accepted')
+        assert conflict_db.read_bytes()==other_bytes
+        # Replace the bound DB with byte-identical data while retaining its original inode.
+        saved=db.with_name('original-db')
+        db.rename(saved)
+        db.write_bytes(saved.read_bytes())
+        try:
+            assert plan(store,managed,index) is None
+            try:
+                execute(store,managed,index,expected)
+            except ReviewRequired:
+                pass
+            else:
+                raise AssertionError('replacement index accepted')
+            assert db.read_bytes()==saved.read_bytes()
+        finally:
+            db.unlink()
+            saved.rename(db)
+        index.check()
+        assert ix.native_index(exe,conflict_db,report,'imported')=='inserted'
+        conflict_bytes=conflict_db.read_bytes()
+        assert plan(store,managed,conflicting_index) is None
+        try:
+            execute(store,managed,conflicting_index,expected)
         except ReviewRequired:
             pass
         else:
@@ -127,7 +158,7 @@ def scenario(exe):
         assert conflict_db.read_bytes()==conflict_bytes and snapshot(private)==published
         crash('after_insert')
         assert snapshot(private)==published and lookup(RUN,report,'synthetic')=='identical'
-        assert plan(store,managed,lookup) is None
+        assert plan(store,managed,index) is None
         indexed_bytes=db.read_bytes()
         reconcile(store,managed,lookup,observe(store,managed,lookup))
         assert observe(store,managed,lookup).action=='none'

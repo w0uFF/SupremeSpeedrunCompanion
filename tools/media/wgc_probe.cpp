@@ -120,7 +120,7 @@ std::uint64_t process_cpu_100ns(){
     };
     return units(kernel)+units(user);
 }
-int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false,bool hd=false) {
+int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false,bool hd=false,bool hd_extended=false) {
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
@@ -199,14 +199,14 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     std::vector<std::uint8_t> dark,light;
     std::vector<supreme::recorder::TimedFrame> sequence;
     unsigned skipped_pattern=0;
-    const std::size_t target=hd?240u:marathon?1200u:extended?600u:long_fixture?240u:live?60u:12u;
+    const std::size_t target=hd_extended?600u:hd?240u:marathon?1200u:extended?600u:long_fixture?240u:live?60u:12u;
     std::vector<std::int64_t> processing_us;
     if(marathon || hd)processing_us.reserve(target);
     std::uint64_t written_before_stop=0;
     bool paused=false;
     ULONGLONG bright_at=0;
     unsigned bright_diagnostics=0;
-    const auto deadline=GetTickCount64()+(hd?40000u:marathon?80000u:extended?40000u:long_fixture?20000u:live?10000u:8000u);
+    const auto deadline=GetTickCount64()+(hd_extended?80000u:hd?40000u:marathon?80000u:extended?40000u:long_fixture?20000u:live?10000u:8000u);
     while(GetTickCount64()<deadline && (live?lookahead.count()<target:timed?sequence.size()<target:output?light.empty():frames<3)){
         pump();
         if(auto frame=pool.TryGetNextFrame()){
@@ -247,6 +247,16 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
                         if(lookahead.count()==target/2){window.bright();bright_at=GetTickCount64();}
                         if(resize && lookahead.count()==5 && !SetWindowPos(window.handle,nullptr,0,0,400,300,SWP_NOMOVE|SWP_NOZORDER))throw std::runtime_error("test resize failed");
                         written_before_stop=worker->stats().written;
+                        if(hd_extended && (lookahead.count()==1 || lookahead.count()%120u==0)){
+                            PROCESS_MEMORY_COUNTERS_EX memory{};
+                            memory.cb=static_cast<DWORD>(sizeof(memory));
+                            if(!GetProcessMemoryInfo(GetCurrentProcess(),reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory),memory.cb))
+                                throw std::runtime_error("HD capture resource sample unavailable");
+                            std::cout<<"LiveResourceSample "<<lookahead.count()<<" "
+                                     <<elapsed_us(fixture_wall_begin,FixtureClock::now())<<" "
+                                     <<memory.PeakWorkingSetSize<<" "<<memory.WorkingSetSize<<" "
+                                     <<memory.PrivateUsage<<" "<<worker->high_water()<<"\n";
+                        }
                     }else{
                         ++skipped_pattern;
                         if(hd && bright_at && count>=target/2 && bright_diagnostics<3 &&
@@ -349,10 +359,11 @@ int wmain(int argc,wchar_t** argv){
     const bool extended=argc==3 && std::wstring_view(argv[1])==L"--live-extended";
     const bool simulated_loss=argc==3 && std::wstring_view(argv[1])==L"--live-simulated-loss";
     const bool marathon=argc==3 && std::wstring_view(argv[1])==L"--live-marathon";
-    const bool hd=argc==3 && std::wstring_view(argv[1])==L"--live-hd720";
+    const bool hd_extended=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-extended";
+    const bool hd=hd_extended || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720");
     const bool live=hd || resize || long_fixture || extended || simulated_loss || marathon || (argc==3 && std::wstring_view(argv[1])==L"--live");
     if(argc>2 && !timed && !live)return 2;
-    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture,extended,simulated_loss,marathon,hd);}
+    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture,extended,simulated_loss,marathon,hd,hd_extended);}
     catch(const winrt::hresult_error& e){
         const auto hr=e.code().value;
         std::cerr<<"WGC HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<" "<<winrt::to_string(e.message())<<'\n';

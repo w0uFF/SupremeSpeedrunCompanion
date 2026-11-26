@@ -27,3 +27,5 @@ T27 follow-up candidate tests read-only inspection with verified final plus sepa
 T29 synthetic recovery coordinator observes existing archive_status and native compare/presence only; journal reconciliation separate and explicit, no change to nonlocal publication or native schema. Native integration fixture exercises real child termination after archive publication and after index insertion; no power-loss or cross-file transaction guarantee. Candidate CI pending.
 
 T30 explicit synthetic retry adapter uses existing verified no-replace publish and injected native insert port. Fresh plan required, no index insertion during archive retry, no journal mutation, no imported/local promotion. Native interruption fixture registered; existing index schema unchanged.
+
+T31 synthetic retry consumes the bound native bridge port only. Existing native schema, standalone index commands and imported archive behavior unchanged. Filesystem device/inode binding is not authentication or a hostile-race defense. See SYNTHETIC_INDEX_PORT.md.
