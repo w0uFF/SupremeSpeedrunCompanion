@@ -4,6 +4,8 @@ import re
 
 MODES = ('window', 'device', 'pool', 'worker-idle', 'worker-write')
 CYCLES = 3
+REFINEMENT_MODES = ('support-only', 'item-only', 'framepool-only', 'pool')
+REFINEMENT_CYCLES = 6
 
 
 @dataclass(frozen=True)
@@ -30,15 +32,16 @@ class Outcome:
     size: int
 
 
-def evidence(text, mode):
-    if mode not in MODES or len(text)>64_000:
+def evidence(text, mode, cycles=CYCLES):
+    allowed = MODES if cycles == CYCLES else REFINEMENT_MODES if cycles == REFINEMENT_CYCLES else ()
+    if mode not in allowed or len(text)>64_000:
         raise ValueError('isolation mode or output bound')
     rows=[line for line in text.splitlines() if line.startswith('Isolation')]
-    if len(rows)!=2+5*CYCLES or rows[0]!=f'IsolationBegin {mode}' or rows[-1]!=f'IsolationEnd {mode} {CYCLES}':
+    if len(rows)!=2+5*cycles or rows[0]!=f'IsolationBegin {mode}' or rows[-1]!=f'IsolationEnd {mode} {cycles}':
         raise ValueError('isolation marker sequence')
     samples, outcomes=[], []
     pid=peak=0
-    for cycle in range(1,CYCLES+1):
+    for cycle in range(1,cycles+1):
         block=rows[1+(cycle-1)*5:1+cycle*5]
         for stage,line in enumerate((block[0],*block[2:])):
             m=re.fullmatch(r'IsolationSample'+r' ([0-9]{1,12})'*9,line)

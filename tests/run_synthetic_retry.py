@@ -174,14 +174,15 @@ def scenario(exe, lost_response=False, corrupt_pending=False):
             assert snapshot(private)==interrupted and db.read_bytes()==db_initial
             assert final.read_bytes()==source.read_bytes() and not partial.exists()
             assert lookup(RUN,report,'synthetic')=='missing'
-            fresh=subprocess.run([sys.executable,str(Path(__file__).resolve()),'--child',
-                                  str(exe),str(db),str(managed),str(private),'review_torn'],
-                                 capture_output=True,text=True,timeout=30)
-            assert fresh.returncode==0 and 'Fresh process independently refused torn journal PASS' in fresh.stdout
-            assert snapshot(private)==interrupted and db.read_bytes()==db_initial
-            assert final.read_bytes()==source.read_bytes() and not partial.exists()
-            assert lookup(RUN,report,'synthetic')=='missing'
-            print(fresh.stdout,end='')
+            for _ in range(2):
+                fresh=subprocess.run([sys.executable,str(Path(__file__).resolve()),'--child',
+                                      str(exe),str(db),str(managed),str(private),'review_torn'],
+                                     capture_output=True,text=True,timeout=30)
+                assert fresh.returncode==0 and 'Fresh process independently refused torn journal PASS' in fresh.stdout
+                assert snapshot(private)==interrupted and db.read_bytes()==db_initial
+                assert final.read_bytes()==source.read_bytes() and not partial.exists()
+                assert lookup(RUN,report,'synthetic')=='missing'
+                print(fresh.stdout,end='')
             print('Native torn published journal process interruption preserved for review PASS')
             return
         if not lost_response:

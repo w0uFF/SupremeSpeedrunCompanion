@@ -162,29 +162,37 @@ void isolate_capture_scope(std::wstring_view mode){
         if(!device.runtime)throw std::runtime_error("isolated runtime device missing");
         return;
     }
+    if(mode==L"support-only"){
+        if(!cap::GraphicsCaptureSession::IsSupported())throw std::runtime_error("isolated WGC unavailable");
+        return;
+    }
     Window window;
     if(!window.handle)throw std::runtime_error("isolated own-window creation");
     pump();
     if(mode==L"window")return;
-    if(mode!=L"pool" || !cap::GraphicsCaptureSession::IsSupported())throw std::runtime_error("isolated WGC unavailable");
+    if((mode!=L"pool" && mode!=L"item-only" && mode!=L"framepool-only") || !cap::GraphicsCaptureSession::IsSupported())throw std::runtime_error("isolated WGC unavailable");
     cap::GraphicsCaptureItem item{nullptr};
     auto factory=winrt::get_activation_factory<cap::GraphicsCaptureItem,IGraphicsCaptureItemInterop>();
     winrt::check_hresult(factory->CreateForWindow(window.handle,winrt::guid_of<cap::GraphicsCaptureItem>(),winrt::put_abi(item)));
     const auto size=item.Size();
     if(size.Width<=0 || size.Height<=0 || size.Width>1024 || size.Height>1024)throw std::runtime_error("isolated item bounds");
+    if(mode==L"item-only")return;
     auto device=make_capture_device();
     auto pool=cap::Direct3D11CaptureFramePool::CreateFreeThreaded(device.runtime,dx::DirectXPixelFormat::B8G8R8A8UIntNormalized,2,size);
+    if(mode==L"framepool-only"){pool.Close();return;}
     auto session=pool.CreateCaptureSession(item);
     CloseCapture close{session,pool};
     close.close(); // Never start capture: this is setup/teardown isolation.
 }
-int isolate_retention(std::wstring_view mode,const std::filesystem::path& directory){
+int isolate_retention(std::wstring_view mode,const std::filesystem::path& directory,bool extended=false){
     using namespace ssc::isolation_fixture;
-    if(!std::filesystem::is_directory(directory) || std::filesystem::is_symlink(directory) ||
-       (mode!=L"window" && mode!=L"device" && mode!=L"pool" && mode!=L"worker-idle" && mode!=L"worker-write"))return 2;
+    const bool allowed=extended?(mode==L"support-only" || mode==L"item-only" || mode==L"framepool-only" || mode==L"pool"):
+        (mode==L"window" || mode==L"device" || mode==L"pool" || mode==L"worker-idle" || mode==L"worker-write");
+    if(!std::filesystem::is_directory(directory) || std::filesystem::is_symlink(directory) || !allowed)return 2;
+    const unsigned cycles=extended?6u:3u;
     const auto label=winrt::to_string(winrt::hstring(mode));
     std::cout<<"IsolationBegin "<<label<<std::endl;
-    for(unsigned cycle=1;cycle<=3;++cycle){
+    for(unsigned cycle=1;cycle<=cycles;++cycle){
         sample(cycle,0);
         Outcome result;
         if(mode==L"worker-idle" || mode==L"worker-write")
@@ -195,7 +203,7 @@ int isolate_retention(std::wstring_view mode,const std::filesystem::path& direct
         Sleep(1000);pump();sample(cycle,2);
         Sleep(2000);pump();sample(cycle,3);
     }
-    std::cout<<"IsolationEnd "<<label<<" 3"<<std::endl;
+    std::cout<<"IsolationEnd "<<label<<" "<<cycles<<std::endl;
     return 0;
 }
 enum class FixtureStop { none, user_cancel, simulated_device_loss, sink_write_failure, sink_finalize_failure };
@@ -556,8 +564,9 @@ int lifecycle(const std::filesystem::path& directory,bool faults=false,bool rete
 }
 int wmain(int argc,wchar_t** argv){
     const bool faults=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-fault-lifecycle";
-    if(argc==4 && std::wstring_view(argv[1])==L"--isolate-retention"){
-        try{Apartment apartment;return isolate_retention(argv[2],std::filesystem::path(argv[3]));}
+    const bool refinement=argc==4 && std::wstring_view(argv[1])==L"--isolate-wgc-refinement";
+    if(refinement || (argc==4 && std::wstring_view(argv[1])==L"--isolate-retention")){
+        try{Apartment apartment;return isolate_retention(argv[2],std::filesystem::path(argv[3]),refinement);}
         catch(const winrt::hresult_error& e){std::cerr<<"Isolation HRESULT "<<winrt::to_string(e.message())<<'\n';return 1;}
         catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     }
