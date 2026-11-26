@@ -110,7 +110,9 @@ def scenario(exe):
         expected=plan(store,managed,lookup)
         assert expected.action=='retry_index'
         # Actual conflicting origin row must not be promoted or overwritten.
-        conflict_db=root/'conflict.sqlite'
+        conflict_dir=root/'conflict'
+        conflict_dir.mkdir()
+        conflict_db=conflict_dir/'runs.sqlite'
         subprocess.run([exe,'init',conflict_db],check=True,timeout=15)
         assert ix.native_index(exe,conflict_db,report,'imported')=='inserted'
         conflicting_lookup,conflicting_insert=ports(exe,conflict_db)
