@@ -87,7 +87,7 @@ void pump() {
     MSG msg{};
     while(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageW(&msg);}
 }
-int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false) {
+int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false) {
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
@@ -154,10 +154,10 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     std::vector<std::uint8_t> dark,light;
     std::vector<supreme::recorder::TimedFrame> sequence;
     unsigned skipped_pattern=0;
-    const std::size_t target=long_fixture?240u:live?60u:12u;
+    const std::size_t target=extended?600u:long_fixture?240u:live?60u:12u;
     std::uint64_t written_before_stop=0;
     bool paused=false;
-    const auto deadline=GetTickCount64()+(long_fixture?20000u:live?10000u:8000u);
+    const auto deadline=GetTickCount64()+(extended?40000u:long_fixture?20000u:live?10000u:8000u);
     while(GetTickCount64()<deadline && (live?lookahead.count()<target:timed?sequence.size()<target:output?light.empty():frames<3)){
         pump();
         if(auto frame=pool.TryGetNextFrame()){
@@ -171,7 +171,16 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
                 if(live){worker->cancel();worker->join();std::cerr<<"LiveResizeRejected "<<content.Width<<" "<<content.Height<<"\n";return 1;}
                 throw winrt::hresult_error(E_FAIL,L"frame dimensions mismatch");
             }
-            winrt::check_hresult(device->GetDeviceRemovedReason());
+            const bool injected=simulated_loss && lookahead.count()>=5;
+            const auto device_status=injected ? DXGI_ERROR_DEVICE_REMOVED : device->GetDeviceRemovedReason();
+            if(FAILED(device_status) && live){
+                worker->cancel();worker->join();
+                std::cerr<<(injected?"LiveSimulatedDeviceLoss ":"LiveDeviceFailure ")
+                         <<static_cast<int>(worker->state())<<"\n";
+                if(worker->state()!=supreme::recorder::State::cancelled)throw std::runtime_error("device failure cancellation");
+                return 1;
+            }
+            winrt::check_hresult(device_status);
             if(!current || time<=last || time<0 ||
                static_cast<std::uint64_t>(time)>*current+10000000 ||
                (static_cast<std::uint64_t>(time)<*begin && *begin-static_cast<std::uint64_t>(time)>10000000))
@@ -199,7 +208,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
             }
             frame.Close();
             // Controlled fixture-only pause; not a production capture technique.
-            if(long_fixture && !paused && lookahead.count()>=100){
+            if((long_fixture || extended) && !paused && lookahead.count()>=100){
                 paused=true;
                 Sleep(350);
             }
@@ -258,9 +267,11 @@ int wmain(int argc,wchar_t** argv){
     const bool timed=argc==3 && std::wstring_view(argv[1])==L"--timed";
     const bool resize=argc==3 && std::wstring_view(argv[1])==L"--live-resize";
     const bool long_fixture=argc==3 && std::wstring_view(argv[1])==L"--live-long";
-    const bool live=resize || long_fixture || (argc==3 && std::wstring_view(argv[1])==L"--live");
+    const bool extended=argc==3 && std::wstring_view(argv[1])==L"--live-extended";
+    const bool simulated_loss=argc==3 && std::wstring_view(argv[1])==L"--live-simulated-loss";
+    const bool live=resize || long_fixture || extended || simulated_loss || (argc==3 && std::wstring_view(argv[1])==L"--live");
     if(argc>2 && !timed && !live)return 2;
-    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture);}
+    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture,extended,simulated_loss);}
     catch(const winrt::hresult_error& e){
         const auto hr=e.code().value;
         std::cerr<<"WGC HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<'\n';

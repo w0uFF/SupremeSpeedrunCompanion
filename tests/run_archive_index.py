@@ -108,6 +108,20 @@ with tempfile.TemporaryDirectory() as d:
     unavailable=status.inspect(managed,meta['run_id'],'imported',
         lambda i,r,o:status.native_status(exe,absent_db,i,r,o))
     assert unavailable['index']=='unavailable' and unavailable['action']=='review' and not absent_db.exists()
+    partial.write_bytes(b'corrupt pending beside verified final')
+    before=db.read_bytes()
+    mixed=probe()
+    assert mixed['archive']=='review_required' and mixed['final']=='verified' and mixed['pending']=='invalid'
+    assert mixed['index']=='identical' and mixed['action']=='review'
+    assert partial.read_bytes()==b'corrupt pending beside verified final' and final.read_bytes()==original
+    partial.unlink()
+    wrong=managed/('imported-'+'5'*32+'.zip')
+    wrong.write_bytes(original)
+    mismatch=probe('5'*32)
+    assert mismatch['archive']=='review_required' and mismatch['final']=='identity_mismatch'
+    assert mismatch['index']=='missing' and mismatch['action']=='review' and wrong.read_bytes()==original
+    assert db.read_bytes()==before
+    wrong.unlink()
     # Orphaned index is visible without reading any archive, and no repair is attempted.
     moved=root/'temporarily-moved.zip'
     final.rename(moved)

@@ -14,6 +14,11 @@ class Profiles(unittest.TestCase):
     def test_manifest(self):
         manifest = s.read_json(ROOT / 'integrations/launcher/ssc/mod.json')
         self.assertEqual(manifest, s.launcher_manifest())
+        cmake = (ROOT / 'CMakeLists.txt').read_text(encoding='utf-8')
+        import re
+        match = re.search(r'^project\(SupremeP0 VERSION (\d+\.\d+\.\d+) LANGUAGES', cmake, re.M)
+        self.assertIsNotNone(match)
+        self.assertEqual(manifest['version'], match.group(1) + '-p0')
         self.assertEqual(manifest['rules'], [])
         self.assertFalse(manifest['configuration']['load_diagnostic'])
         self.assertEqual(manifest['dlls'], [{'path': 'SSCNative.dll', 'initialize': 'SSCInitialize', 'enable_if': 'load_diagnostic'}])

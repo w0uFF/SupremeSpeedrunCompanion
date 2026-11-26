@@ -114,3 +114,12 @@ T19 validation: exact source/test revision Windows 20/20 Debug and Release, 4/4 
 T21 final validation: Windows 23/23 Debug and Release, media 5/5, capture 3 pass/1 skip, storage 1/1, inert entry 1/1. OnlinePlay result-row candidate traced to matching original game build metadata; no authoritative IGT claim.
 
 T25 final fixture follow-up: v0.0.16 reviewed PR66 source run 45816213574/job 139896508310 on code revision 95d197430ade7544ab429bc61c471e59ace96262 completed successfully. Actual logs: upstream 3/3, SSC 2/2 (including native preview from upstream state), startup/runtime fixture PASS, loads 0/0/1 for disabled/requested, enabled/not requested and enabled/requested. This supersedes T25's pending fixture note, not G1 or installed-game verification.
+
+## v0.0.18-p0 — candidate (T27)
+- Extend isolated concurrent capture fixture to 600 frames; preserve short and long fixtures and add simulated device-removal cancellation.
+- Extend portable sink failure coverage; add synthetic-only admission journal model and recovery tests. No local admission or durable journal.
+- Windows validation pending; no game integration or release.
+
+T27 first candidate ef335294a03a1746b8b3d52d1e48c660b09aa899 Windows CI 45860359753 passed: core 37/37 both configurations, media 5/5, capture 7 PASS/1 SKIP, storage/entry 1/1. 600 actual own-window frames decoded with max PTS error 0.04 ms. Follow-up tests and explicit synthetic journal capture completeness/reconciliation pending CI; no game integration or promotion yet.
+
+T27 final validation: T27 final implementation 83c89e0336cc781bf2fa70cd22754f89c2acf31a; run 45861739545: Windows x86 Debug/Release 37/37 each (140054226996), synthetic media 5/5 (140054227147), capture 7 PASS/1 SKIP (140054226510), storage 1/1 (140054226975), inert entry 1/1 (140054227043), release skipped (140054925770). Actual logs inspected. 600-frame LiveCapture 600 600 0 598; LiveHandoff 600 0 214150000 211243750 2906250 1 0 0; decoded 600, max PTS delta 400*100ns. Resize rejected 386x293; injected removal cancelled; actual device loss/recovery NOT_RUN, audio MMRESULT=2 BLOCKED. PR66 exact revision run 45861731467/job 140054200461: reviewed archive fingerprint gate, upstream 3/3, SSC 2/2 including native preview, startup fixture PASS, load counts 0/0/1. Actual logs inspected. Prior 45861460575 also passed, but its Windows core failed version mismatch; corrected generator and CMake equality guard. All follow-up regression tests passed; capture completeness and recovery reconciliation remain synthetic-only. No installable release.

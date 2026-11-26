@@ -2,10 +2,12 @@ name: Reviewed PR66 isolated fixture
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'p0-t*-validation']
     paths:
       - '.github/workflows/pr66-fixture.yml'
       - 'tools/pr66_fixture.py'
+      - 'tools/ssc_profiles.py'
+      - 'CMakeLists.txt'
       - 'tests/pr66_manifest.rs'
       - 'integrations/launcher/ssc/mod.json'
       - 'src/modules/configuration/**'
