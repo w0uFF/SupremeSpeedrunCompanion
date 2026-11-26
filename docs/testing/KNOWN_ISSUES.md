@@ -55,3 +55,5 @@ T30 candidate: 240 selected actual 1280x720 NV12 own-window crops, 40s acquisiti
 G1 owner evidence, authoritative finish/human identity, actual audio MMRESULT=2, physical device recovery and real gameplay still blocked/not run.
 
 T31: longer HD capture actual measurements pending. Resource growth is observational, not leak proof. Bound filesystem identity detects ordinary substitution; no authenticity, hostile-race, atomic cross-file or power-loss guarantee. Owner baseline and G1, actual audio MMRESULT=2, device recovery and official finish/human identity unresolved.
+
+T32 repeated independent captures measure process variability, not same-process long session leak freedom. Injected native response loss models ambiguous outcome, not actual SQLite transaction interruption or power loss. No G1 or audio resolution.

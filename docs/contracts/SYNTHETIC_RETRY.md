@@ -10,3 +10,5 @@ T30 corrected capture VERIFIED_AUTOMATED: implementation dee725313bf2accf6959b40
 
 ## T31 candidate — bound index port
 Supersedes T30 freely injected lookup/insert pair in this fixture adapter. plan and execute use one frozen BoundSyntheticIndex; its database and executable identities participate in RetryPlan equality. Fresh observation and pre/post identity checks refuse alternate paths and ordinary file replacement. See SYNTHETIC_INDEX_PORT.md. Native test adds distinct empty database and byte-identical replacement refusal; retains actual process termination and preservation assertions. Portable 4 retry and 5 port tests PASS. Windows native pending. No authority, schema or journal semantics change.
+
+T32 second native fixture scenario tests injected lookup outage, pre-insert exception, real native insertion followed by injected lost response, stale plan rejection and journal-only reconciliation. Previous real subprocess interruption scenario preserved. No change to the synthetic retry implementation, native schema or production policy. Runtime candidate pending.
