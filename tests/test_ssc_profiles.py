@@ -21,7 +21,7 @@ class Profiles(unittest.TestCase):
 
     def test_precedence(self):
         book = s.initial()
-        state = {'active': {'enabled': ['ssc'], 'configuration': {'ssc': {'profile_name': 'Speedrun Tryhard', 'auto_record': False}}}}
+        state = {'active': {'enabled': ['ssc'], 'order': ['ssc'], 'configuration': {'ssc': {'profile_name': 'Speedrun Tryhard', 'auto_record': False}}}}
         before = s.canonical(state)
         a = s.resolve(book, state)
         self.assertTrue(a['settings']['auto_record'])
@@ -35,6 +35,9 @@ class Profiles(unittest.TestCase):
         self.assertTrue(b['diagnostic_requested'])
         self.assertFalse(b['native_capabilities'])
         self.assertNotEqual(a['local_snapshot_sha256'], b['local_snapshot_sha256'])
+        state['active']['order'] = []
+        self.assertFalse(s.resolve(book, state)['diagnostic_requested'])
+        state['active']['order'] = ['ssc']
         state['active']['enabled'] = []
         self.assertFalse(s.resolve(book, state)['diagnostic_requested'])
         self.assertTrue(book['profiles']['Speedrun Tryhard']['auto_record'])

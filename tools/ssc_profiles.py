@@ -39,7 +39,7 @@ def defaults():
 
 
 def validate_directory(value):
-    if not isinstance(value, str) or len(value) > 240 or any(ord(c) < 32 or ord(c) == 127 for c in value):
+    if not isinstance(value, str) or len(value.encode('utf-16-le', errors='surrogatepass')) // 2 > 240 or any(ord(c) < 32 or ord(c) == 127 or 0xd800 <= ord(c) <= 0xdfff for c in value):
         raise ValueError('invalid package directory')
     if not value:
         return value  # application-managed path, resolved only by future native adapter
@@ -49,7 +49,7 @@ def validate_directory(value):
     components = re.split(r'[\\/]', value[3:])
     for part in components:
         if (not part or part in ('.', '..') or part.endswith((' ', '.')) or any(c in '<>:"|?*' for c in part)
-                or re.fullmatch(r'(?i:CON|PRN|AUX|NUL|COM[1-9¹²³]|LPT[1-9¹²³])', part.split('.')[0])):
+                or re.fullmatch(r'(?i:CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9¹²³]|LPT[1-9¹²³])', part.split('.')[0].rstrip(' '))):
             raise ValueError('invalid package directory component')
     return str(path)
 
@@ -217,8 +217,9 @@ def resolve(book, mods_state):
         raise ValueError('invalid launcher state')
     active = mods_state['active']
     enabled = active.get('enabled', [])
+    order = active.get('order', [])
     config = active.get('configuration', {})
-    if not isinstance(enabled, list) or not all(isinstance(x, str) for x in enabled) or not isinstance(config, dict):
+    if not isinstance(enabled, list) or not all(isinstance(x, str) for x in enabled) or not isinstance(order, list) or not all(isinstance(x, str) for x in order) or not isinstance(config, dict):
         raise ValueError('invalid launcher active state')
     overrides = config.get(MOD, {})
     baseline = launcher_manifest()['configuration']
@@ -237,5 +238,5 @@ def resolve(book, mods_state):
     effective = launch_values if merged['use_launcher_overrides'] else book['profiles'][name]
     snapshot = {'schema': SCHEMA, 'profile': name, 'settings': effective,
                 'source': 'launcher' if merged['use_launcher_overrides'] else 'profile',
-                'diagnostic_requested': MOD in enabled and merged['load_diagnostic'], 'native_capabilities': False}
+                'diagnostic_requested': MOD in enabled and MOD in order and merged['load_diagnostic'], 'native_capabilities': False}
     return dict(snapshot, local_snapshot_sha256=hashlib.sha256(canonical(snapshot)).hexdigest())
