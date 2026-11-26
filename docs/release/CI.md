@@ -29,3 +29,5 @@ Final T19 code/test commit 8f005bda4557498bc1d3ab0e7c77e0963b783fb9 verified in 
 T20 final exact code/test commit eda75eb2adc1d7ed319526b8a083696658a7bbf0 run 45783962593: core 21 targets per configuration, media five, capture three passed/one skipped (audio sampling), storage one passed. Separate storage-probe job loads system WinSQLite; capture opt-in also builds media for captured pixels. SKIP_RETURN_CODE 77 is BLOCKED, not PASS. Approval and no-artifact policy unchanged. No release published.
 
 T21 core floor 22; separate community-entry job builds only inert SSCNative and independent test host with SSC_NATIVE_CANDIDATE=ON. No real launcher or game loaded. No artifacts/releases of DLL; existing development release gate unchanged.
+
+T21 final code/test revision 478a33a790fdebc24c0f3788f10b1a00fa5dbdeb run 45795828198: 23/23 core each, 5/5 media, 3 capture pass/1 skip, 1/1 storage, 1/1 inert native entry. No actual community loader/game execution. Release skipped, no artifact publication.

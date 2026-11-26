@@ -51,3 +51,5 @@ T20: exact Windows core 21/21 Debug and Release, media 5/5, capture 3 passed/1 s
 T21: optional inert native candidate and launcher manifest are source-only development inputs, not installable. See docs/contracts/SSC_CONFIGURATION.md for profile editor and precedence, docs/engine/COMMUNITY_LOADER.md for upstream source evidence, docs/testing/COMMUNITY_LOADER_VALIDATION.md for G1 prerequisites.
 
 The native configuration port is documented in src/modules/configuration/README.md. No actual settings consumption in the inert DLL.
+
+T21 verified code/test revision 478a33a790fdebc24c0f3788f10b1a00fa5dbdeb: 23/23 Windows core each, 5/5 media, capture 3 pass/1 skip, storage 1/1, inert entry 1/1 (independent host, not actual community launcher). Release skipped. Native menu, actual configuration consumption and gameplay remain unavailable.

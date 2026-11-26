@@ -3,8 +3,8 @@
 ## v0.0.12-p0 — community-loader candidate and configuration prototype
 - Verify v0.0.11 final CI; inspect supplied PR66 loader source and private community references.
 - Add inert opt-in x86 cdecl initializer and launcher manifest with default-disabled loading; no game effects; independent Windows host test passed.
-- Add versioned SSC profile store, offline CLI, settings validation, explicit launcher precedence and 21 declarative controls. Seven local profile tests and initial Windows core 22/22 each passed. Add tested C++ typed settings/controller port with injected storage/path policy and copy snapshots; final Windows regression pending.
-- Document native menu/finish leads, G1 procedure and limitations; no actual launcher UI, native configuration or release.
+- Add versioned SSC profile store, offline CLI, settings validation, explicit launcher precedence and 21 declarative controls. Seven local profile tests and initial Windows core 22/22 each passed. Add tested C++ typed settings/controller port with injected storage/path policy and copy snapshots; final Windows regression 23/23 each passed.
+- Document native menu/finish leads, G1 procedure and limitations; no actual launcher UI, native configuration consumption or release.
 
 ## v0.0.11-p0 — capture primitives and isolated platform experiments
 - Verify v0.0.10 Windows baseline. Add bounded BGRA-to-NV12 conversion and source audio discontinuity/position counters, independent C++17 tests.
@@ -79,3 +79,5 @@
 Initial private discovery: archive fingerprints, static engine candidate map, portable observation contract, offline diagnostic MVC and module lifecycle prototype. No changes to gameplay, files, loader or Windows installation.
 
 T19 validation: exact source/test revision Windows 20/20 Debug and Release, 4/4 media and 2/2 capture feasibility. Corrected wrapper syntax and isolated WGC C++20 compile. Added locally tested standalone SQLite feasibility source; no new runtime dependency.
+
+T21 final validation: Windows 23/23 Debug and Release, media 5/5, capture 3 pass/1 skip, storage 1/1, inert entry 1/1. OnlinePlay result-row candidate traced to matching original game build metadata; no authoritative IGT claim.
