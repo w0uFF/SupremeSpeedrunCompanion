@@ -33,3 +33,5 @@ OBSERVED_STATIC in the original Supreme_Game.dll (fingerprint as previously reco
 These observations materially narrow producer research but do not establish official IGT units, rounding, authoritative displayed result, finish/retry/reset/PB semantics or safe callback. Next trace source vtable/caller and compare observed original menu/result values only after G1. No native observation activated.
 
 T24 original-game timing trace continues in ENGINE_MAP.md: RTTI-backed Player/AI shared result writer and getter to +0xb8, conditional fixed increment to +0xc, reset and candidate start/completion paths. OnlinePlay reads a candidate row value, not a unique finish signal. Baseline PR66 repeat 45802187381/job 139847990756 PASS; v0.0.15 manifest rerun pending at preparation. No installed-game compatibility inferred.
+
+T25 v0.0.15 exact source PR66 rerun 45803303975 PASS actual upstream 3/3 + SSC 2/2, startup and load counts 0/0/1. v0.0.16 rerun pending at preparation. Nominal EXE scheduler and DLL result conversion static research moved to ENGINE_MAP.md; no game runtime claim.

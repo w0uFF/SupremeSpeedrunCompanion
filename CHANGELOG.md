@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.16-p0 — verified archive indexing and timestamped own-window capture
+- Add recoverable offline schema-2 archive admission, no-replace publication, exact manifest digest linkage and native index bridge. Imports remain nonlocal regardless of claimed origin; synthetic fixture explicit; local producer not enabled.
+- Add bounded timestamped WGC sequence handoff and video-only worker encoding/independent decode check, with explicit hold/tail policy and coverage limitations.
+- Trace nominal fixed-step scheduler and result conversion statically; no authoritative IGT claim or native hooks.
+- Windows core 35/35 each, media 5/5, capture 4 pass/1 skip, storage and inert DLL 1/1 each. Intermediate compile warning fixed; v0.0.16 PR66 rerun pending at preparation. G1 remains blocked, no release.
+
 ## v0.0.15-p0 — native run library and immutable settings evidence
 - Add independently tested WinSQLite adapter with insert-only record semantics, exact schema identity, separate Unicode labels/favorites, bounded history and comparable local PB queries. Preserve unknown database versions and schemas; no automatic migration.
 - Bind a redacted immutable C++ attempt settings snapshot to run/session IDs and optional schema-2 archive diagnostic; independent Python verification and negative fixtures. No eligibility claim or live recording.
