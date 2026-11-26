@@ -56,3 +56,5 @@ Candidate remains same inert SSCInitialize, manifest 0.0.14-p0 default load_diag
 T24 baseline repeat 45802187381/job 139847990756 verified actual upstream tests, SSC serializer/manifest tests and load counts 0/0/1. v0.0.15 manifest rerun 45803303975 pending at documentation preparation. No native loader implementation change. Owner Windows baseline remains outstanding; no install or active game test authorized. See WINDOWS_BASELINE.md.
 
 T25 baseline v0.0.15 manifest fixture 45803303975/job 139851860745 actual source runtime PASS, upstream tests 3/3, SSC tests 2/2, load counts 0/0/1. v0.0.16 rerun pending at preparation. No loader/entry code changes; no owner Windows baseline supplied. G1 remains blocked.
+
+T25 final fixture follow-up: v0.0.16 reviewed PR66 source run 45816213574/job 139896508310 on code revision 95d197430ade7544ab429bc61c471e59ace96262 completed successfully. Actual logs: upstream 3/3, SSC 2/2 (including native preview from upstream state), startup/runtime fixture PASS, loads 0/0/1 for disabled/requested, enabled/not requested and enabled/requested. This supersedes T25's pending fixture note, not G1 or installed-game verification.
