@@ -1,0 +1,59 @@
+name: Reviewed PR66 isolated fixture
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/pr66-fixture.yml'
+      - 'tools/pr66_fixture.py'
+      - 'tests/pr66_manifest.rs'
+      - 'integrations/launcher/ssc/mod.json'
+permissions:
+  contents: read
+jobs:
+  fixture:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Acquire exact reviewed public source archive
+        id: source
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'ssc-pr66.zip'
+          $url = 'https://codeberg.org/SupremeSnowboardingCommunity/Launcher/archive/b7d9233f8636e222bbd0a5a739e1e04d2fbc8a12.zip'
+          curl.exe --fail --location --max-time 45 --max-filesize 2000000 --output $archive $url
+          if ($LASTEXITCODE -ne 0) {
+            'BLOCKED: reviewed public source archive unavailable; fixture not executed.' | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            'ready=false' >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          $hash = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
+          if ($hash -ne '2ed8a5d2e334268432c23dff26b294bbe9b2d69b22a60073f8fd42e71b66c72b') {
+            "BLOCKED: archive fingerprint $hash does not match reviewed source; fixture not executed." | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            'ready=false' >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          'ready=true' >> $env:GITHUB_OUTPUT
+      - name: Build SSC inert x86 candidate
+        if: steps.source.outputs.ready == 'true'
+        shell: pwsh
+        run: |
+          cmake -S . -B fixture-ssc -A Win32 -DSSC_BUILD_NATIVE=ON
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build fixture-ssc --config Release --target SSCNative
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build and exercise source in synthetic host
+        if: steps.source.outputs.ready == 'true'
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VS=%%i"
+          if not defined VS exit /b 1
+          call "%VS%\VC\Auxiliary\Build\vcvarsall.bat" x86
+          if errorlevel 1 exit /b 1
+          rustup target add i686-pc-windows-msvc
+          if errorlevel 1 exit /b 1
+          python tools\pr66_fixture.py "%RUNNER_TEMP%\ssc-pr66.zip" "%RUNNER_TEMP%\ssc-pr66-source" --run-with-dll "%GITHUB_WORKSPACE%\fixture-ssc\Release\SSCNative.dll"
+          if errorlevel 1 exit /b 1
