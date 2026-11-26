@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
@@ -56,7 +57,7 @@ def snapshot(directory):
     return {p.name:p.read_bytes() for p in directory.iterdir()}
 
 
-def scenario(exe):
+def scenario(exe, lost_response=False):
     with tempfile.TemporaryDirectory() as tmp:
         root=Path(tmp)
         stage,managed,private=(root/n for n in ('stage','managed','journal'))
@@ -156,7 +157,50 @@ def scenario(exe):
         else:
             raise AssertionError('conflicting index accepted')
         assert conflict_db.read_bytes()==conflict_bytes and snapshot(private)==published
-        crash('after_insert')
+        if lost_response:
+            # Read-only backend outage must not authorize publication or insertion.
+            with patch('synthetic_index_port._lookup', side_effect=RuntimeError('fixture lookup outage')):
+                assert plan(store,managed,index) is None
+                try:
+                    execute(store,managed,index,expected)
+                except ReviewRequired:
+                    pass
+                else:
+                    raise AssertionError('unavailable read accepted')
+            assert db.read_bytes()==db_initial and snapshot(private)==published
+            with patch('synthetic_index_port._insert', side_effect=RuntimeError('fixture before insert')):
+                try:
+                    execute(store,managed,index,expected)
+                except RuntimeError as exc:
+                    assert str(exc)=='fixture before insert'
+                else:
+                    raise AssertionError('failed insert reported success')
+            assert db.read_bytes()==db_initial and snapshot(private)==published
+            assert plan(store,managed,index)==expected
+            # Real native insertion succeeds, but the adapter never receives its response.
+            original=synthetic_index_port._insert
+            def commit_then_fail(*args):
+                assert original(*args)=='inserted'
+                raise RuntimeError('fixture lost response after native commit')
+            with patch('synthetic_index_port._insert',side_effect=commit_then_fail):
+                try:
+                    execute(store,managed,index,expected)
+                except RuntimeError as exc:
+                    assert str(exc)=='fixture lost response after native commit'
+                else:
+                    raise AssertionError('ambiguous commit reported success')
+            assert snapshot(private)==published
+            assert lookup(RUN,report,'synthetic')=='identical'
+            committed=db.read_bytes()
+            try:
+                execute(store,managed,index,expected)
+            except ReviewRequired:
+                pass
+            else:
+                raise AssertionError('stale plan retried committed index')
+            assert db.read_bytes()==committed
+        else:
+            crash('after_insert')
         assert snapshot(private)==published and lookup(RUN,report,'synthetic')=='identical'
         assert plan(store,managed,index) is None
         indexed_bytes=db.read_bytes()
@@ -164,11 +208,13 @@ def scenario(exe):
         assert observe(store,managed,lookup).action=='none'
         assert db.read_bytes()==indexed_bytes and final.read_bytes()==source.read_bytes()
         assert all((private/n).read_bytes()==b for n,b in published.items())
-        print('T30 real archive-link and native-insert process interruption; separate explicit retries PASS')
+        print('Native retry scenario PASS: '+('injected pre-insert outage and lost committed response' if lost_response else 'real process termination after native insert'))
 
 
 if __name__=='__main__':
     if len(sys.argv)>1 and sys.argv[1]=='--child':
         child()
     else:
-        scenario(Path(sys.argv[1]).resolve())
+        exe=Path(sys.argv[1]).resolve()
+        scenario(exe)
+        scenario(exe,lost_response=True)
