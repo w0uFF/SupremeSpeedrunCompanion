@@ -34,14 +34,23 @@ def child():
     lookup=index.lookup
     expected=plan(store,managed,index)
     if point=='review_torn':
-        assert expected is None and observe(store,managed,lookup).action=='review'
+        observed=observe(store,managed,lookup)
+        assert expected is None and observed.action=='review'
+        try:
+            reconcile(store,managed,lookup,observed)
+        except ReviewRequired:
+            pass
+        else:
+            raise AssertionError('fresh process reconciled review-only journal')
         try:
             store.inspect()
         except ReviewRequired:
             pass
         else:
             raise AssertionError('fresh process accepted torn journal')
+        assert plan(store,managed,index) is None and observe(store,managed,lookup)==observed
         print('Fresh process independently refused torn journal PASS',flush=True)
+        print('Fresh process refused review-only reconciliation PASS',flush=True)
         return
     if point=='after_link':
         assert expected.action=='retry_archive_publication'
@@ -179,6 +188,7 @@ def scenario(exe, lost_response=False, corrupt_pending=False):
                                       str(exe),str(db),str(managed),str(private),'review_torn'],
                                      capture_output=True,text=True,timeout=30)
                 assert fresh.returncode==0 and 'Fresh process independently refused torn journal PASS' in fresh.stdout
+                assert 'Fresh process refused review-only reconciliation PASS' in fresh.stdout
                 assert snapshot(private)==interrupted and db.read_bytes()==db_initial
                 assert final.read_bytes()==source.read_bytes() and not partial.exists()
                 assert lookup(RUN,report,'synthetic')=='missing'

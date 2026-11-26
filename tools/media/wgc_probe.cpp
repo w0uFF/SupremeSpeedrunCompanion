@@ -24,6 +24,7 @@
 #include "tools/media/mf_fixture_sink.hpp"
 #include "tools/media/fixture_isolation.hpp"
 #include <string_view>
+#include <optional>
 namespace {
 namespace cap=winrt::Windows::Graphics::Capture;
 namespace dx=winrt::Windows::Graphics::DirectX;
@@ -204,6 +205,64 @@ int isolate_retention(std::wstring_view mode,const std::filesystem::path& direct
         Sleep(2000);pump();sample(cycle,3);
     }
     std::cout<<"IsolationEnd "<<label<<" "<<cycles<<std::endl;
+    return 0;
+}
+// Separate experiment: one support query per child, never start capture.
+int isolate_wgc_once(std::wstring_view mode,const std::filesystem::path& directory){
+    using namespace ssc::isolation_fixture;
+    if(!std::filesystem::is_directory(directory) || std::filesystem::is_symlink(directory) ||
+       (mode!=L"cached-support" && mode!=L"factory-only" && mode!=L"cached-item" &&
+        mode!=L"cached-item-reused-window" && mode!=L"cached-pool"))return 2;
+    unsigned supports=0,factories=0,items=0,windows=0,sessions=0;
+    if(!cap::GraphicsCaptureSession::IsSupported())throw std::runtime_error("WGC unavailable");
+    ++supports;
+    std::optional<Window> persistent;
+    if(mode==L"cached-item-reused-window"){
+        persistent.emplace();
+        if(!persistent->handle)throw std::runtime_error("persistent own-window creation");
+        ++windows;pump();
+    }
+    const auto label=winrt::to_string(winrt::hstring(mode));
+    std::cout<<"IsolationBegin "<<label<<std::endl;
+    for(unsigned cycle=1;cycle<=6;++cycle){
+        sample(cycle,0);
+        {
+            if(mode!=L"cached-support"){
+                std::optional<Window> local;
+                HWND hwnd=nullptr;
+                if(mode!=L"factory-only"){
+                    if(persistent)hwnd=persistent->handle;
+                    else {local.emplace();hwnd=local->handle;++windows;pump();}
+                    if(!hwnd)throw std::runtime_error("isolated own-window creation");
+                }
+                auto factory=winrt::get_activation_factory<cap::GraphicsCaptureItem,IGraphicsCaptureItemInterop>();
+                if(!factory)throw std::runtime_error("isolated factory missing");
+                ++factories;
+                if(hwnd){
+                    cap::GraphicsCaptureItem item{nullptr};
+                    winrt::check_hresult(factory->CreateForWindow(hwnd,winrt::guid_of<cap::GraphicsCaptureItem>(),winrt::put_abi(item)));
+                    ++items;
+                    const auto size=item.Size();
+                    if(size.Width<=0 || size.Height<=0 || size.Width>1024 || size.Height>1024)
+                        throw std::runtime_error("isolated item bounds");
+                    if(mode==L"cached-pool"){
+                        auto device=make_capture_device();
+                        auto pool=cap::Direct3D11CaptureFramePool::CreateFreeThreaded(device.runtime,dx::DirectXPixelFormat::B8G8R8A8UIntNormalized,2,size);
+                        auto session=pool.CreateCaptureSession(item);
+                        ++sessions;
+                        CloseCapture close{session,pool};close.close();
+                    }
+                }
+            }
+        }
+        print_outcome(cycle,Outcome{});
+        sample(cycle,1);
+        Sleep(1000);pump();sample(cycle,2);
+        Sleep(2000);pump();sample(cycle,3);
+    }
+    persistent.reset();
+    std::cout<<"IsolationEnd "<<label<<" 6"<<std::endl;
+    std::cout<<"WGCOnceCounts "<<label<<" "<<supports<<" "<<factories<<" "<<items<<" "<<windows<<" "<<sessions<<std::endl;
     return 0;
 }
 enum class FixtureStop { none, user_cancel, simulated_device_loss, sink_write_failure, sink_finalize_failure };
@@ -564,9 +623,10 @@ int lifecycle(const std::filesystem::path& directory,bool faults=false,bool rete
 }
 int wmain(int argc,wchar_t** argv){
     const bool faults=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-fault-lifecycle";
+    const bool once=argc==4 && std::wstring_view(argv[1])==L"--isolate-wgc-once";
     const bool refinement=argc==4 && std::wstring_view(argv[1])==L"--isolate-wgc-refinement";
-    if(refinement || (argc==4 && std::wstring_view(argv[1])==L"--isolate-retention")){
-        try{Apartment apartment;return isolate_retention(argv[2],std::filesystem::path(argv[3]),refinement);}
+    if(once || refinement || (argc==4 && std::wstring_view(argv[1])==L"--isolate-retention")){
+        try{Apartment apartment;const auto path=std::filesystem::path(argv[3]);return once?isolate_wgc_once(argv[2],path):isolate_retention(argv[2],path,refinement);}
         catch(const winrt::hresult_error& e){std::cerr<<"Isolation HRESULT "<<winrt::to_string(e.message())<<'\n';return 1;}
         catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     }
