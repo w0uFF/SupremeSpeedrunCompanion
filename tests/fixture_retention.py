@@ -29,5 +29,5 @@ def evidence(text):
     return blocks,resources,tuple(gui),tuple(stages)
 
 
-def failure(text, artifact_bytes):
-    return fault(text, 'sink-write-failure', artifact_bytes)
+def failure(text, artifact_bytes, finalize=False):
+    return fault(text, 'sink-finalize-failure' if finalize else 'sink-write-failure', artifact_bytes)

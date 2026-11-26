@@ -22,6 +22,8 @@
 #include "src/modules/recorder/public/timed_frames.hpp"
 #include "src/modules/recorder/public/frame_lookahead.hpp"
 #include "tools/media/mf_fixture_sink.hpp"
+#include "tools/media/fixture_isolation.hpp"
+#include <string_view>
 namespace {
 namespace cap=winrt::Windows::Graphics::Capture;
 namespace dx=winrt::Windows::Graphics::DirectX;
@@ -123,7 +125,80 @@ std::uint64_t process_cpu_100ns(){
     };
     return units(kernel)+units(user);
 }
-enum class FixtureStop { none, user_cancel, simulated_device_loss, sink_write_failure };
+struct CaptureDevice {
+    winrt::com_ptr<ID3D11Device> device;
+    winrt::com_ptr<IDXGIDevice> dxgi;
+    winrt::com_ptr<::IInspectable> inspectable;
+    dx::Direct3D11::IDirect3DDevice runtime{nullptr};
+};
+CaptureDevice make_capture_device(){
+    CaptureDevice result;
+    auto hr=D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_HARDWARE,nullptr,D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+                             nullptr,0,D3D11_SDK_VERSION,result.device.put(),nullptr,nullptr);
+    if(FAILED(hr)){
+        result.device=nullptr;
+        winrt::check_hresult(D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_WARP,nullptr,D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+                                                nullptr,0,D3D11_SDK_VERSION,result.device.put(),nullptr,nullptr));
+        std::cout<<"D3D11 WARP fallback\n";
+    }
+    result.dxgi=result.device.as<IDXGIDevice>();
+    winrt::check_hresult(CreateDirect3D11DeviceFromDXGIDevice(result.dxgi.get(),result.inspectable.put()));
+    result.runtime=result.inspectable.as<dx::Direct3D11::IDirect3DDevice>();
+    return result;
+}
+struct CloseCapture {
+    cap::GraphicsCaptureSession& session;
+    cap::Direct3D11CaptureFramePool& pool;
+    bool session_closed=false,pool_closed=false;
+    void close(){
+        if(!session_closed){session.Close();session_closed=true;}
+        if(!pool_closed){pool.Close();pool_closed=true;}
+    }
+    ~CloseCapture(){if(!session_closed)try{session.Close();}catch(...){}if(!pool_closed)try{pool.Close();}catch(...){}}
+};
+void isolate_capture_scope(std::wstring_view mode){
+    if(mode==L"device"){
+        auto device=make_capture_device();
+        if(!device.runtime)throw std::runtime_error("isolated runtime device missing");
+        return;
+    }
+    Window window;
+    if(!window.handle)throw std::runtime_error("isolated own-window creation");
+    pump();
+    if(mode==L"window")return;
+    if(mode!=L"pool" || !cap::GraphicsCaptureSession::IsSupported())throw std::runtime_error("isolated WGC unavailable");
+    cap::GraphicsCaptureItem item{nullptr};
+    auto factory=winrt::get_activation_factory<cap::GraphicsCaptureItem,IGraphicsCaptureItemInterop>();
+    winrt::check_hresult(factory->CreateForWindow(window.handle,winrt::guid_of<cap::GraphicsCaptureItem>(),winrt::put_abi(item)));
+    const auto size=item.Size();
+    if(size.Width<=0 || size.Height<=0 || size.Width>1024 || size.Height>1024)throw std::runtime_error("isolated item bounds");
+    auto device=make_capture_device();
+    auto pool=cap::Direct3D11CaptureFramePool::CreateFreeThreaded(device.runtime,dx::DirectXPixelFormat::B8G8R8A8UIntNormalized,2,size);
+    auto session=pool.CreateCaptureSession(item);
+    CloseCapture close{session,pool};
+    close.close(); // Never start capture: this is setup/teardown isolation.
+}
+int isolate_retention(std::wstring_view mode,const std::filesystem::path& directory){
+    using namespace ssc::isolation_fixture;
+    if(!std::filesystem::is_directory(directory) || std::filesystem::is_symlink(directory) ||
+       (mode!=L"window" && mode!=L"device" && mode!=L"pool" && mode!=L"worker-idle" && mode!=L"worker-write"))return 2;
+    const auto label=winrt::to_string(winrt::hstring(mode));
+    std::cout<<"IsolationBegin "<<label<<std::endl;
+    for(unsigned cycle=1;cycle<=3;++cycle){
+        sample(cycle,0);
+        Outcome result;
+        if(mode==L"worker-idle" || mode==L"worker-write")
+            result=worker_scope(directory/(L"worker-"+std::to_wstring(cycle)+L".mp4"),mode==L"worker-write");
+        else isolate_capture_scope(mode);
+        print_outcome(cycle,result);
+        sample(cycle,1);
+        Sleep(1000);pump();sample(cycle,2);
+        Sleep(2000);pump();sample(cycle,3);
+    }
+    std::cout<<"IsolationEnd "<<label<<" 3"<<std::endl;
+    return 0;
+}
+enum class FixtureStop { none, user_cancel, simulated_device_loss, sink_write_failure, sink_finalize_failure };
 // Own-process, bounded stage diagnostics; no system-wide handle inspection.
 void stage_resources(unsigned stage){
     PROCESS_MEMORY_COUNTERS_EX m{};
@@ -172,19 +247,9 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
        (hd && (size.Width<1280 || size.Height<720)))
         throw winrt::hresult_error(E_FAIL,L"unexpected capture item size");
     if(hd)std::cout<<"HDStage create-device"<<std::endl;
-    winrt::com_ptr<ID3D11Device> device;
-    auto hr=D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_HARDWARE,nullptr,D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-                            nullptr,0,D3D11_SDK_VERSION,device.put(),nullptr,nullptr);
-    if(FAILED(hr)){
-        device=nullptr;
-        winrt::check_hresult(D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_WARP,nullptr,D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-                                                nullptr,0,D3D11_SDK_VERSION,device.put(),nullptr,nullptr));
-        std::cout<<"D3D11 WARP fallback\n";
-    }
-    auto dxgi=device.as<IDXGIDevice>();
-    winrt::com_ptr<::IInspectable> inspectable;
-    winrt::check_hresult(CreateDirect3D11DeviceFromDXGIDevice(dxgi.get(),inspectable.put()));
-    auto runtime_device=inspectable.as<dx::Direct3D11::IDirect3DDevice>();
+    auto capture_device=make_capture_device();
+    auto& device=capture_device.device;
+    auto& runtime_device=capture_device.runtime;
     if(retention)stage_resources(2);
     if(hd)std::cout<<"HDStage create-pool"<<std::endl;
     auto pool=cap::Direct3D11CaptureFramePool::CreateFreeThreaded(runtime_device,dx::DirectXPixelFormat::B8G8R8A8UIntNormalized,2,size);
@@ -205,7 +270,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     if(live){
         if(hd)std::cout<<"HDStage start-worker"<<std::endl;
         if(std::filesystem::exists(std::filesystem::symlink_status(output)))return 2;
-        sink=std::make_unique<ssc::media_fixture::AsyncSink>(output,false,spec,stop==FixtureStop::sink_write_failure?119u:0u);
+        sink=std::make_unique<ssc::media_fixture::AsyncSink>(output,false,spec,stop==FixtureStop::sink_write_failure?119u:0u,stop==FixtureStop::sink_finalize_failure);
         worker=std::make_unique<supreme::recorder::Worker>(*sink,8,hd?spec.frame_bytes:32768u);
         if(worker->wait_ready()!=supreme::recorder::State::running)throw std::runtime_error("live worker startup");
     }
@@ -218,16 +283,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
             throw std::runtime_error("live worker rejected packet");
         }
     };
-    struct CloseCapture {
-        cap::GraphicsCaptureSession& session;
-        cap::Direct3D11CaptureFramePool& pool;
-        bool session_closed=false,pool_closed=false;
-        void close(){
-            if(!session_closed){session.Close();session_closed=true;}
-            if(!pool_closed){pool.Close();pool_closed=true;}
-        }
-        ~CloseCapture(){if(!session_closed)try{session.Close();}catch(...){}if(!pool_closed)try{pool.Close();}catch(...){}}
-    } close_capture{session,pool};
+    CloseCapture close_capture{session,pool};
     const auto stop_hd=[&](const char* reason,int status){
         // Only the explicit bounded fixture paths enter here; no terminal packet
         // or sink finalization. The pending lookahead frame remains unoffered.
@@ -267,7 +323,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     std::vector<std::uint8_t> dark,light;
     std::vector<supreme::recorder::TimedFrame> sequence;
     unsigned skipped_pattern=0;
-    const std::size_t target=hd_sustained?1200u:hd_extended?600u:hd?240u:marathon?1200u:extended?600u:long_fixture?240u:live?60u:12u;
+    const std::size_t target=stop==FixtureStop::sink_finalize_failure?120u:hd_sustained?1200u:hd_extended?600u:hd?240u:marathon?1200u:extended?600u:long_fixture?240u:live?60u:12u;
     std::vector<std::int64_t> processing_us;
     if(marathon || hd)processing_us.reserve(target);
     std::uint64_t written_before_stop=0;
@@ -370,9 +426,27 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
         if(retention)stage_resources(6);
         const auto fixture_wall_end=FixtureClock::now();
         const auto q=worker->quality()[0];const auto& c=q.written;
-        if(worker->state()!=supreme::recorder::State::finalized || c.packets!=target || q.accepted!=target ||
+        const bool finalize_failure=stop==FixtureStop::sink_finalize_failure;
+        const auto required_state=finalize_failure?supreme::recorder::State::failed:supreme::recorder::State::finalized;
+        if(worker->state()!=required_state || sink->injected_finalize_failure()!=finalize_failure ||
+           c.packets!=target || q.accepted!=target ||
            c.first!=expected_coverage.first || c.end!=expected_coverage.end || c.duration!=expected_coverage.duration ||
            q.dropped_full || q.discarded || q.rejected_invalid)throw std::runtime_error("live worker quality");
+        if(finalize_failure){
+            const auto stats=worker->stats();
+            const auto high=worker->high_water();
+            if(target!=120 || stats.accepted!=target || stats.written!=target || stats.discarded ||
+               stats.dropped_full || stats.rejected_invalid || !high || high>8 || sink->injected_failure())
+                throw std::runtime_error("HD finalization failure accounting");
+            const auto path=std::filesystem::path(output);
+            const bool exists=std::filesystem::exists(std::filesystem::symlink_status(path));
+            const auto bytes=exists?std::filesystem::file_size(path):0;
+            if(bytes>16u*1024u*1024u)throw std::runtime_error("HD failed finalization output bound");
+            std::cout<<"HDFaultOutcome sink-finalize-failure failed "<<target<<" "<<stats.accepted<<" "<<stats.written
+                     <<" "<<stats.discarded<<" 0 "<<high<<" "<<stats.dropped_full<<" "<<stats.rejected_invalid<<std::endl;
+            std::cout<<"HDFaultArtifact "<<(exists?1:0)<<" "<<bytes<<std::endl;
+            return 6;
+        }
         std::cout<<"LiveCapture "<<target<<" "<<frames<<" "<<skipped_pattern<<" "<<written_before_stop<<"\n";
         if(marathon || hd){
             const auto cpu_end=process_cpu_100ns();
@@ -447,11 +521,11 @@ void lifecycle_sample(unsigned phase,bool gui=false){
     std::cout<<"HDLifecycleSample "<<phase<<" "<<GetCurrentProcessId()<<" "
              <<memory.PeakWorkingSetSize<<" "<<memory.WorkingSetSize<<" "<<memory.PrivateUsage<<" "<<handles<<std::endl;
 }
-int lifecycle(const std::filesystem::path& directory,bool faults=false,bool retention=false){
+int lifecycle(const std::filesystem::path& directory,bool faults=false,bool retention=false,bool finalize_failure=false){
     if(!std::filesystem::is_directory(directory) || std::filesystem::is_symlink(directory))return 2;
     struct Segment {bool sustained;FixtureStop stop;};
     const std::vector<Segment> segments=retention?
-        std::vector<Segment>{{false,FixtureStop::none},{false,FixtureStop::sink_write_failure},{false,FixtureStop::none}}:
+        std::vector<Segment>{{false,FixtureStop::none},{false,finalize_failure?FixtureStop::sink_finalize_failure:FixtureStop::sink_write_failure},{false,FixtureStop::none}}:
         faults?
         std::vector<Segment>{{false,FixtureStop::none},{false,FixtureStop::user_cancel},
                              {true,FixtureStop::none},{false,FixtureStop::simulated_device_loss},{false,FixtureStop::none}}:
@@ -467,7 +541,7 @@ int lifecycle(const std::filesystem::path& directory,bool faults=false,bool rete
         const auto count=segment.stop!=FixtureStop::none?120:segment.sustained?1200:600;
         std::cout<<"HDLifecycleBegin "<<i+1<<" "<<count<<std::endl;
         const int status=run(files[i].c_str(),false,true,false,false,false,false,false,true,true,segment.sustained,segment.stop,retention);
-        const int expected=segment.stop==FixtureStop::user_cancel?3:segment.stop==FixtureStop::simulated_device_loss?4:segment.stop==FixtureStop::sink_write_failure?5:0;
+        const int expected=segment.stop==FixtureStop::user_cancel?3:segment.stop==FixtureStop::simulated_device_loss?4:segment.stop==FixtureStop::sink_write_failure?5:segment.stop==FixtureStop::sink_finalize_failure?6:0;
         if(status!=expected){std::cerr<<"HDLifecycleIncomplete "<<i+1<<" "<<status<<'\n';return 1;}
         if(retention){
             stage_resources(7);
@@ -482,9 +556,15 @@ int lifecycle(const std::filesystem::path& directory,bool faults=false,bool rete
 }
 int wmain(int argc,wchar_t** argv){
     const bool faults=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-fault-lifecycle";
-    const bool retention=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-write-failure-lifecycle";
+    if(argc==4 && std::wstring_view(argv[1])==L"--isolate-retention"){
+        try{Apartment apartment;return isolate_retention(argv[2],std::filesystem::path(argv[3]));}
+        catch(const winrt::hresult_error& e){std::cerr<<"Isolation HRESULT "<<winrt::to_string(e.message())<<'\n';return 1;}
+        catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
+    }
+    const bool finalize_failure=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-finalize-failure-lifecycle";
+    const bool retention=finalize_failure || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-write-failure-lifecycle");
     if(retention || faults || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-lifecycle")){
-        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]),faults,retention);}
+        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]),faults,retention,finalize_failure);}
         catch(const winrt::hresult_error& e){std::cerr<<"HD lifecycle HRESULT "<<winrt::to_string(e.message())<<'\n';return 1;}
         catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     }

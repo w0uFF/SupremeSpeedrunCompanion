@@ -33,6 +33,16 @@ def child():
     index=ports(exe,db)
     lookup=index.lookup
     expected=plan(store,managed,index)
+    if point=='review_torn':
+        assert expected is None and observe(store,managed,lookup).action=='review'
+        try:
+            store.inspect()
+        except ReviewRequired:
+            pass
+        else:
+            raise AssertionError('fresh process accepted torn journal')
+        print('Fresh process independently refused torn journal PASS',flush=True)
+        return
     if point=='after_link':
         assert expected.action=='retry_archive_publication'
         original=os.link
@@ -164,6 +174,14 @@ def scenario(exe, lost_response=False, corrupt_pending=False):
             assert snapshot(private)==interrupted and db.read_bytes()==db_initial
             assert final.read_bytes()==source.read_bytes() and not partial.exists()
             assert lookup(RUN,report,'synthetic')=='missing'
+            fresh=subprocess.run([sys.executable,str(Path(__file__).resolve()),'--child',
+                                  str(exe),str(db),str(managed),str(private),'review_torn'],
+                                 capture_output=True,text=True,timeout=30)
+            assert fresh.returncode==0 and 'Fresh process independently refused torn journal PASS' in fresh.stdout
+            assert snapshot(private)==interrupted and db.read_bytes()==db_initial
+            assert final.read_bytes()==source.read_bytes() and not partial.exists()
+            assert lookup(RUN,report,'synthetic')=='missing'
+            print(fresh.stdout,end='')
             print('Native torn published journal process interruption preserved for review PASS')
             return
         if not lost_response:
