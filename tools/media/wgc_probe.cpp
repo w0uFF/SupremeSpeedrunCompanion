@@ -1,6 +1,7 @@
 // Isolated feasibility probe: only a window created by this executable.
 #define NOMINMAX
 #include <windows.h>
+#include <psapi.h>
 #include <d3d11.h>
 #include <dxgi.h>
 #include <windows.graphics.capture.interop.h>
@@ -39,19 +40,19 @@ LRESULT CALLBACK paint_window(HWND hwnd,UINT message,WPARAM wp,LPARAM lp) {
 }
 struct Window {
     HWND handle=nullptr;
-    Window(){
+    explicit Window(bool hd=false){
         WNDCLASSW cls{};cls.lpfnWndProc=paint_window;cls.hInstance=GetModuleHandleW(nullptr);cls.lpszClassName=L"SSC_T20_OwnWindow";
         if(!RegisterClassW(&cls))return;
         handle=CreateWindowExW(0,cls.lpszClassName,L"SSC synthetic capture test",WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-                               40,40,320,240,nullptr,nullptr,cls.hInstance,nullptr);
+                               40,40,hd?1344:320,hd?800:240,nullptr,nullptr,cls.hInstance,nullptr);
         if(handle)UpdateWindow(handle);
     }
     ~Window(){if(handle)DestroyWindow(handle);}
     void bright(){SetWindowLongPtrW(handle,GWLP_USERDATA,1);InvalidateRect(handle,nullptr,FALSE);UpdateWindow(handle);}
 };
 // Map only a centered 160x96 crop of the own window. No desktop capture or scaling.
-std::vector<std::uint8_t> read_crop(ID3D11Device* device,const cap::Direct3D11CaptureFrame& frame) {
-    constexpr UINT w=160,h=96;
+std::vector<std::uint8_t> read_crop(ID3D11Device* device,const cap::Direct3D11CaptureFrame& frame,ssc::media_fixture::VideoSpec spec=ssc::media_fixture::low_spec) {
+    const UINT w=spec.frame_width,h=spec.frame_height;
     auto access=frame.Surface().as<::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess>();
     winrt::com_ptr<ID3D11Texture2D> texture;
     winrt::check_hresult(access->GetInterface(__uuidof(ID3D11Texture2D),texture.put_void()));
@@ -78,8 +79,8 @@ std::vector<std::uint8_t> read_crop(ID3D11Device* device,const cap::Direct3D11Ca
         context->Unmap(staging.get(),0);return data;
     }catch(...){context->Unmap(staging.get(),0);throw;}
 }
-bool matches(const std::vector<std::uint8_t>& data,bool bright){
-    constexpr std::size_t plane=160*96;
+bool matches(const std::vector<std::uint8_t>& data,bool bright,ssc::media_fixture::VideoSpec spec=ssc::media_fixture::low_spec){
+    const std::size_t plane=static_cast<std::size_t>(spec.frame_width)*spec.frame_height;
     if(data.size()!=plane+plane/2)return false;
     for(std::size_t i=0;i<plane;++i)if(bright?data[i]<220:data[i]>35)return false;
     for(std::size_t i=plane;i<data.size();++i)if(data[i]<120 || data[i]>136)return false;
@@ -102,7 +103,7 @@ std::uint64_t process_cpu_100ns(){
     };
     return units(kernel)+units(user);
 }
-int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false) {
+int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false,bool hd=false) {
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
@@ -110,14 +111,16 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     if(!cap::GraphicsCaptureSession::IsSupported()){
         std::cout<<"BLOCKED: Windows Graphics Capture unsupported\n";return 77;
     }
-    Window window;
+    const auto spec=hd?ssc::media_fixture::hd_spec:ssc::media_fixture::low_spec;
+    Window window(hd);
     if(!window.handle){std::cerr<<"test window creation failed "<<GetLastError()<<'\n';return 1;}
     pump();
     cap::GraphicsCaptureItem item{nullptr};
     auto interop=winrt::get_activation_factory<cap::GraphicsCaptureItem,IGraphicsCaptureItemInterop>();
     winrt::check_hresult(interop->CreateForWindow(window.handle,winrt::guid_of<cap::GraphicsCaptureItem>(),winrt::put_abi(item)));
     const auto size=item.Size();
-    if(size.Width<=0 || size.Height<=0 || size.Width>1024 || size.Height>1024)
+    if(size.Width<=0 || size.Height<=0 || size.Width>(hd?1536:1024) || size.Height>1024 ||
+       (hd && (size.Width<1280 || size.Height<720)))
         throw winrt::hresult_error(E_FAIL,L"unexpected capture item size");
     winrt::com_ptr<ID3D11Device> device;
     auto hr=D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_HARDWARE,nullptr,D3D11_CREATE_DEVICE_BGRA_SUPPORT,
@@ -143,12 +146,12 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     // Worker starts before acquisition; sink is owned longer than Worker.
     std::unique_ptr<ssc::media_fixture::AsyncSink> sink;
     std::unique_ptr<supreme::recorder::Worker> worker;
-    supreme::recorder::FrameLookahead lookahead;
+    supreme::recorder::FrameLookahead lookahead(spec.frame_bytes);
     supreme::recorder::Coverage expected_coverage;
     if(live){
         if(std::filesystem::exists(std::filesystem::symlink_status(output)))return 2;
-        sink=std::make_unique<ssc::media_fixture::AsyncSink>(output,false);
-        worker=std::make_unique<supreme::recorder::Worker>(*sink,8,32768);
+        sink=std::make_unique<ssc::media_fixture::AsyncSink>(output,false,spec);
+        worker=std::make_unique<supreme::recorder::Worker>(*sink,8,hd?spec.frame_bytes:32768u);
         if(worker->wait_ready()!=supreme::recorder::State::running)throw std::runtime_error("live worker startup");
     }
     auto offer=[&](supreme::recorder::Packet packet){
@@ -165,18 +168,18 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
         ~CloseCapture(){try{session.Close();}catch(...){}try{pool.Close();}catch(...){}}
     } close_capture{session,pool};
     const auto fixture_wall_begin=FixtureClock::now();
-    const auto cpu_begin=marathon?process_cpu_100ns():std::uint64_t{0};
+    const auto cpu_begin=(marathon || hd)?process_cpu_100ns():std::uint64_t{0};
     session.StartCapture();
     unsigned frames=0;std::int64_t last=-1;
     std::vector<std::uint8_t> dark,light;
     std::vector<supreme::recorder::TimedFrame> sequence;
     unsigned skipped_pattern=0;
-    const std::size_t target=marathon?1200u:extended?600u:long_fixture?240u:live?60u:12u;
+    const std::size_t target=hd?240u:marathon?1200u:extended?600u:long_fixture?240u:live?60u:12u;
     std::vector<std::int64_t> processing_us;
-    if(marathon)processing_us.reserve(target);
+    if(marathon || hd)processing_us.reserve(target);
     std::uint64_t written_before_stop=0;
     bool paused=false;
-    const auto deadline=GetTickCount64()+(marathon?80000u:extended?40000u:long_fixture?20000u:live?10000u:8000u);
+    const auto deadline=GetTickCount64()+(hd?40000u:marathon?80000u:extended?40000u:long_fixture?20000u:live?10000u:8000u);
     while(GetTickCount64()<deadline && (live?lookahead.count()<target:timed?sequence.size()<target:output?light.empty():frames<3)){
         pump();
         if(auto frame=pool.TryGetNextFrame()){
@@ -207,12 +210,12 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
             last=time;++frames;
             if(output){
                 const auto processing_begin=FixtureClock::now();
-                auto pixels=read_crop(device.get(),frame);
+                auto pixels=read_crop(device.get(),frame,spec);
                 if(live){
                     const auto count=lookahead.count();
-                    if(matches(pixels,count>=target/2)){
+                    if(matches(pixels,count>=target/2,spec)){
                         if(auto packet=lookahead.push({static_cast<std::uint64_t>(time),std::move(pixels)}))offer(std::move(*packet));
-                        if(marathon)processing_us.push_back(elapsed_us(processing_begin,FixtureClock::now()));
+                        if(marathon || hd)processing_us.push_back(elapsed_us(processing_begin,FixtureClock::now()));
                         std::cout<<"LiveFrame "<<count<<" "<<time<<"\n";
                         if(lookahead.count()==target/2)window.bright();
                         if(resize && lookahead.count()==5 && !SetWindowPos(window.handle,nullptr,0,0,400,300,SWP_NOMOVE|SWP_NOZORDER))throw std::runtime_error("test resize failed");
@@ -229,7 +232,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
             }
             frame.Close();
             // Controlled fixture-only pause; not a production capture technique.
-            if((long_fixture || extended || marathon) && !paused && lookahead.count()>=100){
+            if((long_fixture || extended || marathon || hd) && !paused && lookahead.count()>=100){
                 paused=true;
                 Sleep(350);
             }
@@ -251,7 +254,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
            c.first!=expected_coverage.first || c.end!=expected_coverage.end || c.duration!=expected_coverage.duration ||
            q.dropped_full || q.discarded || q.rejected_invalid)throw std::runtime_error("live worker quality");
         std::cout<<"LiveCapture "<<target<<" "<<frames<<" "<<skipped_pattern<<" "<<written_before_stop<<"\n";
-        if(marathon){
+        if(marathon || hd){
             const auto cpu_end=process_cpu_100ns();
             if(cpu_end<cpu_begin)throw std::runtime_error("fixture CPU clock regression");
             const auto summary=ssc::media_fixture::summarize_latency(std::move(processing_us));
@@ -259,6 +262,17 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
             std::cout<<"LivePerformance "<<summary.count<<" "<<elapsed_us(fixture_wall_begin,fixture_wall_end)
                      <<" "<<cpu_end-cpu_begin<<" "<<summary.median_us<<" "<<summary.p95_us<<" "
                      <<summary.p99_us<<" "<<summary.max_us<<" "<<elapsed_us(drain_begin,fixture_wall_end)<<"\n";
+        }
+        if(hd){
+            PROCESS_MEMORY_COUNTERS_EX memory{};
+            memory.cb=static_cast<DWORD>(sizeof(memory));
+            if(!GetProcessMemoryInfo(GetCurrentProcess(),reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory),memory.cb))
+                throw std::runtime_error("HD capture process memory unavailable");
+            const auto file_bytes=std::filesystem::file_size(std::filesystem::path(output));
+            if(!file_bytes || file_bytes>16u*1024u*1024u)throw std::runtime_error("HD capture output bounds");
+            std::cout<<"LiveResources "<<size.Width<<" "<<size.Height<<" "<<spec.frame_width<<" "<<spec.frame_height<<" "
+                     <<memory.PeakWorkingSetSize<<" "<<memory.WorkingSetSize<<" "<<memory.PrivateUsage<<" "
+                     <<file_bytes<<" "<<8u*spec.frame_bytes<<"\n";
         }
         std::cout<<"LiveHandoff "<<c.packets<<" "<<c.first<<" "<<c.end<<" "<<c.duration<<" "<<*c.internal_gap()<<" "<<worker->high_water()<<" "<<q.dropped_full<<" "<<q.discarded<<"\n";
         return 0;
@@ -302,9 +316,10 @@ int wmain(int argc,wchar_t** argv){
     const bool extended=argc==3 && std::wstring_view(argv[1])==L"--live-extended";
     const bool simulated_loss=argc==3 && std::wstring_view(argv[1])==L"--live-simulated-loss";
     const bool marathon=argc==3 && std::wstring_view(argv[1])==L"--live-marathon";
-    const bool live=resize || long_fixture || extended || simulated_loss || marathon || (argc==3 && std::wstring_view(argv[1])==L"--live");
+    const bool hd=argc==3 && std::wstring_view(argv[1])==L"--live-hd720";
+    const bool live=hd || resize || long_fixture || extended || simulated_loss || marathon || (argc==3 && std::wstring_view(argv[1])==L"--live");
     if(argc>2 && !timed && !live)return 2;
-    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture,extended,simulated_loss,marathon);}
+    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize,long_fixture,extended,simulated_loss,marathon,hd);}
     catch(const winrt::hresult_error& e){
         const auto hr=e.code().value;
         std::cerr<<"WGC HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<'\n';

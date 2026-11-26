@@ -334,7 +334,8 @@ void decode_audio(const wchar_t* path,LONGLONG video_end) {
 }
 int wmain(int argc,wchar_t** argv) {
     const bool hd=argc==3 && std::wstring(argv[2])==L"--hd720";
-    const bool live_decode=argc==4 && std::wstring(argv[2])==L"--decode-live";
+    const bool live_hd=argc==4 && std::wstring(argv[2])==L"--decode-live-hd720";
+    const bool live_decode=live_hd || (argc==4 && std::wstring(argv[2])==L"--decode-live");
     const bool timed=argc==4 && std::wstring(argv[2])==L"--timed-video";
     const bool extended=argc==3 && std::wstring(argv[2])==L"--extended-av";
     const bool sustained=extended || (argc==3 && std::wstring(argv[2])==L"--sustained-av");
@@ -367,8 +368,9 @@ int wmain(int argc,wchar_t** argv) {
                 timeline.push_back({pts,duration});
             }
             if(!input.eof() || (timeline.size()!=60 && timeline.size()!=240 && timeline.size()!=600 && timeline.size()!=1200) || timeline.front().pts!=0 || timeline.back().duration!=supreme::recorder::fixture_tail)throw std::runtime_error("live decode bounds");
+            if(live_hd && timeline.size()!=240)throw std::runtime_error("HD capture frame count");
             frames=static_cast<UINT32>(timeline.size());
-            (void)decode(argv[1],&timeline);return 0;
+            (void)decode(argv[1],&timeline,live_hd?hd_spec:low_spec);return 0;
         }
         if(timed){
             std::ifstream input(std::filesystem::path(argv[3]),std::ios::binary);
