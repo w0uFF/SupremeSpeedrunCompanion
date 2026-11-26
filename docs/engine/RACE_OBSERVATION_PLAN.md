@@ -37,3 +37,5 @@ T32: trace conditional result regeneration in EXE Game::Cycle diagnostic path an
 T33: dirty-state candidate byte written even on missing named result row, and cycle helper copies/ranks result rows. Compare actual object identity and lifecycle, completed human event, rendered official result and raw timer only after G1; dirty-state/regeneration/rank list is not attempt proof. See ENGINE_MAP.md.
 
 T33 supplementary: exported Enter Input* argument and selected Keyboard/Mouse/Joystick provenance to Player+0x114 traced statically. Do not conflate input-state write +0x10 with result-regeneration state; verify actual input class/selected player across restart, replay, AI and menu transitions after G1. See ENGINE_MAP.md.
+
+T34 static evidence: AI-owned input object independently allocated, typed AI_Player_Input and replaced/deleted through AI+0x1cc, passed to common Player wrapper. Runtime validation must check actual class/ownership and selected player throughout AI/replay/restart transitions. No authoritative result or input observer enabled.
