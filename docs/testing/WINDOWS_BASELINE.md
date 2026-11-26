@@ -10,3 +10,30 @@ No companion installation. Close game and launcher; make a separate user-writabl
 6. Optional: save a replay via the original UI if available, note actual displayed result, run python tools/replay_header.py on a copied replay and compare candidate time. No official timing conclusion without actual evidence.
 
 Do not enable an injector, replace winmm.dll, edit game files, or install this repository into the game.
+
+## P0-T15: paired evidence (optional Python, no companion installation)
+
+Use the same closed, disposable working copy for both snapshots. Keep the report files outside the game. Do not run these commands against the only working installation. No administrator access, injected code, game updates or changes to loader/patch files are needed.
+
+From the extracted repository root, with the game and launcher closed, use PowerShell:
+
+```powershell
+$Game = "C:\path\to\disposable-game"
+py -3 tools/baseline_snapshot.py snapshot "$Game" | Out-File -Encoding utf8 before.json
+```
+
+If Python is unavailable, the existing manual Get-FileHash method above remains sufficient; do not install Python solely for this test.
+
+1. Launch the disposable copy using the normal method; use the working renderer and refresh/FPS settings. Record the displayed selection of region, difficulty, rider, board and weather. Complete a Time Attack race. Note the exact displayed final time (including decimal digits) and whether it is the live race rather than replay. A screenshot or short recording of the selection and result is helpful but optional. Record whether the game's own restart and reset-to-track behave differently.
+2. Repeat a race with one changed track/difficulty or weather, and note the actual loaded choice. Exit normally. If the normal built-in replay save is available, preserve a replay only through that UI and note whether playback corresponds to the run; otherwise mark unavailable. A non-PB need not change high-time files.
+3. Execute the keyboard binding persistence and audio checks described above. Exit completely. Then, from the repository root:
+
+```powershell
+py -3 tools/baseline_snapshot.py snapshot "$Game" | Out-File -Encoding utf8 after.json
+py -3 tools/baseline_snapshot.py compare before.json after.json | Out-File -Encoding utf8 comparison.json
+Get-Content comparison.json
+```
+
+Expected fixed-file observation for the supported Display Config + keyboard patch combination: core_observation=unchanged, with some saved-data files possibly created or changed. A missing, redirected, unreadable or oversized file is a coverage gap, not a cheating or failure verdict. If core files change unexpectedly, stop and retain the evidence; do not restore or edit them automatically. The six-file comparison does not cover every DLL or runtime loaded module. Use preflight separately for full reference identity.
+
+Return comparison.json, before/after fingerprints if comfortable (no raw save contents), Windows version, renderer, window mode, Hz/FPS cap, launch/exit/audio/binding observations, and the actual selection/result observations. Redact personal paths, usernames or other private details. No video upload required. The baseline passes only with actual observations; the tool always reports runtime_verified=false and loader_gate_passed=false. G1 additionally needs a reviewed native candidate installed-disabled, launch/exit, and rollback tests.

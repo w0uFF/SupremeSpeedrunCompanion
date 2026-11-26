@@ -12,3 +12,6 @@
 
 - T14 candidate cross-references are a linear sweep, not control-flow proof; menu registration, legacy object layout and actual selection/finish semantics unresolved.
 - Replay position probe excludes the ambiguous terminal record and cannot infer units, geometry crossings, official IGT, RTA or authenticity. Six guide formats remain unsupported.
+
+- T15 Get_Results clears a presentation flag; it is not safe to invoke as a getter. Dirty flag initialized before a race and may recur; no official finish/IGT mapping yet.
+- Fixed-file paired snapshots are not full preflight, runtime evidence or a security sandbox. Redirected files, unknown status, no PB or missing files cannot prove a gameplay issue. Owner Windows baseline still pending.

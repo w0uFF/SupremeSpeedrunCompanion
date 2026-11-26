@@ -1,0 +1,62 @@
+{
+  "scope": "selected_executable_raw_byte_windows",
+  "before_sha256": "615fd47962cd174b51f1e466acc7b84d64ce87526c52271c9e12200c730a5c8c",
+  "after_sha256": "f7bc9074e41244fb5a9a3ab53a4e433ac14564fb47206a5e3c91caf975531e02",
+  "windows": [
+    {
+      "rva": "0x323e0",
+      "length": 15,
+      "sha256": "4841d567a80070696ba296745411c020d8399a9749d1179b89ca40bd8ce402f3",
+      "identical": true
+    },
+    {
+      "rva": "0x49e3c",
+      "length": 73,
+      "sha256": "534c7291008d836764679cb29c7d53f770d993acf764b8e6ad63ff1241c9e8b9",
+      "identical": true
+    },
+    {
+      "rva": "0x530b2",
+      "length": 85,
+      "sha256": "4043c6f80ca4b057d761c771ed0cd172640d204db0f210c54ace2fe312052746",
+      "identical": true
+    },
+    {
+      "rva": "0x53157",
+      "length": 14,
+      "sha256": "57035ba421d80b7c20e3bf123fdf77964cc15d576bede2478616c5f515125b2c",
+      "identical": true
+    },
+    {
+      "rva": "0x52e13",
+      "length": 56,
+      "sha256": "c0721acc2e60946f357ff57c3fbf3a22b084e26d341a2d384098c932f2749d62",
+      "identical": true
+    },
+    {
+      "rva": "0x53eca",
+      "length": 6,
+      "sha256": "4d31a98587087b44251ccab3f9457eff4b7831df4ef6118e0789aeb112cd41ed",
+      "identical": true
+    },
+    {
+      "rva": "0x25037",
+      "length": 4,
+      "sha256": "d0fd42ed66fbb0ca3c4ae5d359f1457cfd0c2e37946332aac2d924cf1a66bf9a",
+      "identical": true
+    },
+    {
+      "rva": "0x2706f",
+      "length": 28,
+      "sha256": "13db57c491641b4631871ea3580e423b7f36a976ad80a1b6e5c3f2d1f4e17d98",
+      "identical": true
+    },
+    {
+      "rva": "0x27151",
+      "length": 47,
+      "sha256": "063c330fa0c20777fd03d84f0edb70ad8a77e2f483ed21f765d9ca025fcf9156",
+      "identical": true
+    }
+  ],
+  "runtime_verified": false
+}

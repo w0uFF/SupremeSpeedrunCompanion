@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.6-p0 — baseline evidence and native object lifetime research
+- Verify v0.0.5 Windows x86 CI logs (8/8 Debug and Release).
+- Map menu list registry producer, allocation/destruction boundaries, default selection reads and borrowed result presentation object; document mutating result consumer and remaining unknowns.
+- Add bounded read-only fixed-file baseline snapshot and comparison with seven synthetic tests; Linux Debug/Release 9/9 targets.
+- Document proposed upstream extension lifecycle and explicit baseline/G1 procedure; CI floor nine. No native activation or release approval.
+
 ## v0.0.5-p0 — offline native research
 - Verify baseline Windows x86 Debug and Release CI logs (7/7 each).
 - Add read-only candidate menu/import xref scanner and comparison; document menu registration, configuration, lifecycle and clock findings.

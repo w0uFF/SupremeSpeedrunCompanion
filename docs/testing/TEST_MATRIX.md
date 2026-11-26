@@ -25,3 +25,23 @@ Executed local commands from verified v0.0.4 source copy with the three new rese
 - sha256sum -c <private immutable input manifest>.
 
 All raw reference files and verbose local logs are retained in the private research workspace. New tests are synthetic and require neither objdump nor game files on CI. No native runtime, full parser security, performance or leaderboard acceptance claim.
+
+## P0-T15 — v0.0.6-p0
+
+| Test ID | Result | Evidence |
+|---|---|---|
+| TEST-T14-WIN-001 | PASS (Windows x86 offline) | Run 45752930744, job 139684744190, commit f1dc014864bfad4a32e34d96b6b69be10c12e7b2; actual logs inspected, 8/8 Debug and 8/8 Release, release skipped |
+| TEST-T15-STATIC-001 | PASS (selected byte windows only) | t15/byte-windows.json; 9/9 identical original/patched windows, PE raw section mapping; no execution |
+| TEST-T15-SNAPSHOT-001 | PASS (7 Python tests) | python tests/test_baseline_snapshot.py -v, Python 3.13.5 Linux exit 0 |
+| TEST-T15-SNAPSHOT-002 | PASS (static reference) | two snapshots on untouched SupremeLight, six core subset includes absent winmm.dll, core_observation=incomplete; 16 unchanged files, two absent |
+| TEST-T15-SNAPSHOT-003 | PASS (static staged subset) | same six core files including Display Config 1.8.0 + keyboard-patched executable; two snapshots, core_observation=unchanged; no launch |
+| TEST-T15-REGRESSION-001 | PASS | fresh Linux Debug configure/build/CTest 9/9, GCC 14.2.0, CMake 3.31.6, Python 3.13.5; exit 0 |
+| TEST-T15-REGRESSION-002 | PASS | fresh Linux Release configure/build/CTest 9/9; same toolchain; exit 0 |
+| TEST-T15-INPUTS-001 | PASS | sha256sum -c private pre-existing immutable manifest; all 10 inputs unchanged |
+| TEST-T15-WIN-001 | NOT_RUN at commit preparation | Inspect CI logs for new commit |
+| TEST-BASELINE-WIN-001 | NOT_RUN | Owner disposable-copy procedure in WINDOWS_BASELINE.md |
+| TEST-LOADER-001 | BLOCKED | No reviewed native candidate or installed-disabled test |
+
+Linux commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Release); cmake --build <fresh build> --parallel 4; ctest --test-dir <fresh build> --output-on-failure --no-tests=error. Local source build inputs were compared with main Git blob hashes before edits; uploaded CMake and new Python code/test blobs match locally tested files. GNU objdump -d -Mintel --start-address=<preferred VA> --stop-address=<end> for static disassembly; map RVAs to raw sections for comparison. No runtime game test, official timing comparison or new sanitizer run performed in T15. Windows symlink test may skip if privilege unavailable.
+
+Actual previous Windows CI: MSVC 19.52.37029.0, x86 compiler, Python 3.12.10, 8/8 Debug and Release. https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45752930744

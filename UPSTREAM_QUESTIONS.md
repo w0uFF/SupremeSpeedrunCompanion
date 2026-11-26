@@ -17,3 +17,9 @@ No upstream approval is assumed. Do not contact the maintainer automatically.
 - Replay: is terminal record excluded by design? What is the actual coordinate frame, and are header ticks sufficient for displayed IGT? Existing upstream geometry code handles Forest Medium/Hard ambiguity; we will not assume identity from positions alone.
 
 Consult only if useful, in a concise grouped message via the owner. No upstream endorsement or permission assumed.
+
+## T15 follow-up (not sent)
+
+- Preferred extension boundary: do you already support optional native initialization after the loader lock? We found only file-overlay lazy resolution and an optional external Injector.exe helper. Would an explicit host lifecycle contract be acceptable? No need to answer details already documented elsewhere.
+- Result presentation: do you know the original finish producer and final displayed time field/units? Get_Text_Results returns a borrowed object and the presentation consumer clears a flag also initialized before a race. We will not use that flag as finish.
+- Menu registry: Button_List parsing and Get_Button_Names appear to access the same owner field; actual dispatch still separate. Any known safe registration mechanism or lifetime notes?

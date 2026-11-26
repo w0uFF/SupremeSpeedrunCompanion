@@ -55,3 +55,31 @@ Run: python tools/native_xrefs.py <original Supreme.exe> --compare <patched Supr
 ## Runtime gate
 
 Retain existing Display Config proxy. Upstream source has no established native registration ABI; DllMain hooks/pinning and lazy filesystem resolution do not constitute a safe general plugin callback. Experimental offline C ABI remains unchanged and native capabilities zero. Actual menu creation, selection, track transitions, lifecycle timing, recording and rollback NOT_RUN. Next: owner disposable Windows baseline and focused upstream contract review; then a minimal approved installed-disabled diagnostic candidate, not an active race hook.
+
+## P0-T15 — Menu registry, configuration and presentation ownership
+
+OBSERVED_STATIC, same fingerprints as above; GNU objdump 2.44 and PE section mapping. Instruction addresses below are RVAs. No functions are invoked by the companion.
+
+### Menu registry and lifetime
+
+- The executable contains actual references to Data/Main_Menu/ID_Lists/Page_List.txt (string RVA 0x882e4, operand references 0x544ab/0x545b7), Sequence_List.txt (0x8828c, refs 0x54653/0x5475c) and Button_List.txt (0x88234, refs 0x547f8/0x54904). These are not merely menu ID strings.
+- At 0x547f8 the Button_List path is supplied to an imported stream-related routine at IAT RVA 0x6d230; the following loop extracts a temporary value at 0x5487f, retrieves a field at owner+0x4c, uses its +0x20 member and calls 0x7510 at 0x54895. The prior Get_Button_Names helper 0x557d0 returns owner->field_4c+0x20. The Page helper 0x557c0 returns owner->field_4c+0x10. Together these establish a concrete registry producer/consumer lead. They do not prove parser grammar, valid insertion order, dispatch support, or allocator compatibility.
+- Original executable allocation request 0x530b2 = 0x70 bytes; constructor import call 0x530f7; return value stored into owning object +0x10 at 0x53104. A later call at 0x5315f obtains the menu from that global owner and calls Init_Main_Menu. Main_Menu.dll constructor export RVA 0x3bce0; Init_Main_Menu 0x3c4d0; destructor 0x3c390. Destructor conditionally invokes virtual destruction on members +4, +0xc and +8 and cleans other resources. No cached menu/child pointer may be assumed valid after teardown or page discard. The observed allocation size is not a portable C++ type declaration.
+- The Supreme_Game object is separately allocated (executable 0x52e13, 0xa0 bytes), constructed through IAT call at 0x52e43 and stored at owner +4 at 0x52e8c. The cleanup path at 0x53eca calls its destructor then a deallocation routine. This constrains ownership but does not prove the full recreation schedule or which thread performs it.
+
+### Preferences vs active race configuration
+
+Saved_Data/Defaults.txt contains default_environment, default_level, default_daytime, default_character and default_board. In executable disassembly the corresponding strings are passed at RVAs 0x4a118/0x4a182/0x4a1ec/0x4a25a/0x4a2c0. Nearby code passes owner-relative fields +0x4c/+0x5c/+0x6c/+0x7c/+0x8c to a common helper 0x2750. These are static preference-load leads only, distinct from T14's radio selection code. Do not equate default IDs with current loaded track/rider/board/weather or persist companion choices into these files. Existing nine high-time files use region and difficulty names; the executable contains suffix _high_times.txt with references at 0x60688 and 0x60cc0. Leaderboard history is not a per-attempt authoritative result and a non-PB may not update it.
+
+### Result object and presentation side effects
+
+- Supreme.exe export Get_Text_Results RVA 0x323e0 loads a global pointer from preferred VA 0x4889c4, follows +0x14, then +0x1ec, and returns it. This is a borrowed pointer path, not a result snapshot or thread-safe API.
+- Allocation site RVA 0x49e3c requests 0x38 bytes; code initializes subobjects at +0x14 and +0x24 via calls at 0x49e5e/0x49e6e, sets byte +0x34 to 1, stores pointer at owner+0x1ec at 0x49e7f. Allocation failure stores null. Exact types, initialization of all fields, deallocation and valid lifetime windows remain unverified.
+- Main_Menu.dll export Menu_Results_Shower::Get_Results RVA 0x12810 invokes a listener virtual function at vtable +0x30 (0x1281f); it branches if the returned pointer is null. It tests byte +0, uses values at +4 and +8 and an x87 float load from +0xc (0x12859), then writes to its own presentation state. At 0x12898 it clears the result object's byte +0x34; subsequent code copies row-like data, including vector-like bounds +0x18/+0x1c and stride 0x24. The exact virtual-table correspondence with Get_Text_Results is a strong hypothesis, not verified by runtime call trace.
+- Supreme.exe code at 0x25037 sets byte +0x34 to 1 after updating two vector-like fields. The flag is also set during initial allocation, so it is a candidate presentation-dirty flag, not a unique finish signal. Code at 0x27089 and 0x2717e copies five DWORDs into the result object's prefix; one path also calls Set_Replay_Mode. Defaults, intermediate values and replay data can therefore reach the same presentation object. Do not treat +0xc as verified final IGT or read it without lifetime/mode validation.
+- Main_Menu.dll has direct calls to Get_Results at RVAs 0x127b3 and 0x12988. It is unsafe to call this consumer as a getter because it clears state. A future adapter may observe a proven natural call or a stable read point only after G1; it must never invoke this function just to sample, suppress its behavior, or infer finish from repeated presentation refreshes.
+- Official time remains the actual game-displayed final result under the reported rules. Runtime trace must independently confirm countdown/control release, race finish, result publication, result rounding and non-live/replay exclusion. No native timing field is admitted.
+
+### Additional original/keyboard compatibility check
+
+Nine selected executable byte windows in the original and supplied keyboard-patched build match exactly. See docs/testing/t15/byte-windows.json (RVA, length, SHA-256). This check covers only selected byte ranges, not whole functions, control flow, runtime relocation or hook coexistence. Use the existing build fingerprints and PE raw-section mapping to reproduce. No native capability enabled.
