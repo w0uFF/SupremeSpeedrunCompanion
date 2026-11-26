@@ -1,5 +1,5 @@
 import unittest
-from fixture_lifecycle import split,reuse_split,timeline,decoded,COUNTS
+from fixture_lifecycle import split,reuse_split,replace_split,timeline,decoded,COUNTS
 
 
 def log():
@@ -48,6 +48,18 @@ class LifecycleTests(unittest.TestCase):
                     base.replace(marker,'HDReuseCounts 1 1 1 2 3 3 3 3'),
                     base.replace('HDLifecycleEnd 3','')):
             with self.assertRaises(ValueError): reuse_split(bad)
+
+    def test_replacement_boundary(self):
+        counts='HDReplaceCounts 1 2 2 2 3 3 3 3 1'
+        pair='HDReplaceRefused 1\nHDReplaceReady 2'
+        base=log().replace('HDLifecycleEnd 1','HDLifecycleEnd 1\n'+pair)+'\n'+counts
+        self.assertEqual(len(replace_split(base)[1]),4)
+        for bad in (base.replace(pair,''),base.replace(counts,counts+' 1'),
+                    base.replace(pair,pair+'\n'+pair),
+                    base.replace(pair+'\n','').replace('HDLifecycleEnd 2','HDLifecycleEnd 2\n'+pair),
+                    base.replace('HDReplaceReady 2','HDReplaceReady 1'),
+                    base+'\nHDReuseCounts 1 1 1 1 3 3 3 3'):
+            with self.assertRaises(ValueError): replace_split(bad)
 
     def test_bad_handoff(self):
         base=capture(600)
