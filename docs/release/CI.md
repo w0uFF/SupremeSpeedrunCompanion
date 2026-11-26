@@ -25,3 +25,5 @@ Final T18 exact code/test commit ab0bcf82ededc13ac2271334b072e4ca730aa01a verifi
 T19: 20 portable targets, separate media job, unchanged approval and artifact policy.
 
 Final T19 code/test commit 8f005bda4557498bc1d3ab0e7c77e0963b783fb9 verified in run 45782226376 (20/20 per core configuration, 4/4 media, 2/2 capture feasibility, development release skipped). Standalone WGC C++20 target only, SSC_CAPTURE_PROBES=ON. CTest exit 77 is skip/BLOCKED, never validated capture. No Actions artifact or release changes. Storage probe not part of CI/default build.
+
+T20 final exact code/test commit eda75eb2adc1d7ed319526b8a083696658a7bbf0 run 45783962593: core 21 targets per configuration, media five, capture three passed/one skipped (audio sampling), storage one passed. Separate storage-probe job loads system WinSQLite; capture opt-in also builds media for captured pixels. SKIP_RETURN_CODE 77 is BLOCKED, not PASS. Approval and no-artifact policy unchanged. No release published.

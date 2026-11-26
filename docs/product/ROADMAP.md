@@ -19,3 +19,5 @@ P0-T18 final: independent core and real synthetic asynchronous H.264/AAC -> sche
 P0-T19: per-stream quality and clock mapping; continue sustained synthetic and capture feasibility. G1 unchanged.
 
 P0-T19 final: verified sustained synthetic recording, quality sidecar, isolated WGC frame metadata and process audio activation; local SQLite feasibility. P0-T20: verify actual pixels and audio signal in independent fixtures, clock mapping and capture-to-encoder integration, WinSQLite evaluation, native result research. G1 unchanged.
+
+P0-T20 final: portable pixel/audio primitives, actual own-window captured-pixel encode/decode, 30s synthetic media, native WinSQLite feasibility. Audio sample collection blocked by hosted playback endpoint. P0-T21: continuous own-window frames and actual QPC mapping, capture resize/discontinuity, adapter contract work, independent native result research; optional interactive audio validation. G1 unchanged.

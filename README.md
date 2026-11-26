@@ -2,7 +2,7 @@
 
 An optional, community-driven speedrunning companion for Supreme Snowboarding (Boarder Zone).
 
-**Status: P0 discovery — not an installable mod.** Current revision v0.0.10-p0 adds per-stream recorder quality statistics and common-origin QPC timestamp conversion. Native loader compatibility (G1), race timing, recording and menu integration have not been validated. Do not copy development files into your game directory.
+**Status: P0 discovery — not an installable mod.** Current revision v0.0.11-p0 adds portable capture primitives, actual own-window pixel-to-encoder feasibility, 30-second synthetic media, and a standalone WinSQLite probe. Native loader compatibility (G1), race timing, recording and menu integration have not been validated. Do not copy development files into your game directory.
 
 ## Project goals
 
@@ -22,7 +22,7 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure --no-tests=error
 ```
 
-Portable Linux: configure without -A Win32, then build and run CTest. Twenty portable CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
+Portable Linux: configure without -A Win32, then build and run CTest. Twenty-one portable CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
 
 Read-only reference classifier: `python tools/preflight.py <copied-game-root>`. Exact on-disk matches are not runtime support or competition eligibility. For local research, `python tools/native_xrefs.py <original.exe> --compare <patched.exe>` requires GNU objdump; `python tools/replay_samples.py <replay.dat>` reports candidate coordinates and header timing without an official verdict. Use only trusted local reference copies. See docs/engine/ENGINE_MAP.md.
 
@@ -43,3 +43,5 @@ T18 offline components: src/modules/recorder/README.md, src/modules/run_library/
 T19: docs/contracts/RECORDING_QUALITY.md describes handoff-quality statistics, not gameplay coverage.
 
 T19 Windows offline CI verified 20 portable targets in Debug and Release, four media tests and two limited capture feasibility tests. WGC acquired frame metadata from a test window; WASAPI initialized an own-process capture service, not audio sampling. No installable game mod. See docs/architecture/RECORDING_FEASIBILITY.md and STORAGE_FEASIBILITY.md.
+
+T20: exact Windows core 21/21 Debug and Release, media 5/5, capture 3 passed/1 skipped, storage 1/1. Actual own-window pixel encode/decode verified, audio signal collection blocked by hosted playback device availability. See docs/testing/CAPTURE_PROBE_VALIDATION.md; no game installation.

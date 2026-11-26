@@ -2,6 +2,10 @@
 
 ## v0.0.11-p0 — capture primitives and isolated platform experiments
 - Verify v0.0.10 Windows baseline. Add bounded BGRA-to-NV12 conversion and source audio discontinuity/position counters, independent C++17 tests.
+- Verify actual own-window pixel readback, NV12 conversion and synthetic-timestamp encode/decode; extend synthetic A/V to 30 seconds with archived quality sidecar.
+- Add own-process controlled-signal audio sampling probe; hosted test skipped at playback device open (MMRESULT=2), no actual audio claim.
+- Add WinSQLite standalone system-library feasibility (3.53.4, Win32 test passed); initial SDK header absence corrected, separate storage job.
+- Document static high-time persistence reader/writer candidates. Final Windows core 21/21 per configuration, media 5/5, capture 3 passed/1 skipped, storage 1/1. No native or release approval.
 
 ## v0.0.10-p0 — recording quality and clock mapping
 - Add separate own-window WGC metadata and own-process WASAPI activation probes; Windows feasibility verified (WGC frame metadata, WASAPI activation only).

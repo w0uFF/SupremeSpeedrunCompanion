@@ -30,3 +30,5 @@
 - T19 per-stream handoff statistics cannot establish actual decoded coverage, missing producer samples before/after observed span, black video or valid audio. Clock domain mapping still requires platform verification.
 
 - T19 WGC frame metadata feasibility verified, not decoded pixel integrity, resize/device loss, full-screen game or renderer compatibility. WASAPI capture service initialized, no actual audio samples or isolation/synchronization proof. Ten-second synthetic test is low-resolution and not an in-game performance benchmark. SQLite local test is not a Windows or production repository adapter.
+
+- T20 verified pixel readback uses two own-window crops repeated on a synthetic timeline. No continuous live capture or resize/device-loss/real sync validation. Own-process audio sampling compiled but hosted waveOutOpen failed MMRESULT=2; interactive test required. No endpoint-wide fallback. WinSQLite verified on one hosted OS/version only; not a production storage adapter. Thirty-second synthetic low-resolution recording is not gameplay benchmark.
