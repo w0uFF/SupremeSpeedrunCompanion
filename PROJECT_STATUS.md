@@ -18,3 +18,6 @@ Revision v0.0.17-p0 — bounded concurrent own-window video fixture and read-onl
 
 ## Gates and next
 Owner disposable Windows baseline and installed loader provenance outstanding; G1 blocked, installed-disabled launch/exit and rollback not performed. G2/G3/G4 game NOT_RUN. No native hooks, launcher UI, license/release approval or online submission. Existing competition rules unchanged. T27: verify documentation CI, longer own-window recording and injected sink failure/drop/cancel/device-loss simulations; preserve audio blocker, synthetic private admission journal model and recovery edge cases, continue display/identity research. No game installation until gates reviewed.
+
+## T27 candidate (not yet validated)
+Documentation head 2d5e0d32e0365e9afc85101303bae327c8c3b243 run 45857509889 actual logs: core 36/36 each, media 5/5, capture 6 PASS/1 SKIP (audio MMRESULT=2), storage/entry 1/1, release skipped. Candidate v0.0.18 adds 600-frame bounded capture, injected device-removal cancellation and sink begin/finalize failure cases, synthetic journal model. T27 CI NOT_RUN at commit preparation; G1 unchanged. No actual game, local provenance, actual device loss or release approval.

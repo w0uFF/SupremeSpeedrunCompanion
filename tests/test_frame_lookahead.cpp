@@ -17,6 +17,6 @@ int main(){
     CHECK(!bound.push(frame(0)));
     try{(void)bound.push(frame(FrameLookahead::max_span+1));return 1;}catch(const std::invalid_argument&){}
     for(std::size_t i=1;i<FrameLookahead::max_frames;++i)CHECK(bound.push(frame(i*400000)));
-    try{(void)bound.push(frame(160000000));return 1;}catch(const std::invalid_argument&){}
+    try{(void)bound.push(frame(FrameLookahead::max_frames*400000));return 1;}catch(const std::invalid_argument&){}
     return 0;
 }

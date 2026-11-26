@@ -114,3 +114,8 @@ T19 validation: exact source/test revision Windows 20/20 Debug and Release, 4/4 
 T21 final validation: Windows 23/23 Debug and Release, media 5/5, capture 3 pass/1 skip, storage 1/1, inert entry 1/1. OnlinePlay result-row candidate traced to matching original game build metadata; no authoritative IGT claim.
 
 T25 final fixture follow-up: v0.0.16 reviewed PR66 source run 45816213574/job 139896508310 on code revision 95d197430ade7544ab429bc61c471e59ace96262 completed successfully. Actual logs: upstream 3/3, SSC 2/2 (including native preview from upstream state), startup/runtime fixture PASS, loads 0/0/1 for disabled/requested, enabled/not requested and enabled/requested. This supersedes T25's pending fixture note, not G1 or installed-game verification.
+
+## v0.0.18-p0 — candidate (T27)
+- Extend isolated concurrent capture fixture to 600 frames; preserve short and long fixtures and add simulated device-removal cancellation.
+- Extend portable sink failure coverage; add synthetic-only admission journal model and recovery tests. No local admission or durable journal.
+- Windows validation pending; no game integration or release.
