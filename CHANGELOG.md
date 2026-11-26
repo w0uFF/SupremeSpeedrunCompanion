@@ -119,3 +119,5 @@ T25 final fixture follow-up: v0.0.16 reviewed PR66 source run 45816213574/job 13
 - Extend isolated concurrent capture fixture to 600 frames; preserve short and long fixtures and add simulated device-removal cancellation.
 - Extend portable sink failure coverage; add synthetic-only admission journal model and recovery tests. No local admission or durable journal.
 - Windows validation pending; no game integration or release.
+
+T27 first candidate ef335294a03a1746b8b3d52d1e48c660b09aa899 Windows CI 45860359753 passed: core 37/37 both configurations, media 5/5, capture 7 PASS/1 SKIP, storage/entry 1/1. 600 actual own-window frames decoded with max PTS error 0.04 ms. Follow-up tests and explicit synthetic journal capture completeness/reconciliation pending CI; no game integration or promotion yet.

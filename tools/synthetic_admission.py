@@ -24,13 +24,14 @@ class Journal:
     phase: str = 'recording'
     terminal: str | None = None
     digest: str | None = None
+    capture_complete: bool | None = None
 
     def __post_init__(self):
         if not isinstance(self.context, Context):
             raise ValueError('missing synthetic context')
-        if self.phase == 'recording' and self.terminal is None and self.digest is None:
+        if self.phase == 'recording' and self.terminal is None and self.digest is None and self.capture_complete is None:
             return
-        if self.terminal not in ('finished', 'restarted', 'abandoned', 'failed'):
+        if self.terminal not in ('finished', 'restarted', 'abandoned', 'failed') or type(self.capture_complete) is not bool:
             raise ValueError('invalid terminal')
         if self.phase == 'terminal' and self.digest is None:
             return
@@ -38,13 +39,13 @@ class Journal:
             return
         raise ValueError('invalid synthetic journal phase')
 
-    def finish(self, context, terminal):
+    def finish(self, context, terminal, capture_complete):
         if context != self.context or self.phase != 'recording':
             raise ValueError('stale or duplicate terminal')
-        return replace(self, phase='terminal', terminal=terminal)
+        return replace(self, phase='terminal', terminal=terminal, capture_complete=capture_complete)
 
-    def verify(self, context, terminal, origin, digest):
-        if self.phase != 'terminal' or context != self.context or terminal != self.terminal or origin != 'synthetic':
+    def verify(self, context, terminal, origin, digest, capture_complete):
+        if self.phase != 'terminal' or context != self.context or terminal != self.terminal or origin != 'synthetic' or type(capture_complete) is not bool or capture_complete != self.capture_complete:
             raise ValueError('synthetic evidence mismatch')
         return replace(self, phase='verified', digest=digest)
 
@@ -60,7 +61,7 @@ class Journal:
 
 
 def recovery(journal, pending, final, index):
-    """Pure decision only. Inputs are independently verified digests or None; no repair."""
+    """Pure decision only. Inputs are verified digests, None for confirmed absence, or invalid/unknown status; no repair."""
     if not isinstance(journal, Journal) or journal.phase not in ('verified', 'published', 'indexed'):
         return 'review'
     digest = journal.digest
@@ -71,7 +72,7 @@ def recovery(journal, pending, final, index):
     if final == digest:
         if journal.phase == 'indexed' and index != 'identical':
             return 'review'
-        return 'none' if index == 'identical' else 'retry_synthetic_index'
+        return ('none' if journal.phase == 'indexed' else 'reconcile_synthetic_journal') if index == 'identical' else 'retry_synthetic_index'
     if pending == digest and journal.phase == 'verified' and index == 'missing':
         return 'retry_synthetic_publication'
     return 'review'

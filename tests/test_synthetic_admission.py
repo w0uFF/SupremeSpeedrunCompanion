@@ -10,28 +10,28 @@ class AdmissionTest(unittest.TestCase):
         self.ctx = Context('a'*32, 1, 'b'*64)
         self.digest = 'c'*64
         self.recording = Journal(self.ctx)
-        self.terminal = self.recording.finish(self.ctx, 'finished')
-        self.verified = self.terminal.verify(self.ctx, 'finished', 'synthetic', self.digest)
+        self.terminal = self.recording.finish(self.ctx, 'finished', True)
+        self.verified = self.terminal.verify(self.ctx, 'finished', 'synthetic', self.digest, True)
 
     def test_terminal_and_identity(self):
         for context in (None, Context('a'*32, 2, 'b'*64), Context('a'*32, 1, 'd'*64)):
             with self.assertRaises(ValueError):
-                self.recording.finish(context, 'finished')
+                self.recording.finish(context, 'finished', True)
             with self.assertRaises(ValueError):
-                self.terminal.verify(context, 'finished', 'synthetic', self.digest)
+                self.terminal.verify(context, 'finished', 'synthetic', self.digest, True)
         with self.assertRaises(ValueError):
-            self.terminal.finish(self.ctx, 'finished')
+            self.terminal.finish(self.ctx, 'finished', True)
         with self.assertRaises(ValueError):
-            self.recording.finish(self.ctx, 'unknown')
+            self.recording.finish(self.ctx, 'unknown', True)
 
     def test_origin_and_digest(self):
         for origin in ('local', 'imported', ''):
             with self.assertRaises(ValueError):
-                self.terminal.verify(self.ctx, 'finished', origin, self.digest)
+                self.terminal.verify(self.ctx, 'finished', origin, self.digest, True)
         with self.assertRaises(ValueError):
-            self.terminal.verify(self.ctx, 'failed', 'synthetic', self.digest)
+            self.terminal.verify(self.ctx, 'failed', 'synthetic', self.digest, True)
         with self.assertRaises(ValueError):
-            self.terminal.verify(self.ctx, 'finished', 'synthetic', 'invalid')
+            self.terminal.verify(self.ctx, 'finished', 'synthetic', 'invalid', True)
         with self.assertRaises(ValueError):
             self.verified.published('d'*64)
 
@@ -40,13 +40,26 @@ class AdmissionTest(unittest.TestCase):
         j = self.verified
         self.assertEqual(recovery(j, d, None, 'missing'), 'retry_synthetic_publication')
         self.assertEqual(recovery(j, None, d, 'missing'), 'retry_synthetic_index')
-        self.assertEqual(recovery(j, None, d, 'identical'), 'none')
+        self.assertEqual(recovery(j, None, d, 'identical'), 'reconcile_synthetic_journal')
         for pending, final, index in ((d,d,'missing'), (None,'d'*64,'missing'),
                                       (None,d,'conflict'), (None,d,'unavailable'),
                                       (None,None,'identical'), (d,None,'identical')):
             self.assertEqual(recovery(j,pending,final,index), 'review')
         self.assertEqual(recovery(None,None,d,'missing'), 'review')
         self.assertEqual(recovery(self.recording,None,d,'missing'), 'review')
+
+    def test_capture_status_and_unknown_recovery(self):
+        t = self.recording.finish(self.ctx, 'abandoned', False)
+        with self.assertRaises(ValueError):
+            t.verify(self.ctx, 'abandoned', 'synthetic', self.digest, True)
+        with self.assertRaises(ValueError):
+            self.recording.finish(self.ctx, 'finished', None)
+        j = t.verify(self.ctx, 'abandoned', 'synthetic', self.digest, False)
+        self.assertIs(j.capture_complete, False)
+        self.assertEqual(recovery(j, 'invalid', self.digest, 'identical'), 'review')
+        self.assertEqual(recovery(j, None, 'unknown', 'missing'), 'review')
+        self.assertEqual(recovery(j.published(self.digest), None, self.digest, 'identical'),
+                         'reconcile_synthetic_journal')
 
     def test_index_and_invalid_phase(self):
         d = self.digest
