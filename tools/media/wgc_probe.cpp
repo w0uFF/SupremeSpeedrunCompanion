@@ -331,31 +331,74 @@ void stage_resources(unsigned stage){
     std::cout<<"HDStageResources "<<stage<<" "<<GetCurrentProcessId()<<" "<<m.PeakWorkingSetSize
              <<" "<<m.WorkingSetSize<<" "<<m.PrivateUsage<<" "<<handles<<std::endl;
 }
-int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false,bool hd=false,bool hd_extended=false,bool hd_sustained=false,FixtureStop stop=FixtureStop::none,bool retention=false) {
+// Fixture-only owner. The window is never replaced while its item is retained.
+// Reuse is intentionally unavailable to every other capture command.
+struct ReuseFixture {
+    std::optional<Window> window;
+    cap::GraphicsCaptureItem item{nullptr};
+    unsigned supports=0,windows=0,factories=0,items=0,sizes=0,sessions=0,starts=0,closes=0;
+    ReuseFixture(){
+        if(!cap::GraphicsCaptureSession::IsSupported())throw std::runtime_error("WGC unavailable");
+        ++supports;
+        window.emplace(true);
+        if(!window->handle)throw std::runtime_error("persistent HD window creation");
+        ++windows;pump();
+        auto factory=winrt::get_activation_factory<cap::GraphicsCaptureItem,IGraphicsCaptureItemInterop>();
+        if(!factory)throw std::runtime_error("persistent HD factory missing");
+        ++factories;
+        winrt::check_hresult(factory->CreateForWindow(window->handle,winrt::guid_of<cap::GraphicsCaptureItem>(),winrt::put_abi(item)));
+        if(!item)throw std::runtime_error("persistent HD item missing");
+        ++items;
+    }
+    void require_window() const {
+        DWORD pid=0;
+        if(!window || !IsWindow(window->handle) ||
+           GetWindowThreadProcessId(window->handle,&pid)!=GetCurrentThreadId() || pid!=GetCurrentProcessId())
+            throw std::runtime_error("persistent HD own window unavailable");
+    }
+    void reset_pattern(){
+        require_window();
+        SetLastError(ERROR_SUCCESS);
+        if(!SetWindowLongPtrW(window->handle,GWLP_USERDATA,0) && GetLastError()!=ERROR_SUCCESS)
+            throw std::runtime_error("persistent HD reset pattern");
+        if(!InvalidateRect(window->handle,nullptr,TRUE) || !UpdateWindow(window->handle))
+            throw std::runtime_error("persistent HD repaint");
+        pump();
+    }
+};
+int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false,bool long_fixture=false,bool extended=false,bool simulated_loss=false,bool marathon=false,bool hd=false,bool hd_extended=false,bool hd_sustained=false,FixtureStop stop=FixtureStop::none,bool retention=false,ReuseFixture* reuse=nullptr) {
+    if(reuse && (!hd || !live || !hd_extended || stop!=FixtureStop::none || retention || resize))return 2;
     if(stop!=FixtureStop::none && (!hd || !live || !hd_extended || hd_sustained))return 2;
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
     // The calling thread owns one apartment for its entire probe lifetime.
     if(hd)std::cout<<"HDStage support-check"<<std::endl;
-    if(!cap::GraphicsCaptureSession::IsSupported()){
+    if(!reuse && !cap::GraphicsCaptureSession::IsSupported()){
         std::cout<<"BLOCKED: Windows Graphics Capture unsupported\n";return 77;
     }
     const auto spec=hd?ssc::media_fixture::hd_spec:ssc::media_fixture::low_spec;
     if(hd)std::cout<<"HDStage create-window"<<std::endl;
     if(retention)stage_resources(0);
-    Window window(hd);
+    std::optional<Window> local_window;
+    if(reuse)reuse->reset_pattern();else local_window.emplace(hd);
+    Window& window=reuse?*reuse->window:*local_window;
     if(!window.handle){std::cerr<<"test window creation failed "<<GetLastError()<<'\n';return 1;}
     if(retention)stage_resources(1);
     if(hd)std::cout<<"HDStage pump-window"<<std::endl;
     pump();
     if(hd)std::cout<<"HDStage activation-factory"<<std::endl;
     cap::GraphicsCaptureItem item{nullptr};
-    auto interop=winrt::get_activation_factory<cap::GraphicsCaptureItem,IGraphicsCaptureItemInterop>();
-    if(hd)std::cout<<"HDStage capture-item"<<std::endl;
-    winrt::check_hresult(interop->CreateForWindow(window.handle,winrt::guid_of<cap::GraphicsCaptureItem>(),winrt::put_abi(item)));
+    winrt::com_ptr<IGraphicsCaptureItemInterop> interop;
+    if(reuse){reuse->require_window();item=reuse->item;}
+    else{
+        interop=winrt::get_activation_factory<cap::GraphicsCaptureItem,IGraphicsCaptureItemInterop>();
+        if(hd)std::cout<<"HDStage capture-item"<<std::endl;
+        winrt::check_hresult(interop->CreateForWindow(window.handle,winrt::guid_of<cap::GraphicsCaptureItem>(),winrt::put_abi(item)));
+    }
     if(hd)std::cout<<"HDStage capture-item-size"<<std::endl;
     const auto size=item.Size();
+    if(reuse)++reuse->sizes;
     if(hd){
         RECT client{}, outer{};
         if(!GetClientRect(window.handle,&client) || !GetWindowRect(window.handle,&outer))
@@ -376,6 +419,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     auto pool=cap::Direct3D11CaptureFramePool::CreateFreeThreaded(runtime_device,dx::DirectXPixelFormat::B8G8R8A8UIntNormalized,2,size);
     if(hd)std::cout<<"HDStage create-session"<<std::endl;
     auto session=pool.CreateCaptureSession(item);
+    if(reuse)++reuse->sessions;
     if(retention)stage_resources(3);
     LARGE_INTEGER frequency{},start{},now{};
     if(!QueryPerformanceFrequency(&frequency)||!QueryPerformanceCounter(&start)||frequency.QuadPart<=0||start.QuadPart<0)
@@ -440,6 +484,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     const auto cpu_begin=(marathon || hd)?process_cpu_100ns():std::uint64_t{0};
     if(hd)std::cout<<"HDStage start-capture"<<std::endl;
     session.StartCapture();
+    if(reuse)++reuse->starts;
     unsigned frames=0;std::int64_t last=-1;
     std::vector<std::uint8_t> dark,light;
     std::vector<supreme::recorder::TimedFrame> sequence;
@@ -537,6 +582,7 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
     }
     if(hd)std::cout<<"HDStage close-capture"<<std::endl;
     close_capture.close();
+    if(reuse){++reuse->closes;reuse->require_window();}
     if(retention)stage_resources(5);
     if(live){
         if(resize || lookahead.count()!=target || !written_before_stop){
@@ -642,7 +688,8 @@ void lifecycle_sample(unsigned phase,bool gui=false){
     std::cout<<"HDLifecycleSample "<<phase<<" "<<GetCurrentProcessId()<<" "
              <<memory.PeakWorkingSetSize<<" "<<memory.WorkingSetSize<<" "<<memory.PrivateUsage<<" "<<handles<<std::endl;
 }
-int lifecycle(const std::filesystem::path& directory,bool faults=false,bool retention=false,bool finalize_failure=false){
+int lifecycle(const std::filesystem::path& directory,bool faults=false,bool retention=false,bool finalize_failure=false,bool reuse_item=false){
+    if(reuse_item && (faults || retention || finalize_failure))return 2;
     if(!std::filesystem::is_directory(directory) || std::filesystem::is_symlink(directory))return 2;
     struct Segment {bool sustained;FixtureStop stop;};
     const std::vector<Segment> segments=retention?
@@ -656,14 +703,17 @@ int lifecycle(const std::filesystem::path& directory,bool faults=false,bool rete
         files.push_back(directory/(L"segment-"+std::to_wstring(i+1)+L".mp4"));
         if(std::filesystem::exists(std::filesystem::symlink_status(files.back())))return 2;
     }
+    std::optional<ReuseFixture> reuse;
+    if(reuse_item)reuse.emplace();
     lifecycle_sample(0,faults||retention);
     for(unsigned i=0;i<files.size();++i){
         const auto segment=segments[i];
         const auto count=segment.stop!=FixtureStop::none?120:segment.sustained?1200:600;
         std::cout<<"HDLifecycleBegin "<<i+1<<" "<<count<<std::endl;
-        const int status=run(files[i].c_str(),false,true,false,false,false,false,false,true,true,segment.sustained,segment.stop,retention);
+        const int status=run(files[i].c_str(),false,true,false,false,false,false,false,true,true,segment.sustained,segment.stop,retention,reuse?&*reuse:nullptr);
         const int expected=segment.stop==FixtureStop::user_cancel?3:segment.stop==FixtureStop::simulated_device_loss?4:segment.stop==FixtureStop::sink_write_failure?5:segment.stop==FixtureStop::sink_finalize_failure?6:0;
         if(status!=expected){std::cerr<<"HDLifecycleIncomplete "<<i+1<<" "<<status<<'\n';return 1;}
+        if(reuse){Sleep(1000);pump();Sleep(2000);pump();reuse->require_window();}
         if(retention){
             stage_resources(7);
             Sleep(1000);pump();stage_resources(8);
@@ -672,10 +722,16 @@ int lifecycle(const std::filesystem::path& directory,bool faults=false,bool rete
         lifecycle_sample(i+1,faults||retention);
         std::cout<<"HDLifecycleEnd "<<i+1<<std::endl;
     }
+    if(reuse){
+        std::cout<<"HDReuseCounts "<<reuse->supports<<" "<<reuse->windows<<" "<<reuse->factories<<" "
+                 <<reuse->items<<" "<<reuse->sizes<<" "<<reuse->sessions<<" "<<reuse->starts<<" "<<reuse->closes<<std::endl;
+        reuse.reset();
+    }
     return 0;
 }
 }
 int wmain(int argc,wchar_t** argv){
+    const bool reuse=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-reuse-lifecycle";
     const bool faults=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-fault-lifecycle";
     const bool item=argc==4 && std::wstring_view(argv[1])==L"--isolate-wgc-item";
     const bool once=argc==4 && std::wstring_view(argv[1])==L"--isolate-wgc-once";
@@ -687,8 +743,8 @@ int wmain(int argc,wchar_t** argv){
     }
     const bool finalize_failure=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-finalize-failure-lifecycle";
     const bool retention=finalize_failure || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-write-failure-lifecycle");
-    if(retention || faults || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-lifecycle")){
-        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]),faults,retention,finalize_failure);}
+    if(reuse || retention || faults || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-lifecycle")){
+        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]),faults,retention,finalize_failure,reuse);}
         catch(const winrt::hresult_error& e){std::cerr<<"HD lifecycle HRESULT "<<winrt::to_string(e.message())<<'\n';return 1;}
         catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     }

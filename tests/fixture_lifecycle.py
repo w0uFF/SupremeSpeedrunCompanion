@@ -95,3 +95,11 @@ def verify_clip(text, decode_text, count, size):
     if result.output_bytes!=size:
         raise ValueError('output size mismatch')
     return result
+
+
+def reuse_split(text):
+    marker='HDReuseCounts 1 1 1 1 3 3 3 3'
+    rows=text.splitlines()
+    if not rows or rows[-1]!=marker or [line for line in rows if line.startswith('HDReuse')]!=[marker]:
+        raise ValueError('reuse counts or marker order')
+    return split(text)

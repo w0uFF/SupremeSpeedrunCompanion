@@ -1,5 +1,5 @@
 import unittest
-from fixture_lifecycle import split,timeline,decoded,COUNTS
+from fixture_lifecycle import split,reuse_split,timeline,decoded,COUNTS
 
 
 def log():
@@ -39,6 +39,15 @@ class LifecycleTests(unittest.TestCase):
             self.assertEqual(decoded(evidence,data),400)
             with self.assertRaises(ValueError): decoded(evidence.replace('TimedPTS 0 0 400','TimedPTS 0 0 20001'),data)
             with self.assertRaises(ValueError): decoded(rows,data)
+
+    def test_reuse_counts(self):
+        marker='HDReuseCounts 1 1 1 1 3 3 3 3'
+        base=log()+'\n'+marker
+        self.assertEqual(len(reuse_split(base)[1]),4)
+        for bad in (log(),base+'\n'+marker,marker+'\n'+log(),
+                    base.replace(marker,'HDReuseCounts 1 1 1 2 3 3 3 3'),
+                    base.replace('HDLifecycleEnd 3','')):
+            with self.assertRaises(ValueError): reuse_split(bad)
 
     def test_bad_handoff(self):
         base=capture(600)

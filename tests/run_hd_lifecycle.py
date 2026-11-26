@@ -4,20 +4,23 @@ import subprocess
 import sys
 import tempfile
 from fixture_display import hosted_hd_mode
-from fixture_lifecycle import COUNTS, split, timeline, verify_clip
+from fixture_lifecycle import COUNTS, split, reuse_split, timeline, verify_clip
 
 
 def main():
-    if len(sys.argv)!=3:
-        raise SystemExit('usage: run_hd_lifecycle.py WGC_PROBE MEDIA_PROBE')
+    if len(sys.argv) not in (3,4) or (len(sys.argv)==4 and sys.argv[3]!='--reuse-item'):
+        raise SystemExit('usage: run_hd_lifecycle.py WGC_PROBE MEDIA_PROBE [--reuse-item]')
+    reuse=len(sys.argv)==4
     with tempfile.TemporaryDirectory() as directory:
         root=Path(directory)
         with hosted_hd_mode(True):
-            result=subprocess.run([sys.argv[1],'--live-hd720-lifecycle',str(root)],capture_output=True,text=True,timeout=250)
+            result=subprocess.run([sys.argv[1],'--live-hd720-reuse-lifecycle' if reuse else '--live-hd720-lifecycle',str(root)],capture_output=True,text=True,timeout=250)
         print(result.stdout,end='',flush=True)
         print(result.stderr,end='',flush=True)
         result.check_returncode()
-        clips,resources=split(result.stdout)
+        clips,resources=reuse_split(result.stdout) if reuse else split(result.stdout)
+        if reuse and {p.name for p in root.iterdir()}!={f'segment-{i}.mp4' for i in range(1,4)}:
+            raise ValueError('unexpected reuse artifacts')
         for i,(clip,count) in enumerate(zip(clips,COUNTS),1):
             intervals=timeline(clip,count)
             path=root/f'segment-{i}.mp4'
@@ -34,6 +37,7 @@ def main():
         for r in resources[1:]:
             print(f'HDLifecycleDelta {r.phase} private_bytes={r.private-resources[0].private} working_bytes={r.working-resources[0].working} handles={r.handles-resources[0].handles}')
         print('HDLifecycleComplete 3 2400; descriptive same-process evidence, not leak proof')
+        if reuse: print('HDReuseComplete 3 2400; one own window/item, fresh sessions and encoders, descriptive only')
 
 
 if __name__=='__main__': main()
