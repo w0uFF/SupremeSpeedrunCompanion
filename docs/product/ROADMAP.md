@@ -43,3 +43,5 @@ T27 first candidate ef335294a03a1746b8b3d52d1e48c660b09aa899 verified run 458603
 T27 final v0.0.18-p0: exact implementation 83c89e0336cc781bf2fa70cd22754f89c2acf31a verified Windows 45861739545 and PR66 45861731467. T28: synthetic-only durable journal prototype and process-death recovery, longer bounded capture with measured fixture latency, static finish/identity correlation. No game install or local authority; G1 remains blocked.
 
 T28 candidate v0.0.19-p0: synthetic append-only snapshot store and process-death tests, 1200 selected-frame capture and measurement feasibility, static checkpoint/finish/HUD class mapping. Local model/store/summary tests verified, Windows candidate CI pending. No promotion until exact regression results; G1 remains blocked.
+
+T28 final v0.0.19-p0 verified with Windows and fixture-relevant PR66 equivalence. T29: synthetic coordinator and explicit journal-only reconciliation, representative-resolution bounded synthetic encoding metrics, further static timer research. G1 remains blocked.
