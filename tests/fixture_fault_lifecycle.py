@@ -20,18 +20,20 @@ class Fault:
 
 
 def fault(text, reason, artifact_bytes):
-    if reason not in FAULTS.values():
+    if reason not in (*FAULTS.values(), 'sink-write-failure'):
         raise ValueError('unsupported fixture fault')
     if any(line.startswith(('LiveCapture ', 'LiveHandoff ', 'LiveDecode ', 'LivePerformance ', 'LiveResources '))
            for line in text.splitlines()):
         raise ValueError('aborted scope advertised success')
     lines = [line for line in text.splitlines() if line.startswith('HDFaultOutcome ')]
-    match = re.fullmatch(r'HDFaultOutcome (user-cancel|simulated-device-loss) cancelled'+r' ([0-9]{1,12})'*8, lines[0]) if len(lines)==1 else None
-    if not match or match[1]!=reason:
+    state = 'failed' if reason == 'sink-write-failure' else 'cancelled'
+    match = re.fullmatch(r'HDFaultOutcome '+re.escape(reason)+' '+state+r' ([0-9]{1,12})'*8, lines[0]) if len(lines)==1 else None
+    if not match:
         raise ValueError('fault outcome')
-    selected, accepted, written, discarded, pending, high, dropped, invalid = map(int,match.groups()[1:])
+    selected, accepted, written, discarded, pending, high, dropped, invalid = map(int,match.groups())
     if (selected!=120 or accepted!=119 or not 0<written<=accepted or written+discarded!=accepted
-            or pending!=1 or not 1<=high<=8 or dropped or invalid):
+            or pending!=1 or not 1<=high<=8 or dropped or invalid
+            or (state=='failed' and (written,discarded)!=(118,1))):
         raise ValueError('fault accounting')
     pairs = [tuple(map(int,m)) for m in re.findall(r'^LiveFrame ([0-9]{1,12}) ([0-9]{1,20})$',text,re.M)]
     if (len(pairs)!=selected or any(i!=n for n,(i,_) in enumerate(pairs))
