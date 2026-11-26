@@ -1,5 +1,5 @@
 import unittest
-from fixture_isolation import MODES, REFINEMENT_MODES, REFINEMENT_CYCLES, ONCE_COUNTS, evidence, once_evidence
+from fixture_isolation import MODES, REFINEMENT_MODES, REFINEMENT_CYCLES, ONCE_COUNTS, ITEM_COUNTS, evidence, once_evidence, item_evidence
 
 
 def log(mode, cycles=3):
@@ -43,6 +43,20 @@ class IsolationTests(unittest.TestCase):
                             marker+'\n'+log(mode,6)):
                     with self.assertRaises(ValueError): once_evidence(bad,mode)
         with self.assertRaises(ValueError): once_evidence(log('pool',6),'pool')
+
+    def test_item_counts(self):
+        for mode,counts in ITEM_COUNTS.items():
+            with self.subTest(mode=mode):
+                marker='WGCItemCounts '+mode+' '+' '.join(map(str,counts))
+                base=log(mode,6)+'\n'+marker
+                rows,outcomes=item_evidence(base,mode)
+                self.assertEqual((len(rows),len(outcomes)),(24,6))
+                for bad in (log(mode,6),base+'\n'+marker,
+                            base.replace(marker,marker.replace(' 1 ',' 2 ',1)),
+                            marker+'\n'+log(mode,6),
+                            base.replace('IsolationSample 6 3 123','IsolationSample 6 3 456')):
+                    with self.assertRaises(ValueError): item_evidence(bad,mode)
+        with self.assertRaises(ValueError): item_evidence(log('cached-pool',6),'cached-pool')
 
     def test_refuses_corruption(self):
         base=log('worker-write')
