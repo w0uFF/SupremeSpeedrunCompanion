@@ -86,3 +86,10 @@ Previous Windows logs: MSVC 19.52.37029.0, x86 compiler, Python 3.12.10, 9/9 Deb
 | TEST-G1/G2/G3/G4 | BLOCKED/NOT_RUN | No native game test or complete evidence import/export workflow |
 
 Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Release); cmake --build <build> --parallel 4; ctest --test-dir <build> --output-on-failure --no-tests=error. Both passed 16/16; new CMake and source/test Git blob hashes checked against uploaded tree. No fresh sanitizer run. Windows CI uses official hosted runner and explicit Win32. Media probe compiled/run only by separate hosted job, not part of portable 16 targets. No release authorization. Prior verified logs: https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45757144179 .
+
+### T17 follow-up: first hosted run and sanitizer
+
+- TEST-T17-WIN-001 PASS: Windows x86 core build job 139704913828, run 45759192220, commit 3b523f130791e88df44bfb74455a671412c00142. Actual logs inspected: MSVC 19.52.37029.0, 16/16 Debug and 16/16 Release; development release skipped.
+- TEST-T17-MEDIA-001 FAIL (compile): job 139704913379 on the same commit, MSVC C4245/C2220 at mf_probe.cpp lines 68–69, signed/unsigned SDK stream selectors. No encoding/decoding executed. Explicit DWORD casts added, /W4 /WX retained. Re-run pending.
+- TEST-T17-REGRESSION-003 PASS: Linux Debug + UBSan 16/16, GCC 14.2.0, CMake 3.31.6, Python 3.13.5. Fresh build with CMAKE_CXX_FLAGS and CMAKE_C_FLAGS=-fsanitize=undefined -fno-sanitize-recover=all, configure/build/CTest exit 0. No sanitizer errors reported. Same portable source as above; media target disabled.
+- Exact hosted logs: https://github.com/w0uFF/SupremeSpeedrunCompanion/actions/runs/45759192220 .

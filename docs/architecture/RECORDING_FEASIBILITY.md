@@ -17,3 +17,5 @@ cmake --build media-build --config Release --target p0_media_probe
 ctest --test-dir media-build -C Release -R "^P0_media_probe$" --verbose --no-tests=error
 ```
 Sources reviewed: https://learn.microsoft.com/en-us/windows/win32/medfound/tutorial--using-the-sink-writer-to-encode-video ; https://learn.microsoft.com/en-us/windows/win32/medfound/tutorial--encoding-an-mp4-file- ; https://learn.microsoft.com/en-us/windows/win32/medfound/processing-media-data-with-the-source-reader ; https://learn.microsoft.com/en-us/windows/win32/medfound/h-264-video-encoder . No Windows SDK or runtime locally; do not mark PASS until exact CI logs confirm. Interactive G3, audio, capture performance, device-loss and encoder recovery remain NOT_RUN.
+
+First hosted media job 139704913379 failed compilation with MSVC C4245/C2220 on SDK enum-to-DWORD stream selectors; explicit casts applied without relaxing warnings. Encode/decode execution remains unverified until the follow-up job completes.

@@ -65,8 +65,8 @@ void encode(const wchar_t* path) {
 void decode(const wchar_t* path) {
     ComPtr<IMFSourceReader> reader;
     check(MFCreateSourceReaderFromURL(path,nullptr,reader.GetAddressOf()),"open finalized MP4");
-    constexpr DWORD video=MF_SOURCE_READER_FIRST_VIDEO_STREAM;
-    check(reader->SetStreamSelection(MF_SOURCE_READER_ALL_STREAMS,FALSE),"disable streams");
+    constexpr DWORD video=static_cast<DWORD>(MF_SOURCE_READER_FIRST_VIDEO_STREAM);
+    check(reader->SetStreamSelection(static_cast<DWORD>(MF_SOURCE_READER_ALL_STREAMS),FALSE),"disable streams");
     check(reader->SetStreamSelection(video,TRUE),"select video");
     ComPtr<IMFMediaType> native;
     check(reader->GetNativeMediaType(video,0,native.GetAddressOf()),"read encoded format");
