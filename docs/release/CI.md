@@ -17,3 +17,5 @@ Run 45753602966 verified from actual logs (v0.0.6 Windows x86, 9/9 Debug and Rel
 T17: 16 portable targets required. Separate read-only media-probe job configures SSC_MEDIA_PROBE=ON on Win32, builds only p0_media_probe Release, runs named CTest verbose. Its failure is visible but does not publish or alter any release. Offline diagnostic release job remains gated by license/approval and core CI, no media binaries packaged. Prior run 45757144179 actual logs: 13/13 Debug and Release, release skipped.
 
 T18 portable floor 19. Last v0.0.8 final run 45759479502 confirmed 16/16 each and media 1/1. Approval and artifact policy unchanged.
+
+T18 media job runs three named opt-in tests: video-only, synchronous A/V and asynchronous A/V. Core 19/19 each and all three media tests verified on 45777095746. Final wrapper adds synthetic MP4 archive verification. Approval gate and no-artifact policy unchanged.

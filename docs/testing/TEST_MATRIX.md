@@ -118,3 +118,7 @@ Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Rel
 - TEST-T18-AV PASS: run 45776852153, job 139762464634; actual logs: 2/2 media tests, H264 12 frames, AAC PCM 23552 frames, audio first 0, audio end 4906666, video end 4800000 (100 ns ticks).
 - TEST-T18-LEGACY-ARCHIVE PASS Linux: reconstructed exact prior test_evidence_archive.py from GitHub source (blob 6a118015d5400d9d9078e0dfc484ec30cc4a5fbe), seven cases passed against modified reader, Python 3.13.5.
 - TEST-T18-ASYNC-AV NOT_RUN at preparation: real synthetic MF worker adapter; separate third media CTest in hosted CI.
+
+- TEST-T18-AV-CORE PASS: run 45776852153, job 139762464975, 19/19 Debug and Release.
+- TEST-T18-ASYNC-AV PASS: run 45777095746, job 139763270864, commit 9379028ebdc151d526097334e8e9af109fd86eaa. Actual logs: 3/3 tests passed; worker finalized 24 packets without observed queue drops; decoded 12 H264 frames, 23552 PCM frames, first_100ns=0, audio_end_100ns=4906666, video_end_100ns=4800000. Core job 139763271203 19/19 Debug and Release, release skipped.
+- TEST-T18-MEDIA-ARCHIVE NOT_RUN at preparation: actual synthetic async MP4 passed to schema 2 publisher and re-read/compared; final Windows run required. No game capture, actual run evidence or submission.

@@ -14,3 +14,5 @@ Current source-level dependency map, offline only. Bootstrap host owns module st
 No feature depends on engine offsets. All new code removable with its isolated test targets. Offline ports are owner-thread synchronous unless explicitly stated, not safe to invoke blocking I/O on the game thread. Native bootstrap composition, backend cancellation, runtime dependencies and actual capability graph remain blocked by G1/G2.
 
 T18 additions: recorder Worker owns bounded FIFO and worker-thread Sink lifetime calls; independent from capture_boundary ledger and timing port. run_library Repository source-level interface and pure comparison; no persistence adapter. tools/run_manifest and archive_publish extend evidence_archive with optional schema 2 and explicit verified partial publication/recovery. All offline, no bootstrap wiring.
+
+T18 follow-up: optional standalone synthetic media probe consumes recorder Worker and implements its Sink; no production dependency on Media Foundation added to bootstrap. The Python probe wrapper exercises experimental archive_publish after successful synthetic encode/decode. No live capture.
