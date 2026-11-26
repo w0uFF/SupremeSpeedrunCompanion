@@ -13,3 +13,5 @@ P0-T16: parallel offline foundations — timing interval, reference storage, inv
 P0-T17: experimental archive roundtrip/verifier, preferences storage port, split comparison and media probe. Next: verify separate Windows media test, improve archive provenance/recovery and storage adapters, continue native finish/identity research. G1/G3/G4 unchanged.
 
 P0-T18: worker lifecycle, run repository port and schema 2 evidence/partial publication. Next: Windows regression, AAC/A-V feasibility, real backend integration and native observation. G1 through G4 unchanged.
+
+P0-T18 final: independent core and real synthetic asynchronous H.264/AAC -> schema 2 archive chain verified in hosted Windows x86 CI. P0-T19: independent capture feasibility, recording-quality coverage/clock mapping, persistent C++ adapter evaluation and actual native result research. G1/G2/G3/G4 remain blocked or not run.

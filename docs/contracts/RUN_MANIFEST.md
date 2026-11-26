@@ -6,4 +6,4 @@ archive_publish.create_run creates exclusive .zip.partial outside trusted stagin
 
 Tests tests/test_run_manifest.py: metadata validation, zero/null distinction, eligibility mutation, actual schema 2 archive roundtrip with exact baseline reader/dependencies, schema 1 compatibility, destination conflict, simulated link failure, interrupted-publication recovery and invalid candidate. Six unittest cases. No game files involved. G4 remains blocked.
 
-The synthetic --async-av test wrapper also packages its generated MP4 into schema 2, re-verifies and compares payload bytes. Synthetic origin and no game timing/coverage/eligibility; all temporary files removed at normal exit. Windows execution pending at final test preparation.
+The synthetic --async-av test wrapper also packages its generated MP4 into schema 2, re-verifies and compares payload bytes. Synthetic origin and no game timing/coverage/eligibility; all temporary files removed at normal exit. Verified on Windows run 45777278765 job 139763888598; actual media-to-archive test passed. No G4 runtime approval.

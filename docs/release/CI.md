@@ -19,3 +19,5 @@ T17: 16 portable targets required. Separate read-only media-probe job configures
 T18 portable floor 19. Last v0.0.8 final run 45759479502 confirmed 16/16 each and media 1/1. Approval and artifact policy unchanged.
 
 T18 media job runs three named opt-in tests: video-only, synchronous A/V and asynchronous A/V. Core 19/19 each and all three media tests verified on 45777095746. Final wrapper adds synthetic MP4 archive verification. Approval gate and no-artifact policy unchanged.
+
+Final T18 exact code/test commit ab0bcf82ededc13ac2271334b072e4ca730aa01a verified from actual run 45777278765 logs: 19/19 Debug and Release, 3/3 media, release skipped. Subsequent documentation-only commit records evidence without changing build/test inputs.
