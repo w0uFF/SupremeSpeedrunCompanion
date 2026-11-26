@@ -8,6 +8,8 @@ on:
       - 'tools/pr66_fixture.py'
       - 'tests/pr66_manifest.rs'
       - 'integrations/launcher/ssc/mod.json'
+      - 'src/modules/configuration/**'
+      - 'tools/configuration/preview.cpp'
 permissions:
   contents: read
 jobs:
@@ -43,7 +45,7 @@ jobs:
         run: |
           cmake -S . -B fixture-ssc -A Win32 -DSSC_NATIVE_CANDIDATE=ON
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cmake --build fixture-ssc --config Release --target SSCNative
+          cmake --build fixture-ssc --config Release --target SSCNative ssc_config_preview
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build and exercise source in synthetic host
         if: steps.source.outputs.ready == 'true'
@@ -55,5 +57,5 @@ jobs:
           if errorlevel 1 exit /b 1
           rustup target add i686-pc-windows-msvc
           if errorlevel 1 exit /b 1
-          python tools\pr66_fixture.py "%RUNNER_TEMP%\ssc-pr66.zip" "%RUNNER_TEMP%\ssc-pr66-source" --run-with-dll "%GITHUB_WORKSPACE%\fixture-ssc\Release\SSCNative.dll"
+          python tools\pr66_fixture.py "%RUNNER_TEMP%\ssc-pr66.zip" "%RUNNER_TEMP%\ssc-pr66-source" --run-with-dll "%GITHUB_WORKSPACE%\fixture-ssc\Release\SSCNative.dll" --config-preview "%GITHUB_WORKSPACE%\fixture-ssc\Release\ssc_config_preview.exe"
           if errorlevel 1 exit /b 1

@@ -9,3 +9,5 @@ Player-facing README rewritten to explain intended workflow, why SSC is not a ga
 P0-T23: actual PR66 reviewed source fixture PASS run 45798560012, job 139835457310; 3 upstream config tests, 1 SSC manifest, upstream runtime fixture, SSC load counts 0/0/1. Game G1 remains blocked. Native bounded read-only launcher projection and attempt settings value added, 28 core targets; CI pending. No active game capabilities.
 
 Standalone native configuration preview reads explicit profile and mods directories with no writes; profile exchange (single profile, local path removed) and stale-editor check added. 30 core Windows targets configured; tests pending. No settings ingestion in inert DLL.
+
+Extended PR66 fixture adds actual upstream Rust ModsState serialization to native SSC preview check; workflow will exercise latest manifest and actual config files, no upstream source committed. Pending CI.

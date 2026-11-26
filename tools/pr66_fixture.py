@@ -53,11 +53,15 @@ def run(command, cwd, env=None, timeout=1200):
     subprocess.run([str(v) for v in command], cwd=cwd, env=env, check=True, timeout=timeout)
 
 
-def fixtures(source, dll):
+def fixtures(source, dll, preview=None):
     if os.name != 'nt' or not all(shutil.which(tool) for tool in ('cargo', 'cl', 'pwsh')):
         raise RuntimeError('BLOCKED: requires Windows x86 developer shell, Cargo and PowerShell')
     dll = Path(dll).resolve(strict=True)
     env = dict(os.environ, SSC_TEST_DLL=str(dll))
+    if preview is not None:
+        env['SSC_CONFIG_PREVIEW'] = str(Path(preview).resolve(strict=True))
+    else:
+        env.pop('SSC_CONFIG_PREVIEW', None)
     target = 'i686-pc-windows-msvc'
     run(['cargo', 'test', '--locked', '-p', 'supreme_hook_config', '--target', target,
          '--test', 'dll_loading', '--test', 'ssc_manifest'], source, env)
@@ -99,10 +103,13 @@ def main():
     p.add_argument('archive', type=Path)
     p.add_argument('destination', type=Path)
     p.add_argument('--run-with-dll', type=Path)
+    p.add_argument('--config-preview', type=Path, help='Built SSC native preview executable; required by extended CI')
     args = p.parse_args()
+    if args.config_preview and not args.run_with_dll:
+        p.error('--config-preview requires --run-with-dll')
     source = stage(args.archive, args.destination.resolve())
     if args.run_with_dll:
-        fixtures(source, args.run_with_dll)
+        fixtures(source, args.run_with_dll, args.config_preview)
 
 
 if __name__ == '__main__':

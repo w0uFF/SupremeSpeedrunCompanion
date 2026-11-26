@@ -38,3 +38,58 @@ fn ssc_manifest_and_native_plan() {
     save_mods_state(dir.path(), &state).unwrap();
     assert!(load_dll_plan(dir.path()).unwrap().0.is_empty());
 }
+
+// Uses the exact upstream serializer, not a handcrafted mods.json. The preview
+// is a standalone SSC process and cannot enable any native game capabilities.
+#[test]
+fn ssc_native_preview_from_upstream_state() {
+    let Some(preview) = std::env::var_os("SSC_CONFIG_PREVIEW") else {
+        println!("NOT_RUN: no native configuration preview supplied");
+        return;
+    };
+    let dir = tempdir().unwrap();
+    let profile_dir = dir.path().join("profiles");
+    let mods_dir = dir.path().join("mods");
+    fs::create_dir(&profile_dir).unwrap();
+    fs::create_dir(&mods_dir).unwrap();
+    let manifest: serde_json::Value = serde_json::from_slice(include_bytes!("ssc_manifest.json")).unwrap();
+    let mut values = manifest["configuration"].as_object().unwrap().clone();
+    values.remove("load_diagnostic");
+    values.remove("profile_name");
+    values.remove("use_launcher_overrides");
+    let book = serde_json::json!({"schema":1,"active":"Training","profiles":{"Training":values}});
+    let profile_file = profile_dir.join("profiles.json");
+    fs::write(&profile_file, serde_json::to_vec(&book).unwrap()).unwrap();
+    let mut state = ModsState::default();
+    state.active.order = vec!["another mod".into(), "ssc".into()];
+    state.active.enabled = vec!["ssc".into()];
+    state.active.configuration.insert("another mod".into(), HashMap::from([
+        ("test".into(), serde_json::json!([null, -3.5, "épreuve"]))
+    ]));
+    state.active.configuration.insert("ssc".into(), HashMap::from([
+        ("load_diagnostic".into(), true.into()),
+        ("use_launcher_overrides".into(), true.into()),
+        ("profile_name".into(), "Training".into()),
+        ("fps".into(), "60".into()),
+        ("bitrate_mbps".into(), serde_json::json!(12.0)),
+        ("package_directory".into(), serde_json::json!("D:/Runs/épreuve/🏂"))
+    ]));
+    save_mods_state(&mods_dir, &state).unwrap();
+    let state_file = mods_dir.join("mods.json");
+    let before = fs::read(&state_file).unwrap();
+    let profile_before = fs::read(&profile_file).unwrap();
+    let output = std::process::Command::new(&preview)
+        .arg(&profile_dir).arg(&mods_dir).output().unwrap();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let result: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(result["native_capabilities"], false);
+    assert_eq!(result["diagnostic_requested"], true);
+    assert_eq!(result["profile"], "Training");
+    assert_eq!(result["source"], "launcher");
+    assert_eq!(result["settings"]["fps"], "60");
+    assert_eq!(result["settings"]["bitrate_mbps"], 12);
+    assert_eq!(result["settings"]["package_directory"], "D:\\Runs\\épreuve\\🏂");
+    assert_eq!(fs::read(&state_file).unwrap(), before);
+    assert_eq!(fs::read(&profile_file).unwrap(), profile_before);
+    println!("PASS: actual PR66 serialized ModsState consumed by native SSC preview, source files unchanged");
+}
