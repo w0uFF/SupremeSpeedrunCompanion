@@ -1,6 +1,7 @@
 # Changelog
 
 ## v0.0.10-p0 — recording quality and clock mapping
+- Add separate own-window WGC metadata and own-process WASAPI activation probes; hosted execution pending.
 - Add opt-in paced 10-second synthetic A/V test and archive quality sidecar; hosted execution pending.
 - Verify v0.0.9 final Windows CI. Add per-stream worker handoff counters, gap and queue high-water statistics, bounded QPC timestamp mapping and pure tests. Additional static result-presentation evidence; no native timing claim.
 

@@ -132,3 +132,21 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ctest --test-dir media-build -C Release -R "^P0_media_(probe|av_probe|async_av_probe|sustained_av_probe)$" --verbose --no-tests=error
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  capture-probes:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Build and execute independent capture feasibility probes
+        shell: pwsh
+        run: |
+          cmake -S . -B capture-build -A Win32 -DSSC_CAPTURE_PROBES=ON
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build capture-build --config Release --target p0_wgc_probe p0_process_audio_probe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --test-dir capture-build -C Release -R "^p0_(wgc|process_audio)_probe$" --verbose --no-tests=error
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
