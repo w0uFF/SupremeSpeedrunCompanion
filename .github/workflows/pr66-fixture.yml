@@ -2,7 +2,7 @@ name: Reviewed PR66 isolated fixture
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'p0-t*-validation']
     paths:
       - '.github/workflows/pr66-fixture.yml'
       - 'tools/pr66_fixture.py'

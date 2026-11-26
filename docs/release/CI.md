@@ -45,3 +45,5 @@ T25 final fixture follow-up: v0.0.16 reviewed PR66 source run 45816213574/job 13
 T26 floor36 core, capture seven registered (six PASS/one audio SKIP), media5/5, storage/entry1/1, release skipped. Exact code abfac10ed764e1004978a5c9b9f2b42110fa51dd run 45856451103. v0.0.17 PR66 run 45856450816/job 140035983590 PASS actual upstream 3/3, SSC 2/2 including native preview, startup/runtime, load counts 0/0/1. No actual installed game/launcher validation. No artifact or approval policy change.
 
 T27 candidate floor37 and capture regex includes live_extended_video; release gate unchanged. Documentation head run 45857509889 logs verified (36/36 each, media5/5, capture6 PASS/1 SKIP, storage/entry1/1, release skipped). T27 candidate CI pending.
+
+T27: permit PR66 fixture on P0 validation branch pushes with unchanged path filters and read-only permissions, to verify versioned manifest before main promotion. No public release, artifact or upstream policy changes.
