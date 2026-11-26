@@ -1,0 +1,115 @@
+name: Windows x86 CI and development releases
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    outputs:
+      source_ready: ${{ steps.source.outputs.ready }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check source import
+        id: source
+        shell: pwsh
+        run: |
+          if (-not (Test-Path CMakeLists.txt)) {
+            'ready=false' >> $env:GITHUB_OUTPUT
+            'Source import pending; no build or release performed.' >> $env:GITHUB_STEP_SUMMARY
+            exit 0
+          }
+          'ready=true' >> $env:GITHUB_OUTPUT
+      - name: Configure, build and test
+        if: steps.source.outputs.ready == 'true'
+        shell: pwsh
+        run: |
+          $python = (Get-Command python -ErrorAction Stop).Source
+          cmake -S . -B build -A Win32 "-DPython3_EXECUTABLE=$python"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($config in @('Debug', 'Release')) {
+            cmake --build build --config $config --parallel
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $listing = ctest --test-dir build -C $config --show-only=json-v1
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            if (($listing | Out-String | ConvertFrom-Json).tests.Count -lt 7) { throw 'Baseline test targets missing.' }
+            ctest --test-dir build -C $config --output-on-failure --no-tests=error
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+  development-release:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build.outputs.source_ready == 'true' && vars.SSC_RELEASE_APPROVED == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    concurrency:
+      group: development-release-${{ github.sha }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout reviewed main commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Verify release approval and rebuild
+        shell: pwsh
+        run: |
+          if (-not (Test-Path LICENSE -PathType Leaf)) { throw 'Maintainer-approved LICENSE required.' }
+          $python = (Get-Command python -ErrorAction Stop).Source
+          cmake -S . -B build -A Win32 "-DPython3_EXECUTABLE=$python"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $listing = ctest --test-dir build -C Release --show-only=json-v1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (($listing | Out-String | ConvertFrom-Json).tests.Count -lt 7) { throw 'Baseline test targets missing.' }
+          ctest --test-dir build -C Release --output-on-failure --no-tests=error
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Package offline development diagnostic
+        shell: pwsh
+        run: |
+          $stage = Join-Path $env:RUNNER_TEMP 'ssc-development'
+          New-Item -ItemType Directory -Path $stage -ErrorAction Stop | Out-Null
+          Copy-Item build/Release/supreme_diagnostic.exe $stage -ErrorAction Stop
+          Copy-Item LICENSE $stage -ErrorAction Stop
+          'OFFLINE DEVELOPMENT DIAGNOSTIC ONLY. Do not install into the game. G1 is blocked. Run the diagnostic outside the game directory.' | Set-Content -Encoding utf8 (Join-Path $stage 'README.txt')
+          $exe = Join-Path $stage 'supreme_diagnostic.exe'
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          if ($bytes.Length -lt 64 -or [BitConverter]::ToUInt16($bytes,0) -ne 0x5a4d) { throw 'Not an MZ executable.' }
+          $pe = [BitConverter]::ToInt32($bytes,60)
+          if ($pe -lt 0 -or $pe -gt ($bytes.Length - 6) -or [BitConverter]::ToUInt32($bytes,$pe) -ne 0x4550 -or [BitConverter]::ToUInt16($bytes,$pe+4) -ne 0x14c) { throw 'Expected x86 PE executable.' }
+          $name = "SupremeSpeedrunCompanion-dev-$env:GITHUB_SHA-win32-diagnostic.zip"
+          Compress-Archive -Path "$stage/*" -DestinationPath $name -ErrorAction Stop
+          $hash = (Get-FileHash -Algorithm SHA256 $name).Hash.ToLowerInvariant()
+          "$hash  $name" | Set-Content -Encoding ascii SHA256SUMS.txt
+          @{
+            schema_version=1
+            channel='development'
+            commit=$env:GITHUB_SHA
+            architecture='x86'
+            installable=$false
+            loader_gate='blocked'
+            archive=$name
+            sha256=$hash
+          } | ConvertTo-Json | Set-Content -Encoding utf8 release-manifest.json
+          "SSC_PACKAGE=$name" >> $env:GITHUB_ENV
+      - name: Publish immutable pre-release (no Actions artifacts)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "dev-$env:GITHUB_SHA"
+          gh release create $tag $env:SSC_PACKAGE SHA256SUMS.txt release-manifest.json --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --prerelease --latest=false --title "Development diagnostic $env:GITHUB_SHA" --notes "Automated Windows x86 offline diagnostic. Not installable. G1 remains blocked. Never replace the game or Display Config files."
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
