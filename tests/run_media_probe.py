@@ -32,32 +32,19 @@ with tempfile.TemporaryDirectory() as directory:
         names = ('accepted', 'written', 'first_100ns', 'end_100ns', 'written_duration_100ns', 'internal_gap_100ns',
                  'dropped_full', 'dropped_duration_100ns', 'rejected_invalid', 'discarded')
         streams = {}
-        for match in re.finditer(r'^StreamQuality (video|audio) ([0-9 ]+)
-        if (report != verify(final) or report['schema'] != 2 or report['files_verified'] != 2
-                or report['bytes_verified'] != output.stat().st_size + quality.stat().st_size or report['complete_submission']
-                or report['eligibility_verified'] or final.with_name(final.name+'.partial').exists()):
-            raise RuntimeError('synthetic archive verification failed')
-        with zipfile.ZipFile(final) as archive:
-            if archive.read('synthetic.mp4') != output.read_bytes() or archive.read('recording-quality.json') != quality.read_bytes():
-                raise RuntimeError('synthetic archive payload differs')
-        print('Synthetic async MP4 archived, published without overwrite, and independently verified; eligibility unverified')
-, result.stdout, re.M):
-            stream = match[1]
-            values = [int(value) for value in match[2].split()]
-            if stream in streams or len(values) != len(names):
-                raise RuntimeError('invalid stream quality output')
-            streams[stream] = dict(zip(names, values))
-        marks = re.findall(r'^QueueHighWater ([0-9]+)
-        if (report != verify(final) or report['schema'] != 2 or report['files_verified'] != 1
-                or report['bytes_verified'] != output.stat().st_size or report['complete_submission']
-                or report['eligibility_verified'] or final.with_name(final.name+'.partial').exists()):
-            raise RuntimeError('synthetic archive verification failed')
-        with zipfile.ZipFile(final) as archive:
-            if archive.read('synthetic.mp4') != output.read_bytes():
-                raise RuntimeError('synthetic archive payload differs')
-        print('Synthetic async MP4 archived, published without overwrite, and independently verified; eligibility unverified')
-, result.stdout, re.M)
-        if set(streams) != {'video', 'audio'} or len(marks) != 1 or not 1 <= int(marks[0]) <= 32:
+        marks = []
+        for line in result.stdout.splitlines():
+            match = re.fullmatch(r'StreamQuality (video|audio) ([0-9 ]+)', line)
+            if match:
+                stream = match[1]
+                values = [int(value) for value in match[2].split()]
+                if stream in streams or len(values) != len(names):
+                    raise RuntimeError('invalid stream quality output')
+                streams[stream] = dict(zip(names, values))
+            mark = re.fullmatch(r'QueueHighWater ([0-9]+)', line)
+            if mark:
+                marks.append(int(mark[1]))
+        if set(streams) != {'video', 'audio'} or len(marks) != 1 or not 1 <= marks[0] <= 32:
             raise RuntimeError('missing stream quality output')
         expected = 250 if sys.argv[2:] == ['--sustained-av'] else 12
         for stream in streams.values():
@@ -67,14 +54,14 @@ with tempfile.TemporaryDirectory() as directory:
                 raise RuntimeError('unexpected synthetic stream statistics')
         quality = stage / 'recording-quality.json'
         quality.write_text(json.dumps({'schema': 1, 'scope': 'synthetic_sink_handoff',
-                                      'streams': streams, 'queue_high_water': int(marks[0]),
+                                      'streams': streams, 'queue_high_water': marks[0],
                                       'gameplay_coverage_verified': False}, sort_keys=True), encoding='utf-8')
         report = create_run(stage, {'synthetic.mp4': 'video', 'recording-quality.json': 'diagnostic'}, final, metadata)
-        if (report != verify(final) or report['schema'] != 2 or report['files_verified'] != 1
-                or report['bytes_verified'] != output.stat().st_size or report['complete_submission']
+        if (report != verify(final) or report['schema'] != 2 or report['files_verified'] != 2
+                or report['bytes_verified'] != output.stat().st_size + quality.stat().st_size or report['complete_submission']
                 or report['eligibility_verified'] or final.with_name(final.name+'.partial').exists()):
             raise RuntimeError('synthetic archive verification failed')
         with zipfile.ZipFile(final) as archive:
-            if archive.read('synthetic.mp4') != output.read_bytes():
+            if archive.read('synthetic.mp4') != output.read_bytes() or archive.read('recording-quality.json') != quality.read_bytes():
                 raise RuntimeError('synthetic archive payload differs')
-        print('Synthetic async MP4 archived, published without overwrite, and independently verified; eligibility unverified')
+        print('Synthetic async MP4 and quality sidecar archived and independently verified; eligibility unverified')

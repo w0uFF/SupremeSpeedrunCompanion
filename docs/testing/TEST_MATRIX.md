@@ -133,3 +133,6 @@ Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Rel
 - TEST-T19-QUALITY PASS local: Debian GCC 14.2.0, g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -I. tests/test_recording_quality.cpp -o quality && ./quality; exit 0. Repeat -fsanitize=undefined -fno-sanitize-recover=all; exit 0. Git blob hashes match uploaded new header and test. Integrated worker CI pending.
 - TEST-T19-INPUT PASS: sha256sum of all ten supplied input ZIP/MD references matches prior inventory. Local clone failed DNS; no full Linux CTest executed.
 - TEST-T19-STATIC OBSERVED_STATIC: original exe and Supreme_Game.dll hashes confirmed, objdump -d -Mintel and objdump -p as documented in ENGINE_MAP.md.
+
+- TEST-T19-CORE-WIN PASS: run 45781735952 job 139778579562, exact commit 65d1a7241bf572e3a339b4f011bb604a9ed4090c, 20/20 Debug and Release; existing media 3/3, release skipped.
+- TEST-T19-SUSTAINED initial FAIL: run 45781810092, media job 139778827294, wrapper syntax error at line 35 caused by JavaScript replacement-string dollar/quote interpolation; no media executed. Core 20/20 each. Replaced entire wrapper with explicit source; local python -m py_compile exit 0, Git blob checked. Hosted rerun pending.
