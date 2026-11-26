@@ -59,7 +59,7 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure --no-tests=error
 ```
 
-Windows core: 43 expected candidate test targets including native profile persistence, launcher-state projection, native run library, attempt-settings evidence binding, archive indexing and timestamped capture handoff. Portable Linux: configure without -A Win32 (Windows-only targets excluded). Run all development tools outside the game directory. The offline supreme_diagnostic reports unavailable engine data by design.
+Windows core: 44 candidate test targets including native profile persistence, launcher-state projection, native run library, attempt-settings evidence binding, archive indexing and timestamped capture handoff. Portable Linux: configure without -A Win32 (Windows-only targets excluded). Run all development tools outside the game directory. The offline supreme_diagnostic reports unavailable engine data by design.
 
 - [Project status](PROJECT_STATUS.md) — latest verified commit, exact CI evidence and blockers.
 - [Architecture](docs/architecture/MODULES.md) — independently testable module boundaries.
