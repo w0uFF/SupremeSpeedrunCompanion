@@ -9,12 +9,17 @@ class FrameLookahead {
     std::uint64_t origin_=0;
     std::size_t count_=0;
     bool closed_=false;
+    const std::size_t frame_bytes_;
+
 public:
     static constexpr std::size_t max_frames=1440;
     static constexpr std::uint64_t max_span=900000000;
+    explicit FrameLookahead(std::size_t frame_bytes=fixture_bytes):frame_bytes_(frame_bytes){
+        if(!frame_bytes || frame_bytes>16u*1024u*1024u)throw std::invalid_argument("fixture frame size");
+    }
     std::size_t count()const noexcept{return count_;}
     std::optional<Packet> push(TimedFrame frame){
-        if(closed_ || count_==max_frames || frame.pixels.size()!=fixture_bytes ||
+        if(closed_ || count_==max_frames || frame.pixels.size()!=frame_bytes_ ||
            (pending_ && (frame.time<=pending_->time || frame.time-origin_>max_span)))
             throw std::invalid_argument("live frame sequence");
         std::optional<Packet> ready;

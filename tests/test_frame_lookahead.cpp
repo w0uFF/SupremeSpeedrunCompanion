@@ -18,5 +18,16 @@ int main(){
     try{(void)bound.push(frame(FrameLookahead::max_span+1));return 1;}catch(const std::invalid_argument&){}
     for(std::size_t i=1;i<FrameLookahead::max_frames;++i)CHECK(bound.push(frame(i*400000)));
     try{(void)bound.push(frame(FrameLookahead::max_frames*400000));return 1;}catch(const std::invalid_argument&){}
+    constexpr std::size_t hd_bytes=1280u*720u*3u/2u;
+    FrameLookahead hd(hd_bytes);
+    try{(void)hd.push(frame(0));return 1;}catch(const std::invalid_argument&){}
+    CHECK(hd.count()==0);
+    CHECK(!hd.push({100,std::vector<std::uint8_t>(hd_bytes,16)}));
+    auto packet=hd.push({400100,std::vector<std::uint8_t>(hd_bytes,235)});
+    CHECK(packet && packet->bytes.size()==hd_bytes && packet->pts==0 && packet->duration==400000);
+    CHECK(hd.finish().bytes.size()==hd_bytes);
+    for(auto bad:{std::size_t{0},std::size_t{16u*1024u*1024u+1u}}){
+        try{FrameLookahead rejected(bad);(void)rejected;return 1;}catch(const std::invalid_argument&){}
+    }
     return 0;
 }
