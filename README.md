@@ -80,3 +80,5 @@ T34 verified: controlled HD abort/restart scopes and process/GUI resource observ
 T35 verified in isolated automated fixtures: injected recorder write failure, staged resource measurements and torn-journal refusal. G1 remains blocked; no gameplay recording claim.
 
 T36 verified in isolated Windows fixtures: compound WGC setup reproduces recurring +2 settled handles; deterministic finalization failure/restart and fresh-child torn-journal refusal passed. No leak attribution, gameplay or installation claim.
+
+T37 candidate (branch only): refined WGC setup isolation, finalization state and repeated recovery refusal tests. Windows/PR66 pending; no gameplay or installation claim.
