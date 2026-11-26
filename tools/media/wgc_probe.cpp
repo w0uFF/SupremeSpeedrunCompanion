@@ -94,8 +94,8 @@ std::int64_t elapsed_us(FixtureClock::time_point start,FixtureClock::time_point 
     return std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 }
 std::uint64_t process_cpu_100ns(){
-    FILETIME creation{},exit{},kernel{},user{};
-    if(!GetProcessTimes(GetCurrentProcess(),&creation,&exit,&kernel,&user))
+    FILETIME creation{},exit_time{},kernel{},user{};
+    if(!GetProcessTimes(GetCurrentProcess(),&creation,&exit_time,&kernel,&user))
         throw std::runtime_error("fixture process CPU time unavailable");
     const auto units=[](const FILETIME& value){
         return (static_cast<std::uint64_t>(value.dwHighDateTime)<<32u)|value.dwLowDateTime;

@@ -34,7 +34,11 @@ with tempfile.TemporaryDirectory() as directory:
     if long_fixture or extended or marathon:
         assert gap>0, 'controlled capture pause did not produce an observed handoff gap'
     if marathon:
-        samples,wall,cpu,median,p95,p99,maximum,drain=map(int,re.search(r'^LivePerformance (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+)
+        samples,wall,cpu,median,p95,p99,maximum,drain=map(int,re.search(r'^LivePerformance (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+)$',result.stdout,re.M).groups())
+        assert samples==expected_count and wall>0 and 0<=drain<=wall
+        assert 0<=median<=p95<=p99<=maximum
+        print('Measured isolated fixture only: selected processing latency in us; CPU in 100ns; no gameplay threshold')
+    timeline=root/'timeline.txt'
     timeline.write_text(''.join(f'{p} {d}\n' for p,d in zip(pts,durations)),encoding='ascii')
     result=subprocess.run([sys.argv[2],str(output),'--decode-live',str(timeline)],capture_output=True,text=True,timeout=50 if marathon else 30)
     print(result.stdout,end='')
@@ -44,32 +48,6 @@ with tempfile.TemporaryDirectory() as directory:
     assert len(decoded)==expected_count and all(i==j and e==pts[j] and abs(e-a)<=20000 for j,(i,e,a) in enumerate(decoded))
     print(f'LiveDecode count={expected_count} max_abs_delta_100ns={max(abs(e-a) for _,e,a in decoded)}')
     if not long_fixture and not extended and not marathon:
-        result=subprocess.run([sys.argv[1],'--live-resize',str(root/'resize.mp4')],capture_output=True,text=True,timeout=50 if extended else 25)
-        print(result.stdout,end='')
-        print(result.stderr,end='')
-        assert result.returncode==1 and 'LiveResizeRejected ' in result.stderr and 'LiveHandoff ' not in result.stdout
-        print('Actual window resize aborted fixture without finalized success')
-        result=subprocess.run([sys.argv[1],'--live-simulated-loss',str(root/'loss.mp4')],capture_output=True,text=True,timeout=25)
-        print(result.stdout,end='')
-        print(result.stderr,end='')
-        assert result.returncode==1 and 'LiveSimulatedDeviceLoss ' in result.stderr and 'LiveHandoff ' not in result.stdout
-        print('Injected device-removal status cancelled own-window fixture; actual device loss not induced')
-    else:
-        print('Long actual capture fixture: controlled pause retained as a handoff gap; no gameplay claim')
-,result.stdout,re.M).groups())
-        assert samples==expected_count and wall>0 and 0<=drain<=wall
-        assert 0<=median<=p95<=p99<=maximum
-        print('Measured isolated fixture only: selected processing latency in us; CPU in 100ns; no gameplay threshold')
-    timeline=root/'timeline.txt'
-    timeline.write_text(''.join(f'{p} {d}\n' for p,d in zip(pts,durations)),encoding='ascii')
-    result=subprocess.run([sys.argv[2],str(output),'--decode-live',str(timeline)],capture_output=True,text=True,timeout=30)
-    print(result.stdout,end='')
-    print(result.stderr,end='')
-    result.check_returncode()
-    decoded=[tuple(map(int,x)) for x in re.findall(r'^TimedPTS (\d+) (\d+) (\d+)$',result.stdout,re.M)]
-    assert len(decoded)==expected_count and all(i==j and e==pts[j] and abs(e-a)<=20000 for j,(i,e,a) in enumerate(decoded))
-    print(f'LiveDecode count={expected_count} max_abs_delta_100ns={max(abs(e-a) for _,e,a in decoded)}')
-    if not long_fixture and not extended:
         result=subprocess.run([sys.argv[1],'--live-resize',str(root/'resize.mp4')],capture_output=True,text=True,timeout=50 if extended else 25)
         print(result.stdout,end='')
         print(result.stderr,end='')
