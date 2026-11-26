@@ -1,3 +1,4 @@
+#include "src/modules/submission/public/bound_track_claims.hpp"
 #include "src/modules/submission/public/track_claims.hpp"
 #include "src/modules/session/public/session.hpp"
 #include "src/modules/capture_boundary/public/ledger.hpp"
@@ -73,6 +74,28 @@ static void track_claims_review() {
  CHECK(compare_track_claims(c)==TrackClaimStatus::consistent_claims);
  CHECK(review(d,true)==Decision::missing_evidence);
 }
+static void bound_track_claims_review() {
+ using namespace submission;
+ const TrackAttemptKey k{std::string(32,'a'),std::string(32,'b'),2,1};
+ const BoundTrackClaim claim{k,Track::alpine_easy};
+ BoundTrackClaims c{k,Track::alpine_easy,claim,claim,claim,claim,std::nullopt,false,true};
+ CHECK(compare_bound_track_claims(c)==TrackClaimStatus::consistent_claims);
+ c.video_label->key.attempt=1;CHECK(compare_bound_track_claims(c)==TrackClaimStatus::conflicting);
+ c.video_label=claim;c.manifest->key.leg=2;CHECK(compare_bound_track_claims(c)==TrackClaimStatus::conflicting);
+ c.manifest=claim;c.finish->key.session_id=std::string(32,'c');CHECK(compare_bound_track_claims(c)==TrackClaimStatus::conflicting);
+ c.finish=claim;c.start->key.run_id=std::string(32,'c');CHECK(compare_bound_track_claims(c)==TrackClaimStatus::conflicting);
+ c.start=claim;c.category_track=Track::alpine_hard;CHECK(compare_bound_track_claims(c)==TrackClaimStatus::conflicting);
+ c.category_track=Track::alpine_easy;c.replay_expected=true;CHECK(compare_bound_track_claims(c)==TrackClaimStatus::incomplete);
+ c.replay=claim;c.replay->track.reset();CHECK(compare_bound_track_claims(c)==TrackClaimStatus::incomplete);
+ c.replay=claim;c.replay->key.attempt=0;CHECK(compare_bound_track_claims(c)==TrackClaimStatus::malformed);
+ c.replay=claim;c.start->key.leg=2;c.finish->track=static_cast<Track>(99);
+ CHECK(compare_bound_track_claims(c)==TrackClaimStatus::malformed);
+ c.start=claim;c.finish=claim;c.video_coverage_claimed=false;CHECK(compare_bound_track_claims(c)==TrackClaimStatus::incomplete);
+ c.video_coverage_claimed=true;CHECK(compare_bound_track_claims(c)==TrackClaimStatus::consistent_claims);
+ Draft d;d.completed=true;d.category_id="wk6y97ed";d.rules_confirmed=true;
+ d.official_method=TimingMethod::ingame;d.igt_ms=1000;d.video_url="https://youtu.be/abc";
+ CHECK(review(d,true)==Decision::missing_evidence);
+}
 static void capture_boundaries() {
  using namespace capture_boundary;
  Ledger a(Mode::automatic,1);CHECK(a.id()==1);CHECK(!a.selection_observed(1,1));CHECK(a.acquired(10));CHECK(!a.acquired(11));CHECK(a.selection_observed(1,12));CHECK(a.begin(1,1,13));CHECK(!a.close(14,false));CHECK(a.end(1,1,End::restarted,15));CHECK(!a.close(16,false));CHECK(!a.begin(2,1,16));CHECK(a.begin(1,2,16));CHECK(a.end(1,2,End::finished,20));CHECK(!a.close(21,false));CHECK(a.result_observed(1,2,22));CHECK(a.close(23,false));CHECK(a.state()==capture_boundary::State::finalizing);CHECK(a.finalized());CHECK(!a.finalized());CHECK(a.markers().size()==2&&a.observed_menu());
@@ -80,4 +103,4 @@ static void capture_boundaries() {
  Ledger failed(Mode::automatic,3);CHECK(failed.acquired(1));failed.failure();CHECK(failed.state()==capture_boundary::State::failed&&!failed.begin(3,1,2));
  Ledger old(Mode::automatic,4);CHECK(old.acquired(1));CHECK(old.begin(4,1,2));CHECK(old.end(4,1,End::restarted,3));CHECK(old.close(4,false,true));Ledger fresh(Mode::automatic,5);CHECK(fresh.acquired(4));CHECK(fresh.selection_observed(5,5));CHECK(fresh.begin(5,1,6));CHECK(old.state()==capture_boundary::State::finalizing&&fresh.state()==capture_boundary::State::acquiring);
 }
-int main(){try{catalog_setup();std::cout<<"catalog_setup PASS\n";individual();std::cout<<"individual PASS\n";all_tracks();std::cout<<"all_tracks PASS\n";championship_and_limits();std::cout<<"championship_and_limits PASS\n";submission_review();std::cout<<"submission_review PASS\n";track_claims_review();std::cout<<"track_claims_review PASS\n";capture_boundaries();std::cout<<"capture_boundaries PASS\n";}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{catalog_setup();std::cout<<"catalog_setup PASS\n";individual();std::cout<<"individual PASS\n";all_tracks();std::cout<<"all_tracks PASS\n";championship_and_limits();std::cout<<"championship_and_limits PASS\n";submission_review();std::cout<<"submission_review PASS\n";track_claims_review();std::cout<<"track_claims_review PASS\n";bound_track_claims_review();std::cout<<"bound_track_claims_review PASS\n";capture_boundaries();std::cout<<"capture_boundaries PASS\n";}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
