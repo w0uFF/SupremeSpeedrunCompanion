@@ -1,6 +1,6 @@
 # Project status
 
-Revision v0.0.19-p0 — verified synthetic append-only journal persistence and measured extended isolated capture. G1 BLOCKED.
+Revision v0.0.20-p0 — verified synthetic recovery coordination and representative-resolution synthetic encoding. G1 BLOCKED.
 
 ## Verified revisions
 - Baseline 31f64a5976736fef7e763625b155811f71535877 run 45816915064: core 35/35 each, media 5/5, capture 4 PASS/1 SKIP, storage/entry 1/1 each, release skipped. T25 code 95d197430ade7544ab429bc61c471e59ace96262 and PR66 run 45816213574 preserved.
@@ -56,3 +56,7 @@ T28 post-merge main 372ad3d56380f71837890fe68fdec7d88cd75390: run 45863961893 ac
 
 ## T29 partial Windows validation — core/media/native recovery PASS
 T29 exact candidate 45a348df2fb1241a9ced5697aca5fe234d33a285 run 45864597707 actual completed-job logs: core Debug/Release41/41 (140064063817; pure recovery and actual native archive/index interruption tests PASS both), media6/6 (140064063880), storage/entry1/1 (140064063796/140064063779), release skipped. HDPerformance 250 9997117 17187500 585 630 708 778 14095 88203264 16175104 4530176 433404 1 11059200; 250 decoded H264 1280x720 with PTS/luma validation. Units count, wall us, process CPU 100ns, producer median/p95/p99/max us, drain us, peak/current working set bytes, current private commit bytes, MP4 bytes, queue high-water, queue payload cap bytes. Synthetic moving test pattern only; not actual high-res capture or gameplay performance. Capture job140064063406 and PR66 run45864274427 still in progress at evidence preparation. G1 blocked and no promotion.
+
+## T29 final validation (supersedes earlier pending notes)
+T29 VERIFIED_AUTOMATED: implementation 45a348df2fb1241a9ced5697aca5fe234d33a285 run45864597707: Debug/Release41/41 (140064063817), media6/6 (140064063880), capture8 PASS/1 SKIP (140064063406), storage/entry1/1 (140064063796/140064063779), release skipped. HDPerformance 250 9997117 17187500 585 630 708 778 14095 88203264 16175104 4530176 433404 1 11059200. Actual 1200-frame LiveHandoff 1200 0 406025000 403118750 2906250 1 0 0; max decoded PTS delta400*100ns. Final documentation head dc9012a1d653ba0704614d17653949e20ad3720c run45864960360: core41/41 both (140065294341), media6/6 (140065294432), capture8 PASS/1 SKIP (140065294396), storage/entry1/1 (140065294260/140065294561), release skipped. Actual logs inspected. PR66 run45864274427/job140062944148 upstream3/3 SSC2/2 startup PASS loads0/0/1; complete comparison bf6f0af6d2b3b135cb3228b9ff2952cfb91782c1 -> implementation -> evidence head Markdown-only, so exact fixture-relevant sources unchanged. Audio MMRESULT=2, G1 BLOCKED; no game, actual device recovery, local authority or release.
+T30: actual representative-resolution own-window capture and explicit synthetic external retry coordination. G1 owner evidence mandatory.
