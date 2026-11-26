@@ -113,3 +113,8 @@ Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Rel
 
 - TEST-T18-AV NOT_RUN at preparation: actual Media Foundation synthetic AAC/H.264 mux and decode candidate, separate opt-in Windows media job; no Windows SDK or runtime locally.
 - TEST-T18-STATIC OBSERVED_STATIC: original hash verified, objdump RVA 0x23e15..0x23e67 and PE IAT mapping 0x46d47c to Menu::Discard_Page; no execution.
+
+- TEST-T18-CORE-WIN PASS: run 45776710377, commit 7994b6caf6c87f24927d939c40ec88a115bdd47c, job 139761991897: 19/19 Debug and 19/19 Release; existing video probe 1/1; release skipped.
+- TEST-T18-AV PASS: run 45776852153, job 139762464634; actual logs: 2/2 media tests, H264 12 frames, AAC PCM 23552 frames, audio first 0, audio end 4906666, video end 4800000 (100 ns ticks).
+- TEST-T18-LEGACY-ARCHIVE PASS Linux: reconstructed exact prior test_evidence_archive.py from GitHub source (blob 6a118015d5400d9d9078e0dfc484ec30cc4a5fbe), seven cases passed against modified reader, Python 3.13.5.
+- TEST-T18-ASYNC-AV NOT_RUN at preparation: real synthetic MF worker adapter; separate third media CTest in hosted CI.

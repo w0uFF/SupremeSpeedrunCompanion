@@ -130,5 +130,5 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build media-build --config Release --target p0_media_probe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ctest --test-dir media-build -C Release -R "^P0_media_(probe|av_probe)$" --verbose --no-tests=error
+          ctest --test-dir media-build -C Release -R "^P0_media_(probe|av_probe|async_av_probe)$" --verbose --no-tests=error
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

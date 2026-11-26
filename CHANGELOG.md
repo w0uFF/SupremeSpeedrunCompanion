@@ -5,8 +5,8 @@
 - Added bounded recorder worker, per-stream timestamp checks, drain/cancel/failure lifecycle and separate drop counters; fake sink tests only.
 - Added C++ run repository port and comparison helper, no production adapter.
 - Added opt-in schema 2 run manifest, canonical digest and verified partial publication without overwrite, retaining schema 1 support.
-- Extend opt-in Windows synthetic media probe to test AAC mux/decode and coarse A/V endpoint coverage; actual Windows execution pending. Additional static presentation copy/discard evidence.
-- Isolated Linux tests pass; 19 portable CTest targets configured; exact hosted CI pending. No runtime or release authorization.
+- Extend opt-in Windows synthetic media probe to test AAC mux/decode and coarse A/V endpoint coverage; synchronous AAC/H.264 mux/decode verified. Added standalone async worker/MF adapter candidate, Windows validation pending. Additional static presentation copy/discard evidence.
+- Isolated Linux tests pass; 19 portable CTest targets configured; 19/19 core Windows Debug/Release verified on first T18 commit; latest hosted regression pending. No runtime or release authorization.
 
 ## v0.0.8-p0 — offline archive and media feasibility
 - Verify v0.0.7 Windows x86 logs, 13/13 Debug and Release.

@@ -6,6 +6,9 @@
 #include <mfreadwrite.h>
 #include <wrl/client.h>
 #include <algorithm>
+#include <cstring>
+#include <memory>
+#include "src/modules/recorder/public/worker.hpp"
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -47,11 +50,7 @@ ComPtr<IMFMediaType> audio_type(bool compressed) {
     if(!compressed) check(t->SetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT,block_align),"audio alignment");
     return t;
 }
-void write_audio(IMFSinkWriter* writer,DWORD stream,UINT32 index) {
-    ComPtr<IMFMediaBuffer> buffer;
-    check(MFCreateMemoryBuffer(pcm_bytes,buffer.GetAddressOf()),"create PCM buffer");
-    BYTE* data=nullptr;
-    check(buffer->Lock(&data,nullptr,nullptr),"lock PCM");
+void fill_audio(BYTE* data,UINT32 index) {
     for(UINT32 i=0;i<pcm_frames;++i) {
         const auto value=static_cast<UINT16>(((index*pcm_frames+i)/24u)%2u?8000:-8000);
         for(UINT32 ch=0;ch<channels;++ch) {
@@ -60,6 +59,13 @@ void write_audio(IMFSinkWriter* writer,DWORD stream,UINT32 index) {
             data[offset+1]=static_cast<BYTE>(value>>8);
         }
     }
+}
+void write_audio(IMFSinkWriter* writer,DWORD stream,UINT32 index) {
+    ComPtr<IMFMediaBuffer> buffer;
+    check(MFCreateMemoryBuffer(pcm_bytes,buffer.GetAddressOf()),"create PCM buffer");
+    BYTE* data=nullptr;
+    check(buffer->Lock(&data,nullptr,nullptr),"lock PCM");
+    fill_audio(data,index);
     check(buffer->Unlock(),"unlock PCM");
     check(buffer->SetCurrentLength(pcm_bytes),"PCM length");
     ComPtr<IMFSample> sample;
@@ -69,23 +75,26 @@ void write_audio(IMFSinkWriter* writer,DWORD stream,UINT32 index) {
     check(sample->SetSampleDuration(period),"audio duration");
     check(writer->WriteSample(stream,sample.Get()),"write PCM");
 }
-void encode(const wchar_t* path,bool with_audio) {
+ComPtr<IMFSinkWriter> open_writer(const wchar_t* path,bool with_audio,DWORD& stream,DWORD& audio_stream) {
     ComPtr<IMFSinkWriter> writer;
     check(MFCreateSinkWriterFromURL(path,nullptr,nullptr,writer.GetAddressOf()),"create MP4 sink writer");
     auto output=type(MFVideoFormat_H264);
     check(output->SetUINT32(MF_MT_AVG_BITRATE,500000),"bitrate");
-    DWORD stream=0;
     check(writer->AddStream(output.Get(),&stream),"add H264 stream");
     auto input=type(MFVideoFormat_NV12);
     check(input->SetUINT32(MF_MT_DEFAULT_STRIDE,width),"stride");
     check(writer->SetInputMediaType(stream,input.Get(),nullptr),"NV12 input");
-    DWORD audio_stream=0;
     if(with_audio) {
         auto audio_out=audio_type(true),audio_in=audio_type(false);
         check(writer->AddStream(audio_out.Get(),&audio_stream),"add AAC stream");
         check(writer->SetInputMediaType(audio_stream,audio_in.Get(),nullptr),"PCM input");
     }
     check(writer->BeginWriting(),"begin writing");
+    return writer;
+}
+void encode(const wchar_t* path,bool with_audio) {
+    DWORD stream=0,audio_stream=0;
+    auto writer=open_writer(path,with_audio,stream,audio_stream);
     for(UINT32 i=0;i<frames;++i) {
         ComPtr<IMFMediaBuffer> buffer;
         check(MFCreateMemoryBuffer(bytes,buffer.GetAddressOf()),"create frame buffer");
@@ -104,6 +113,68 @@ void encode(const wchar_t* path,bool with_audio) {
         if(with_audio) write_audio(writer.Get(),audio_stream,i);
     }
     check(writer->Finalize(),"finalize MP4");
+}
+// Real worker adapter for synthetic packets only. COM/MF initialized and released on the worker thread.
+class AsyncSink final:public supreme::recorder::Sink {
+    const wchar_t* path_;
+    std::unique_ptr<Com> com_;
+    std::unique_ptr<Foundation> mf_;
+    ComPtr<IMFSinkWriter> writer_;
+    DWORD video_=0,audio_=0;
+    void release() noexcept {writer_.Reset();mf_.reset();com_.reset();}
+public:
+    explicit AsyncSink(const wchar_t* path):path_(path){}
+    void begin() override {
+        com_=std::make_unique<Com>();
+        mf_=std::make_unique<Foundation>();
+        writer_=open_writer(path_,true,video_,audio_);
+    }
+    void write(const supreme::recorder::Packet& packet) override {
+        const bool video=packet.stream==supreme::recorder::Stream::video;
+        const DWORD length=video?bytes:pcm_bytes;
+        constexpr auto max_timestamp=static_cast<std::uint64_t>(std::numeric_limits<LONGLONG>::max());
+        if(packet.bytes.size()!=length || packet.pts>max_timestamp ||
+           packet.duration>max_timestamp-packet.pts)
+            throw std::runtime_error("invalid synthetic sink packet");
+        ComPtr<IMFMediaBuffer> buffer;
+        check(MFCreateMemoryBuffer(length,buffer.GetAddressOf()),"worker buffer");
+        BYTE* data=nullptr;
+        check(buffer->Lock(&data,nullptr,nullptr),"worker buffer lock");
+        std::memcpy(data,packet.bytes.data(),length);
+        check(buffer->Unlock(),"worker buffer unlock");
+        check(buffer->SetCurrentLength(length),"worker buffer length");
+        ComPtr<IMFSample> sample;
+        check(MFCreateSample(sample.GetAddressOf()),"worker sample");
+        check(sample->AddBuffer(buffer.Get()),"worker attach");
+        check(sample->SetSampleTime(static_cast<LONGLONG>(packet.pts)),"worker sample time");
+        check(sample->SetSampleDuration(static_cast<LONGLONG>(packet.duration)),"worker sample duration");
+        check(writer_->WriteSample(video?video_:audio_,sample.Get()),"worker write");
+    }
+    void finalize() override {check(writer_->Finalize(),"worker finalize");release();}
+    void abort() noexcept override {release();}
+};
+void encode_async(const wchar_t* path) {
+    using namespace supreme::recorder;
+    AsyncSink sink(path);
+    Worker worker(sink,32,32768);
+    if(worker.wait_ready()!=State::running) throw std::runtime_error("worker start failed");
+    for(UINT32 i=0;i<frames;++i) {
+        const auto pts=static_cast<std::uint64_t>(i)*static_cast<std::uint64_t>(period);
+        Packet video{Stream::video,pts,static_cast<std::uint64_t>(period),std::vector<std::uint8_t>(bytes)};
+        std::fill_n(video.bytes.data(),width*height,static_cast<BYTE>(i<frames/2?48:192));
+        std::fill_n(video.bytes.data()+width*height,width*height/2,static_cast<BYTE>(128));
+        Packet audio{Stream::audio,pts,static_cast<std::uint64_t>(period),std::vector<std::uint8_t>(pcm_bytes)};
+        fill_audio(audio.bytes.data(),i);
+        if(worker.offer(std::move(video))!=Offer::accepted || worker.offer(std::move(audio))!=Offer::accepted)
+            throw std::runtime_error("worker offer failed");
+    }
+    worker.stop();
+    worker.join();
+    const auto stats=worker.stats();
+    if(worker.state()!=State::finalized || stats.accepted!=2u*frames || stats.written!=stats.accepted ||
+       stats.dropped_full || stats.rejected_invalid || stats.discarded)
+        throw std::runtime_error("worker finalization or counters");
+    std::cout<<"Async worker finalized "<<stats.written<<" packets without observed queue drops\n";
 }
 LONGLONG decode(const wchar_t* path) {
     ComPtr<IMFSourceReader> reader;
@@ -222,8 +293,15 @@ void decode_audio(const wchar_t* path,LONGLONG video_end) {
 }
 }
 int wmain(int argc,wchar_t** argv) {
-    const bool with_audio=argc==3 && std::wstring(argv[2])==L"--av";
+    const bool asynchronous=argc==3 && std::wstring(argv[2])==L"--async-av";
+    const bool with_audio=asynchronous || (argc==3 && std::wstring(argv[2])==L"--av");
     if((argc!=2 && !with_audio) || GetFileAttributesW(argv[1])!=INVALID_FILE_ATTRIBUTES) return 2;
-    try { Com com; Foundation mf; encode(argv[1],with_audio); const auto end=decode(argv[1]); if(with_audio) decode_audio(argv[1],end); return 0; }
+    try {
+        Com com; Foundation mf;
+        if(asynchronous) encode_async(argv[1]); else encode(argv[1],with_audio);
+        const auto end=decode(argv[1]);
+        if(with_audio) decode_audio(argv[1],end);
+        return 0;
+    }
     catch(const std::exception& e){std::cerr<<e.what()<<'\n'; return 1;}
 }
