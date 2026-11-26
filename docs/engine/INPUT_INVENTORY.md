@@ -41,3 +41,5 @@ T23: all 18 SHA-256 reference checks passed; original Supreme_Game.dll inspected
 T24: all 18 exact references rechecked before and after research (sha256sum -c against existing manifest, 18 OK). Original Supreme_Game.dll private copy hash b1cc9c71f33b729f67f0cc28d8f1da8aec72e76509373c506abaccfce7d0350b confirmed twice. Only static inspection, no changes or game execution.
 
 T25: computed SHA-256 of all 18 immutable references before and after static analysis and compared with inventory; all match. Private original EXE and DLL SHA-256 confirmed 615fd47962cd174b51f1e466acc7b84d64ce87526c52271c9e12200c730a5c8c and b1cc9c71f33b729f67f0cc28d8f1da8aec72e76509373c506abaccfce7d0350b. No original modification/execution.
+
+T26 all 18 immutable inputs SHA-256 checked before and after static research; all match existing inventory. Private extracted original Supreme.exe, Supreme_Game.dll and Main_Menu.dll fingerprints recorded in ENGINE_MAP.md. No original execution, modification or redistribution.
