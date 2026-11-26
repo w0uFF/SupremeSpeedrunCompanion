@@ -1,0 +1,33 @@
+{
+  "before_sha256": "615fd47962cd174b51f1e466acc7b84d64ce87526c52271c9e12200c730a5c8c",
+  "after_sha256": "f7bc9074e41244fb5a9a3ab53a4e433ac14564fb47206a5e3c91caf975531e02",
+  "scope": "static_candidate_comparison",
+  "difference": {
+    "string": {
+      "before": 75,
+      "after": 75,
+      "common": 75,
+      "removed": [],
+      "added": []
+    },
+    "iat": {
+      "before": 1342,
+      "after": 1342,
+      "common": 1341,
+      "removed": [
+        [
+          "0x53887",
+          "0x6d4b8",
+          "Main_Menu.dll!?KB_Action@Menu@Main_Menu@Housemarque@@QAIXW4Key_Code@Cetsup@3@_ND@Z"
+        ]
+      ],
+      "added": [
+        [
+          "0x8a02c",
+          "0x6d4b8",
+          "Main_Menu.dll!?KB_Action@Menu@Main_Menu@Housemarque@@QAIXW4Key_Code@Cetsup@3@_ND@Z"
+        ]
+      ]
+    }
+  }
+}

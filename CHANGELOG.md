@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.5-p0 — offline native research
+- Verify baseline Windows x86 Debug and Release CI logs (7/7 each).
+- Add read-only candidate menu/import xref scanner and comparison; document menu registration, configuration, lifecycle and clock findings.
+- Add bounded replay position summary with terminal exclusion and null nonfinite markers; 55/61 reference layouts recognized, no geometry or timing verdict.
+- Add seven synthetic tests, 8/8 local CTest targets in Debug and Release; raise CI floor to eight.
+- No native integration, runtime capabilities, gameplay, schema or release-approval changes.
+
 ## Repository bootstrap (source baseline v0.0.4-p0)
 - Import verified baseline build source, tests, tools and compatibility profile without copying game or upstream binaries.
 - Add Windows x86 Debug/Release CI, release approval gate and diagnostic-only pre-release manifest.

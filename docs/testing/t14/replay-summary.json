@@ -1,0 +1,19 @@
+{
+  "files": 61,
+  "recognized": 55,
+  "unsupported": 6,
+  "competitive_track_files_recognized": 54,
+  "nonterminal": 657193,
+  "finite": 657193,
+  "nonfinite": 0,
+  "marker_availability": {
+    "start_header": 55,
+    "checkpoint1_header": 55,
+    "finish_header": 55
+  },
+  "unsupported_reasons": {
+    "incomplete or unsupported record layout": 6
+  },
+  "official_time_verified": false,
+  "practice_files_recognized": 1
+}

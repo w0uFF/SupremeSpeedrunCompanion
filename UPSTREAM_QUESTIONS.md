@@ -8,3 +8,12 @@ High priority, group for a concise maintainer consultation only after independen
 - Would optional stable-channel launcher integration be welcome once a tested companion exists? We propose independent release manifests, no mid-run update and safe rollback.
 
 No upstream approval is assumed. Do not contact the maintainer automatically.
+
+## T14 focused questions (not sent)
+
+- Is there an existing post-loader-lock/game-thread extension entry point or preferred design? Source review found pinned WinMM proxy, lazy rd_config.txt resolver and optional Injector.exe path, but no verified native contract. Who owns Injector.exe and its lifetime?
+- Menu: Get_Page_Names/Get_Button_Names enumerate legacy vectors; Button_Pressed and Time Attack sequence dispatch appear separate. Is there a known registration/dispatch extension approach that preserves controller navigation and avoids legacy STL ABI mismatch?
+- Which event or result field reliably represents actual countdown release, finish and displayed IGT? Enter/Restart/Stop/Reset candidates are too coarse. Are there notes on active selection versus menu defaults?
+- Replay: is terminal record excluded by design? What is the actual coordinate frame, and are header ticks sufficient for displayed IGT? Existing upstream geometry code handles Forest Medium/Hard ambiguity; we will not assume identity from positions alone.
+
+Consult only if useful, in a concise grouped message via the owner. No upstream endorsement or permission assumed.
