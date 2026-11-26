@@ -14,7 +14,8 @@ class Database {
     const sql::Api& api_;
     sql::sqlite3* db_=nullptr;
 public:
-    Database(const sql::Api& api,const fs::path& path,bool create):api_(api){
+    Database(const sql::Api& api,const fs::path& path,bool create,bool read_only=false):api_(api){
+        if(create && read_only)throw std::invalid_argument("read-only creation");
         const auto parent=path.parent_path();
         if(!path.is_absolute() || path.filename()!=L"runs.sqlite" || parent.empty())
             throw std::invalid_argument("explicit private runs.sqlite path required");
@@ -40,9 +41,9 @@ public:
             !(info.dwFileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT)) && info.nNumberOfLinks==1;
         CloseHandle(h);
         if(!safe)throw std::invalid_argument("database file type");
-        // READWRITE without CREATE: existing/explicitly reserved file only. No URI interpretation.
+        // READONLY for inspection, otherwise READWRITE without CREATE. No URI interpretation.
         const auto utf8=path.u8string();
-        const int rc=api_.open_v2(utf8.c_str(),&db_,2,nullptr);
+        const int rc=api_.open_v2(utf8.c_str(),&db_,read_only?1:2,nullptr);
         if(rc!=sql::ok){if(db_)api_.close(db_);db_=nullptr;require(rc);}
     }
     ~Database(){if(db_)api_.close(db_);}
@@ -134,7 +135,7 @@ class NativeRepository final:public QueryRepository {
         validate(r);return r;
     }
 public:
-    NativeRepository(const fs::path& path,bool create):db_(api_,path,create){
+    NativeRepository(const fs::path& path,bool create,bool read_only=false):db_(api_,path,create,read_only){
         if(create){
             Transaction tx(db_);
             if(scalar("PRAGMA user_version")!=0 || scalar("PRAGMA application_id")!=0 ||
@@ -143,7 +144,8 @@ public:
             db_.exec("PRAGMA application_id=0x53534352");db_.exec("PRAGMA user_version=1");tx.commit();
         }
         schema();
-        db_.exec("PRAGMA foreign_keys=ON");db_.exec("PRAGMA synchronous=FULL");
+        db_.exec("PRAGMA foreign_keys=ON");
+        if(!read_only)db_.exec("PRAGMA synchronous=FULL");
         if(scalar("PRAGMA foreign_keys")!=1)throw std::runtime_error("foreign keys unavailable");
     }
     std::optional<Record> find(std::string_view id)const override{

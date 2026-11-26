@@ -4,17 +4,20 @@
 #include <array>
 using namespace supreme::run_library;
 namespace {
+std::string field(){
+    std::string result;
+    char c=0;
+    for(;;){
+        if(!std::cin.get(c))throw std::invalid_argument("truncated record");
+        if(c=='\n')break;
+        if(c<33 || c>126 || result.size()==128)throw std::invalid_argument("record field");
+        result.push_back(c);
+    }
+    return result;
+}
 std::array<std::string,9> fields(){
     std::array<std::string,9> result;
-    for(auto& field:result){
-        char c=0;
-        for(;;){
-            if(!std::cin.get(c))throw std::invalid_argument("truncated record");
-            if(c=='\n')break;
-            if(c<33 || c>126 || field.size()==128)throw std::invalid_argument("record field");
-            field.push_back(c);
-        }
-    }
+    for(auto& value:result)value=field();
     if(std::cin.peek()!=std::char_traits<char>::eof())throw std::invalid_argument("trailing record data");
     return result;
 }
@@ -45,6 +48,18 @@ int wmain(int argc,wchar_t** argv){
     try{
         const std::wstring_view action(argv[1]);
         if(action==L"init"){windows::NativeRepository db(argv[2],true);return 0;}
+        if(action==L"presence"){
+            const auto id=field();
+            if(std::cin.peek()!=std::char_traits<char>::eof())throw std::invalid_argument("trailing identity data");
+            windows::NativeRepository db(argv[2],false,true);
+            std::cout<<(db.find(id)?"present":"missing")<<'\n';return 0;
+        }
+        if(action==L"compare"){
+            const auto r=record();
+            windows::NativeRepository db(argv[2],false,true);
+            const auto existing=db.find(r.run_id);
+            std::cout<<(!existing?"missing":identical(*existing,r)?"identical":"conflict")<<'\n';return 0;
+        }
         if(action!=L"insert")return 2;
         const auto r=record();
         windows::NativeRepository db(argv[2],false);
