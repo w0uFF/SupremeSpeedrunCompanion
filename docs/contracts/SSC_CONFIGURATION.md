@@ -22,3 +22,5 @@ python tools/ssc_profile_cli.py C:\scratch\ssc\profiles.json select "Evening Pra
 python tools/ssc_profile_cli.py C:\scratch\ssc\profiles.json resolve --mods-state C:\scratch\ssc\mods-copy.json
 ```
 Create/replace accept --values with a complete settings object; rename/duplicate take --target. No graphical profile manager yet. Unit entry python tests/test_ssc_profiles.py -v. Native C++ configuration/bridge, actual launcher UI fixture, profile import/export user interface, per-attempt immutable snapshots and migration tests remain next work. All settings inactive until relevant gates pass.
+
+T21 follow-up: native typed configuration port in src/modules/configuration/public/settings.hpp (see module README). Injected Store and PathPolicy, exact whole-group precedence, isolated session edits and explicit persistent replace; snapshots copied by value to protect a caller-owned attempt copy from later edits. Strict local GCC/UBSan fake-store tests passed. No native parser, persistence, path policy or launcher adapter; cross-language conformance and actual UI remain pending.

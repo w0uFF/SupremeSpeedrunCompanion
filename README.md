@@ -24,7 +24,7 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure --no-tests=error
 ```
 
-Portable Linux: configure without -A Win32, then build and run CTest. Twenty-two portable CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
+Portable Linux: configure without -A Win32, then build and run CTest. Twenty-three portable CTest targets are expected. The offline supreme_diagnostic program reports unavailable engine data by design. Run outside the game directory.
 
 Read-only reference classifier: `python tools/preflight.py <copied-game-root>`. Exact on-disk matches are not runtime support or competition eligibility. For local research, `python tools/native_xrefs.py <original.exe> --compare <patched.exe>` requires GNU objdump; `python tools/replay_samples.py <replay.dat>` reports candidate coordinates and header timing without an official verdict. Use only trusted local reference copies. See docs/engine/ENGINE_MAP.md.
 
@@ -49,3 +49,5 @@ T19 Windows offline CI verified 20 portable targets in Debug and Release, four m
 T20: exact Windows core 21/21 Debug and Release, media 5/5, capture 3 passed/1 skipped, storage 1/1. Actual own-window pixel encode/decode verified, audio signal collection blocked by hosted playback device availability. See docs/testing/CAPTURE_PROBE_VALIDATION.md; no game installation.
 
 T21: optional inert native candidate and launcher manifest are source-only development inputs, not installable. See docs/contracts/SSC_CONFIGURATION.md for profile editor and precedence, docs/engine/COMMUNITY_LOADER.md for upstream source evidence, docs/testing/COMMUNITY_LOADER_VALIDATION.md for G1 prerequisites.
+
+The native configuration port is documented in src/modules/configuration/README.md. No actual settings consumption in the inert DLL.
