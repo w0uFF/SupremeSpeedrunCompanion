@@ -59,7 +59,7 @@ def check_directory(path):
     return count
 
 
-def verify(path):
+def verify(path, *, include_manifest=False):
     # No extraction. Preflight physical size bounds; trusted file path, untrusted contents.
     if linked(Path(path)) or not Path(path).is_file() or Path(path).stat().st_size > MAX_TOTAL + MAX_MANIFEST + CHUNK:
         raise ValueError('unsupported archive file')
@@ -130,6 +130,8 @@ def verify(path):
         report.update(run_id=manifest['run_id'], manifest_sha256=hashlib.sha256(raw).hexdigest())
         if settings_digest is not None:
             report.update(attempt_settings_sha256=settings_digest, attempt_settings_consistent=True)
+    if include_manifest:
+        report['manifest'] = manifest
     return report
 
 

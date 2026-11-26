@@ -16,3 +16,5 @@ Revision v0.0.15-p0 — native run-library adapter and optional attempt-settings
 ## Blocking gates and next action
 G1 still requires owner disposable Windows baseline, actual supported loader provenance, installed-disabled discovery/launch/exit/rollback after review. No owner baseline supplied this turn. G2/G3/G4 for actual game not run. No installation authorized. Existing rules, optional companion and player-first README retained. Licensing pending; public releases disabled.
 Next P0-T25: verify final CI and PR66 rerun, collect baseline if provided, continue independent archive-to-index verified ingestion/provenance and recoverable pending/finalized records, continuous own-window capture timestamp integration and original timer/display correlation research. Do not enable hooks until G1; no official IGT or rule approval claim.
+
+T25 candidate v0.0.16: standalone verified archive admission and native index bridge, imported/synthetic only, recoverable partial/final, no local admission. Windows tests pending.
