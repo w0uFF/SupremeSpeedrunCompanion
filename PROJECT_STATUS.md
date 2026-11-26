@@ -14,3 +14,5 @@ Revision v0.0.16-p0 — verified nonlocal archive ingestion and bounded real own
 
 ## Gates/next
 Owner disposable Windows baseline and supported installed loader provenance still outstanding. G1 installed-disabled launch/exit and rollback required before runtime hooks or observation. G2/G3/G4 real game NOT_RUN. No actual launcher UI/game wiring. No competition policy change or release approval; player-facing README retained. P0-T26: verify final documentation CI, improve direct bounded concurrent capture-to-worker pipeline with timestamp lookahead and failure handling, explicit pending/recovery status and trusted local attempt admission design without enabling local native ingestion, continue original scheduler/result display research, review baseline if supplied. No game install until reviewed gate prerequisites met.
+
+T26 candidate v0.0.17: one-frame lookahead, shared MF fixture sink and direct WGC-to-worker concurrent video-only fixture (60 frames), actual resize refusal, independent decode; CI pending. No native game integration.

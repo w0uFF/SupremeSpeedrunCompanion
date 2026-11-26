@@ -16,6 +16,8 @@
 #include "src/modules/recorder/public/pixel_conversion.hpp"
 #include "src/modules/recorder/public/quality.hpp"
 #include "src/modules/recorder/public/timed_frames.hpp"
+#include "src/modules/recorder/public/frame_lookahead.hpp"
+#include "tools/media/mf_fixture_sink.hpp"
 namespace {
 namespace cap=winrt::Windows::Graphics::Capture;
 namespace dx=winrt::Windows::Graphics::DirectX;
@@ -85,7 +87,7 @@ void pump() {
     MSG msg{};
     while(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageW(&msg);}
 }
-int run(const wchar_t* output,bool timed=false) {
+int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false) {
     HDESK desktop=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS);
     if(!desktop){std::cout<<"BLOCKED: input desktop unavailable, Win32="<<GetLastError()<<'\n';return 77;}
     CloseDesktop(desktop);
@@ -123,14 +125,39 @@ int run(const wchar_t* output,bool timed=false) {
     auto begin=supreme::recorder::qpc_to_100ns(0,static_cast<std::uint64_t>(start.QuadPart),
                                               static_cast<std::uint64_t>(frequency.QuadPart));
     if(!begin)throw winrt::hresult_error(E_FAIL,L"QPC conversion unavailable");
+    // Worker starts before acquisition; sink is owned longer than Worker.
+    std::unique_ptr<ssc::media_fixture::AsyncSink> sink;
+    std::unique_ptr<supreme::recorder::Worker> worker;
+    supreme::recorder::FrameLookahead lookahead;
+    supreme::recorder::Coverage expected_coverage;
+    if(live){
+        if(std::filesystem::exists(std::filesystem::symlink_status(output)))return 2;
+        sink=std::make_unique<ssc::media_fixture::AsyncSink>(output,false);
+        worker=std::make_unique<supreme::recorder::Worker>(*sink,8,32768);
+        if(worker->wait_ready()!=supreme::recorder::State::running)throw std::runtime_error("live worker startup");
+    }
+    auto offer=[&](supreme::recorder::Packet packet){
+        if(!expected_coverage.observe(packet.pts,packet.duration))throw std::runtime_error("live handoff interval");
+        const auto result=worker->offer(std::move(packet));
+        if(result!=supreme::recorder::Offer::accepted){
+            std::cerr<<"LiveOfferFailure "<<static_cast<int>(result)<<" dropped="<<worker->stats().dropped_full<<'\n';
+            throw std::runtime_error("live worker rejected packet");
+        }
+    };
+    struct CloseCapture {
+        cap::GraphicsCaptureSession& session;
+        cap::Direct3D11CaptureFramePool& pool;
+        ~CloseCapture(){try{session.Close();}catch(...){}try{pool.Close();}catch(...){}}
+    } close_capture{session,pool};
     session.StartCapture();
     unsigned frames=0;std::int64_t last=-1;
     std::vector<std::uint8_t> dark,light;
     std::vector<supreme::recorder::TimedFrame> sequence;
     unsigned skipped_pattern=0;
-    constexpr std::size_t target=12;
-    const auto deadline=GetTickCount64()+8000;
-    while(GetTickCount64()<deadline && (timed?sequence.size()<target:output?light.empty():frames<3)){
+    const std::size_t target=live?60u:12u;
+    std::uint64_t written_before_stop=0;
+    const auto deadline=GetTickCount64()+(live?10000u:8000u);
+    while(GetTickCount64()<deadline && (live?lookahead.count()<target:timed?sequence.size()<target:output?light.empty():frames<3)){
         pump();
         if(auto frame=pool.TryGetNextFrame()){
             const auto time=frame.SystemRelativeTime().count();
@@ -139,14 +166,28 @@ int run(const wchar_t* output,bool timed=false) {
                 throw winrt::hresult_error(E_FAIL,L"QPC unavailable");
             const auto current=supreme::recorder::qpc_to_100ns(0,static_cast<std::uint64_t>(now.QuadPart),
                                                               static_cast<std::uint64_t>(frequency.QuadPart));
-            if(!current || time<=last || time<0 || content.Width!=size.Width || content.Height!=size.Height ||
+            if(content.Width!=size.Width || content.Height!=size.Height){
+                if(live){worker->cancel();worker->join();std::cerr<<"LiveResizeRejected "<<content.Width<<" "<<content.Height<<"\n";return 1;}
+                throw winrt::hresult_error(E_FAIL,L"frame dimensions mismatch");
+            }
+            winrt::check_hresult(device->GetDeviceRemovedReason());
+            if(!current || time<=last || time<0 ||
                static_cast<std::uint64_t>(time)>*current+10000000 ||
                (static_cast<std::uint64_t>(time)<*begin && *begin-static_cast<std::uint64_t>(time)>10000000))
                 throw winrt::hresult_error(E_FAIL,L"frame dimensions or timestamp mismatch");
             last=time;++frames;
             if(output){
                 auto pixels=read_crop(device.get(),frame);
-                if(timed){
+                if(live){
+                    const auto count=lookahead.count();
+                    if(matches(pixels,count>=target/2)){
+                        if(auto packet=lookahead.push({static_cast<std::uint64_t>(time),std::move(pixels)}))offer(std::move(*packet));
+                        std::cout<<"LiveFrame "<<count<<" "<<time<<"\n";
+                        if(lookahead.count()==target/2)window.bright();
+                        if(resize && lookahead.count()==5 && !SetWindowPos(window.handle,nullptr,0,0,400,300,SWP_NOMOVE|SWP_NOZORDER))throw std::runtime_error("test resize failed");
+                        written_before_stop=worker->stats().written;
+                    }else ++skipped_pattern;
+                }else if(timed){
                     const bool expected=sequence.size()>=target/2;
                     if(matches(pixels,expected)){
                         sequence.push_back({static_cast<std::uint64_t>(time),std::move(pixels)});
@@ -162,6 +203,19 @@ int run(const wchar_t* output,bool timed=false) {
         Sleep(25);
     }
     session.Close();pool.Close();
+    if(live){
+        if(resize || lookahead.count()!=target || !written_before_stop){
+            std::cerr<<"LiveIncomplete selected="<<lookahead.count()<<" observed="<<frames<<'\n';return frames?1:77;
+        }
+        offer(lookahead.finish());worker->stop();worker->join();
+        const auto q=worker->quality()[0];const auto& c=q.written;
+        if(worker->state()!=supreme::recorder::State::finalized || c.packets!=target || q.accepted!=target ||
+           c.first!=expected_coverage.first || c.end!=expected_coverage.end || c.duration!=expected_coverage.duration ||
+           q.dropped_full || q.discarded || q.rejected_invalid)throw std::runtime_error("live worker quality");
+        std::cout<<"LiveCapture "<<target<<" "<<frames<<" "<<skipped_pattern<<" "<<written_before_stop<<"\n";
+        std::cout<<"LiveHandoff "<<c.packets<<" "<<c.first<<" "<<c.end<<" "<<c.duration<<" "<<*c.internal_gap()<<" "<<worker->high_water()<<" "<<q.dropped_full<<" "<<q.discarded<<"\n";
+        return 0;
+    }
     if(timed){
         if(sequence.size()!=target){
             std::cerr<<"timed own-window frame pattern incomplete, selected="<<sequence.size()<<" observed="<<frames<<'\n';
@@ -196,8 +250,10 @@ int run(const wchar_t* output,bool timed=false) {
 }
 int wmain(int argc,wchar_t** argv){
     const bool timed=argc==3 && std::wstring_view(argv[1])==L"--timed";
-    if(argc>2 && !timed)return 2;
-    try{return run(timed?argv[2]:argc==2?argv[1]:nullptr,timed);}
+    const bool resize=argc==3 && std::wstring_view(argv[1])==L"--live-resize";
+    const bool live=resize || (argc==3 && std::wstring_view(argv[1])==L"--live");
+    if(argc>2 && !timed && !live)return 2;
+    try{return run((timed||live)?argv[2]:argc==2?argv[1]:nullptr,timed,live,resize);}
     catch(const winrt::hresult_error& e){
         const auto hr=e.code().value;
         std::cerr<<"WGC HRESULT=0x"<<std::hex<<static_cast<unsigned long>(hr)<<'\n';
