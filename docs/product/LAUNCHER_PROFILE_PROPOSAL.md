@@ -14,3 +14,5 @@ Use PR66's existing mod parameter controls for the 21 SSC fields, including a fa
 
 ## Acceptance
 Profile edits persist after restarting launcher or game; GUI and native parser agree; no other mod's order/enablement/settings or preset changes; malformed/unknown schema preserved; missing profile/path and unsupported recording mode reported, not silently corrected; disabled SSC has no game effects; no writes to active recording configuration. Distinguish profile names from competition categories. No actual launcher UI or game runtime validated. Future in-game settings use the same contract, not a second incompatible store.
+
+T23 evidence: actual PR66 source parses all manifest fields and passes runtime gating, and Rust save_mods_state output feeds native read-only settings preview. Standalone profile editor supports single-profile import/export with package path stripped, collision refusal and stale state check. Actual launcher GUI interaction remains NOT_RUN; this is a tested configuration contract, not an integrated launcher page or in-game feature. No upstream changes required for existing declarative controls.

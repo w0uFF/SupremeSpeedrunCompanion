@@ -6,7 +6,7 @@ Supreme Speedrun Companion (SSC) is an optional Windows mod in development for S
 
 SSC is **not a new version of Time Attack, a replacement for Online Time Attack, or a compulsory anti-cheat**. It is a companion for the existing game and its speedrunning community, intended to bring recording, timing, quick retries, run management and submission preparation into one place.
 
-> **Development status: v0.0.13-p0 — not yet playable or installable.** Configuration, independent DLL loading, synthetic video encoding, isolated test-window capture and offline evidence components have automated test coverage. Actual launcher/game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
+> **Development status: v0.0.14-p0 — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, synthetic video encoding, isolated test-window capture and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
 
 ## Why build it?
 
@@ -45,7 +45,7 @@ Current reported Speedrun.com rules require video showing track and difficulty s
 
 ## Community integration and development
 
-SSC is intended to be an independently configurable mod in the existing Community Launcher. The [PR66 native mod loading contract](docs/engine/COMMUNITY_LOADER.md) provides a promising integration boundary; SSC does not supply a replacement winmm.dll. A separate [offline profile editor](docs/contracts/SSC_CONFIGURATION.md) already exists for development tests. The actual launcher page and in-game settings are not yet connected.
+SSC is intended to be an independently configurable mod in the existing Community Launcher. The [PR66 native mod loading contract](docs/engine/COMMUNITY_LOADER.md) provides a promising integration boundary; SSC does not supply a replacement winmm.dll. A separate [offline profile editor](docs/contracts/SSC_CONFIGURATION.md) with portable profile import/export and a native read-only settings preview already exist for development tests. The reviewed upstream source parses the SSC manifest and loads its inert DLL successfully in a synthetic host. The actual launcher page and in-game settings are not yet connected.
 
 The project is being developed with ChatGPT assistance under a documented, modular architecture and strict validation protocol, aiming for readable, maintainable source that community contributors can extend. Contributions and review are welcome; the project license is pending owner selection. Original game files, private recordings and third-party binaries are not redistributed.
 
@@ -59,7 +59,7 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure --no-tests=error
 ```
 
-Windows core: 26 test targets including native profile persistence. Portable Linux: configure without -A Win32 (Windows-only targets excluded). Run all development tools outside the game directory. The offline supreme_diagnostic reports unavailable engine data by design.
+Windows core: 30 test targets including native profile persistence and launcher-state projection. Portable Linux: configure without -A Win32 (Windows-only targets excluded). Run all development tools outside the game directory. The offline supreme_diagnostic reports unavailable engine data by design.
 
 - [Project status](PROJECT_STATUS.md) — latest verified commit, exact CI evidence and blockers.
 - [Architecture](docs/architecture/MODULES.md) — independently testable module boundaries.

@@ -37,3 +37,18 @@ Run only after source/build dependency review. No game installation or proxy rep
 6. Acceptance evidence: baseline + installed-disabled + post-rollback actual observations per combination, exact hashes, launcher/proxy identity, SSC package fingerprint, disabled selection and logs, no unexpected modifications or native capability activation. No G1 PASS based on synthetic host alone. Further inert-active game observation and G2 require separate review. Any combination missing evidence remains BLOCKED, not supported.
 
 No G1 test is requested until fixture and supported loader prerequisites are resolved. Existing original/keyboard-patch baseline can be observed independently if owner chooses.
+
+## T23 result and owner baseline checkpoint
+Reviewed-source fixture prerequisite PASS (runs 45798560012, 45800954974, final 45801293718/job 139844872583). Final actual upstream tests 3/3 + SSC manifest/serialized configuration tests 2/2; runtime fixture PASS and SSC load counts 0/0/1. This supersedes earlier pending/source-only statements, not G1. Actual installed loader identity and real-game compatibility remain unverified.
+
+Owner can now collect baseline without SSC installation, on a disposable copy of a currently working installation. Close game/launcher, copy game including saves to a new private folder; run existing launcher/game normally from that copy without changing loader or mods. Follow WINDOWS_BASELINE.md: hash original files and installed winmm.dll, identify launcher version/provenance and executable hash if available; observe normal launch, menu selections, finish time, restart/reset, audio, controls, key persistence and exit/relaunch. Record Windows version, renderer/FPS cap if known, exact differences and any errors; redact personal paths. Optional snapshots from SSC source outside game (PowerShell):
+```powershell
+$Game = 'C:\scratch\Supreme-copy'
+py -3 tools/baseline_snapshot.py snapshot "$Game" | Out-File -Encoding utf8 before.json
+# Launch and exit copied game normally, then:
+py -3 tools/baseline_snapshot.py snapshot "$Game" | Out-File -Encoding utf8 after.json
+py -3 tools/baseline_snapshot.py compare before.json after.json
+```
+If Python unavailable, use Get-FileHash on existing Supreme.exe, winmm.dll, Main_Menu.dll, Supreme_Game.dll and launcher EXE if present; manual observations sufficient for initial review. Return comparison/selected hashes and observations, not private game files. Unexpected failure stops test.
+
+Candidate remains same inert SSCInitialize, manifest 0.0.14-p0 default load_diagnostic=false, no rules. Source build and independent fixture commands above, outside game only. Eventual reviewed staging layout .supreme/mods/ssc/SSCNative.dll and mod.json, no other files; no proxy replacement. Do not stage into game or distribute now: review actual baseline, loader provenance, licensing and exact candidate package fingerprint first. Then follow existing installed-disabled and rollback acceptance steps. No G1 pass or active-load game test authorized by synthetic fixture alone.

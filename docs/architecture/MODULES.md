@@ -28,3 +28,5 @@ T21 adds offline SSC profile contract/store and CLI (tools/ssc_profiles.py, tool
 T21 follow-up: C++ configuration Controller injects Store and PathPolicy; independent typed settings and copy snapshots, no engine or I/O implementation. Existing Python reference remains standalone.
 
 T22 configuration: public/profile_codec.hpp and public/path_policy.hpp portable; infrastructure/windows_profile_store.hpp implements injected Store. Offline Tkinter controller uses existing Python reference. Native consumption and launcher state parsing remain separate pending adapters; no dependencies on game/recorder.
+
+T23 configuration: launcher_json read-only projection and windows_launcher_state plain-file adapter feed standalone preview with injected profile store; AttemptSettings immutable owned value available to future session boundary, not connected to race events. Python exchange/editor independent. Upstream source-fixture verifies integration without engine or launcher UI. Keep DLL inert until applicable gate review.

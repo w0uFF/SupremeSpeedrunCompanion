@@ -35,3 +35,5 @@ All ten previous SHA-256 values rechecked and unchanged. Eight newly supplied/do
 See COMMUNITY_LOADER.md for exact source provenance and binary evidence.
 
 T22: sha256sum -c of all 18 supplied references passed after inspection; no originals modified. Source fixture staging uses exact ZIP fingerprint and fresh private destination; no third-party files added to SSC.
+
+T23: all 18 SHA-256 reference checks passed; original Supreme_Game.dll inspected statically; reviewed PR66 source privately staged in CI after exact archive hash check. Originals not modified; no upstream source or third-party binary committed.

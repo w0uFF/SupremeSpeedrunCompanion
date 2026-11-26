@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.14-p0 — reviewed loader fixture and native launcher configuration
+- Actual PR66 source-loader fixture passed, including manifest parsing, initializer lifecycle, gating and Rust-serialized launcher state consumed by native SSC preview; no game or actual launcher UI execution.
+- Native bounded read-only launcher JSON adapter, Win32 preview, representative cross-language conformance, immutable owned attempt settings.
+- Single-profile import/export with local path stripped, collision refusal and optimistic stale-editor protection; CLI and offline GUI controls.
+- Trace original-game candidate row writer and alternate source path; not authoritative IGT or finish evidence.
+- Windows core 30/30 Debug and Release, media 5/5, capture 3 pass/1 skip, WinSQLite 1/1, inert DLL 1/1. G1 still blocked on installed loader identity and disposable game baseline/rollback. No release.
+
 ## v0.0.13-p0 — native profile persistence and launcher fixture preparation
 - Add native canonical schema-1 profile codec, lexical path policy and Win32 private file store, Python/C++ interoperability and persistence tests.
 - Correct offline launcher gate to require order and enablement; add offline Tkinter profile editor and fingerprint-gated PR66 source fixture.

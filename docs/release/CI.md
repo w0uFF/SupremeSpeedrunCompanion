@@ -33,3 +33,5 @@ T21 core floor 22; separate community-entry job builds only inert SSCNative and 
 T21 final code/test revision 478a33a790fdebc24c0f3788f10b1a00fa5dbdeb run 45795828198: 23/23 core each, 5/5 media, 3 capture pass/1 skip, 1/1 storage, 1/1 inert native entry. No actual community loader/game execution. Release skipped, no artifact publication.
 
 T22 Windows core floor 26; actual native FileStore and Python/C++ conformance. Separate reviewed PR66 source fixture CI (read-only repository, exact fingerprint gate, no artifacts, synthetic host). Source download failure/mismatch is BLOCKED not PASS even if workflow succeeds. No public release authorization.
+
+T23 Windows core floor 30; final code revision ca9637c90d3ed72abc6701f59f3699b7d9e996e9, run 45801293414 all core/media/storage/entry pass, capture 3 PASS/1 SKIP; release skipped. Extended PR66 run 45801293718/job 139844872583 actual source fixture PASS including 3 upstream + 2 SSC tests, actual Rust serializer/native preview and runtime 0/0/1 gating. No upstream artifact/source redistribution, no license approval or public release.
