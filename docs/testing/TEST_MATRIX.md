@@ -136,3 +136,5 @@ Local commands: cmake -S . -B <fresh build> -DCMAKE_BUILD_TYPE=Debug (repeat Rel
 
 - TEST-T19-CORE-WIN PASS: run 45781735952 job 139778579562, exact commit 65d1a7241bf572e3a339b4f011bb604a9ed4090c, 20/20 Debug and Release; existing media 3/3, release skipped.
 - TEST-T19-SUSTAINED initial FAIL: run 45781810092, media job 139778827294, wrapper syntax error at line 35 caused by JavaScript replacement-string dollar/quote interpolation; no media executed. Core 20/20 each. Replaced entire wrapper with explicit source; local python -m py_compile exit 0, Git blob checked. Hosted rerun pending.
+
+- TEST-T19-CAPTURE initial FAIL (compile): run 45781989602, capture job 139779424623, MSVC STL1011 in <experimental/coroutine> with C++17. No capture execution. Changed only standalone WGC target to C++20; core remains C++17, /W4 /WX retained. Hosted retry pending.
