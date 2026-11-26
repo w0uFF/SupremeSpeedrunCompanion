@@ -7,3 +7,5 @@ P0-T21 verified exact code/test revision 478a33a790fdebc24c0f3788f10b1a00fa5dbde
 G1 remains BLOCKED. Next P0-T22: reviewed actual upstream manifest/source fixture, native serialization/persistence and path-policy adapter, launcher profile UI proposal without modifying upstream, cross-language conformance, native result producer research. Owner disposable baseline and reviewed compatible loader then installed-disabled launch/exit/rollback required before gameplay integration; see COMMUNITY_LOADER_VALIDATION.md. Audio sampling independently blocked. License/release approval pending. No public releases or submission.
 
 P0-T22 candidate v0.0.13-p0: native canonical schema-1 JSON codec and lexical path policy, cross-language tests; correct offline diagnostic selection to require active.order and enabled. Windows validation pending. G1 unchanged.
+
+Native Win32 file-backed profile Store and existing-directory/free-space policy candidate added; isolated Python-driven native persistence regression pending. No game integration or native settings consumption.
