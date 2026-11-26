@@ -43,7 +43,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             $listing = ctest --test-dir build -C $config --show-only=json-v1
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            if (($listing | Out-String | ConvertFrom-Json).tests.Count -lt 28) { throw 'Baseline test targets missing.' }
+            if (($listing | Out-String | ConvertFrom-Json).tests.Count -lt 30) { throw 'Baseline test targets missing.' }
             ctest --test-dir build -C $config --output-on-failure --no-tests=error
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
@@ -74,7 +74,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $listing = ctest --test-dir build -C Release --show-only=json-v1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (($listing | Out-String | ConvertFrom-Json).tests.Count -lt 28) { throw 'Baseline test targets missing.' }
+          if (($listing | Out-String | ConvertFrom-Json).tests.Count -lt 30) { throw 'Baseline test targets missing.' }
           ctest --test-dir build -C Release --output-on-failure --no-tests=error
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Package offline development diagnostic

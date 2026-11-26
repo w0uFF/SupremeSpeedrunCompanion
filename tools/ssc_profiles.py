@@ -170,12 +170,14 @@ class ProfileStore:
             raise ValueError('profile symlink')
         return validate_book(read_json(self.path))
 
-    def save(self, book, *, create=False):
+    def save(self, book, *, create=False, expected=None):
         raw = canonical(validate_book(book))
         if len(raw) > MAX_BYTES or self.path.is_symlink():
             raise ValueError('profile destination or size')
         if not create:
-            self.load()  # Never overwrite malformed, unknown-version or absent state.
+            current = self.load()  # Never overwrite malformed, unknown-version or absent state.
+            if expected is not None and current != validate_book(expected):
+                raise ValueError('profile state changed; reopen before saving')
         temporary = None
         try:
             with tempfile.NamedTemporaryFile(dir=self.path.parent, prefix='.ssc-', delete=False) as handle:
@@ -190,6 +192,29 @@ class ProfileStore:
         finally:
             if temporary is not None:
                 temporary.unlink(missing_ok=True)
+
+
+def export_profile(book, name, destination):
+    """Share one profile, without its machine-local package directory; never replace a file."""
+    book = validate_book(book)
+    name = profile_name(name)
+    if name not in book['profiles']:
+        raise ValueError('missing profile')
+    values = dict(book['profiles'][name], package_directory='')
+    ProfileStore(destination).save({'schema': SCHEMA, 'active': name, 'profiles': {name: values}}, create=True)
+
+
+def import_profile(book, source, *, target=None):
+    """Import one profile into a copy of the book, preserving the active selection."""
+    source = Path(source)
+    if source.is_symlink():
+        raise ValueError('profile symlink')
+    incoming = validate_book(read_json(source))
+    if len(incoming['profiles']) != 1:
+        raise ValueError('expected a single exported profile')
+    name = incoming['active']
+    return edit(book, 'create', target if target is not None else name,
+                values=dict(incoming['profiles'][name], package_directory=''))
 
 
 def launcher_manifest():

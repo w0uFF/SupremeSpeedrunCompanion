@@ -62,6 +62,8 @@ class Editor:
         bottom.pack(fill='x')
         ttk.Button(bottom, text='Save changes', command=lambda: self.safe(self.save)).pack(side='left')
         ttk.Button(bottom, text='Set active profile', command=lambda: self.safe(self.activate)).pack(side='left', padx=6)
+        ttk.Button(bottom, text='Import profile', command=lambda: self.safe(self.import_one)).pack(side='left', padx=6)
+        ttk.Button(bottom, text='Export profile', command=lambda: self.safe(self.export_one)).pack(side='left')
         ttk.Label(outer, textvariable=self.status, wraplength=580).pack(fill='x', pady=(12, 0))
         root.protocol('WM_DELETE_WINDOW', self.close)
         self.display(self.loaded)
@@ -98,7 +100,7 @@ class Editor:
             self.selected.set(self.loaded)
 
     def apply(self, book, name):
-        self.store.save(book)
+        self.store.save(book, expected=self.book)
         self.book = self.store.load()
         self.display(name)
         self.status.set('Saved locally. Launcher and game configuration were not changed.')
@@ -126,6 +128,24 @@ class Editor:
         else:
             book = model.edit(self.book, action, self.loaded, target=name)
         self.apply(book, name)
+
+    def export_one(self):
+        if self.dirty():
+            raise ValueError('Save or discard edits before exporting.')
+        destination = filedialog.asksaveasfilename(parent=self.root, defaultextension='.json',
+                                                   filetypes=[('SSC profile', '*.json')])
+        if destination:
+            model.export_profile(self.book, self.loaded, destination)
+            self.status.set('Profile exported without the local package directory. Existing files are never replaced.')
+
+    def import_one(self):
+        if not self.permit_discard():
+            return
+        source = filedialog.askopenfilename(parent=self.root, filetypes=[('SSC profile', '*.json')])
+        if source:
+            target = simpledialog.askstring('Import profile', 'New profile name:', parent=self.root)
+            if target is not None:
+                self.apply(model.import_profile(self.book, source, target=target), target)
 
     def browse(self):
         path = filedialog.askdirectory(parent=self.root, mustexist=True)

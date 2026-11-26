@@ -48,6 +48,23 @@ inline fs::path package_directory(const Settings& settings,std::u16string_view d
         throw std::runtime_error("insufficient available space");
     return path;
 }
+inline std::string read_plain_file(const fs::path& file_path){
+    Handle file(CreateFileW(file_path.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,
+                           FILE_FLAG_OPEN_REPARSE_POINT,nullptr));
+    BY_HANDLE_FILE_INFORMATION info{};
+    if(!GetFileInformationByHandle(file.get(),&info))io_error("file information");
+    if((info.dwFileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT)) ||
+       info.nNumberOfLinks!=1 || info.nFileSizeHigh || info.nFileSizeLow>codec::max_bytes)
+        throw std::invalid_argument("file type or size");
+    std::string data(static_cast<std::size_t>(info.nFileSizeLow),'\0');
+    DWORD actual=0;
+    if(!ReadFile(file.get(),data.data(),info.nFileSizeLow,&actual,nullptr) || actual!=info.nFileSizeLow)
+        io_error("read file");
+    char extra=0;
+    if(!ReadFile(file.get(),&extra,1,&actual,nullptr) || actual!=0)io_error("file size changed");
+    return data;
+}
+
 // Native schema-1 profile store. Existing trusted private directory; fixed filename.
 // Single owner, no concurrent writers, no automatic migration or overwrite on invalid data.
 class FileStore final:public Store {
@@ -55,23 +72,7 @@ class FileStore final:public Store {
     LexicalPathPolicy paths_;
     fs::path path()const{return directory_/L"profiles.json";}
     void verify_directory()const{(void)existing_directory(directory_.u16string());}
-    std::string bytes()const{
-        verify_directory();
-        Handle file(CreateFileW(path().c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,
-                               FILE_FLAG_OPEN_REPARSE_POINT,nullptr));
-        BY_HANDLE_FILE_INFORMATION info{};
-        if(!GetFileInformationByHandle(file.get(),&info))io_error("file information");
-        if((info.dwFileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT)) ||
-           info.nNumberOfLinks!=1 || info.nFileSizeHigh || info.nFileSizeLow>codec::max_bytes)
-            throw std::invalid_argument("profile file type or size");
-        std::string data(static_cast<std::size_t>(info.nFileSizeLow),'\0');
-        DWORD actual=0;
-        if(!ReadFile(file.get(),data.data(),info.nFileSizeLow,&actual,nullptr) || actual!=info.nFileSizeLow)
-            io_error("read profile");
-        char extra=0;
-        if(!ReadFile(file.get(),&extra,1,&actual,nullptr) || actual!=0)io_error("profile size changed");
-        return data;
-    }
+    std::string bytes()const{verify_directory();return read_plain_file(path());}
     void publish(const Book& book,bool create){
         verify_directory();
         const auto data=codec::encode(book,paths_);
