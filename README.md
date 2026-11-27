@@ -6,7 +6,7 @@ Supreme Speedrun Companion (SSC) is an optional Windows mod in development for S
 
 SSC is **not a new version of Time Attack, a replacement for Online Time Attack, or a compulsory anti-cheat**. It is a companion for the existing game and its speedrunning community, intended to bring recording, timing, quick retries, run management and submission preparation into one place.
 
-> **Development status: v0.0.37-p0 candidate (verified main v0.0.36-p0; candidate regression pending) — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, native run-library storage and verified offline archive indexing and read-only recovery inspection, synthetic A/V encoding, concurrent timestamped isolated test-window video capture (up to 1,200 selected frames per clip; same-process success/cancellation fixtures), synthetic-only admission model and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
+> **Development status: v0.0.37-p0 (verified isolated candidate; main promotion pending) — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, native run-library storage and verified offline archive indexing and read-only recovery inspection, synthetic A/V encoding, concurrent timestamped isolated test-window video capture (up to 1,200 selected frames per clip; same-process success/cancellation fixtures), synthetic-only admission model and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
 
 ## Why build it?
 
@@ -109,3 +109,5 @@ T45 (verified isolated baseline): offline [reference-level path classifier](docs
 Development build distribution uses GitHub Releases pre-releases, never Actions artifacts. Actual publication remains gated by licensing and review. See [release policy](docs/release/CI.md).
 
 T46 candidate adds offline recorder application orchestration with simulated backend only; actual recording/codec wiring remains unavailable. See [B-REC-01](src/modules/recorder/ORCHESTRATION.md).
+
+T46 candidate automated regression passed, including recorder orchestration in Debug and Release; final documentation CI and promotion pending. Not actual gameplay recording.

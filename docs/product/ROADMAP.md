@@ -139,3 +139,5 @@ T45 candidate: bounded offline reference-level classifier and standalone CTest; 
 T45 candidate automated regression PASS; documentation regression/promotion pending. Owner-approved GitHub Releases distribution for non-installable development pre-releases and later beta/stable (ADR-035); license and explicit manifest/test-scope review before first publication. Prioritize actual G1 baseline and loader provenance; no extra capture experiment.
 
 T45 fully verified main v0.0.36-p0. T46 candidate v0.0.37-p0 standalone recorder orchestration, expected54 core per configuration. A native work in parallel, B backend/overlay; no duplicate capture experiments. Prioritize G1 disposable Windows baseline and actual loader identity, then G2. MF extraction preparation handed off narrowly; review and validation required.
+
+T46 exact candidate regression PASS, final-doc CI/promotion pending. B-REC-02/02b/03 review and integration separate. A native next: owner baseline and actual loader provenance, installed-disabled/rollback plan only after review; no further repeated capture probes beyond regression.
