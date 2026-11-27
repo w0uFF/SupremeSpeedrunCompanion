@@ -127,3 +127,5 @@ Hosted submission future work: see [Hosted submission contract](../contracts/HOS
 
 ## T43 focus
 G1 actual Windows baseline, provenance review, then installed-disabled/rollback only after explicit authorization. Real gameplay footage demonstrating loaded track/difficulty is a primary objective with positive moderator feedback; no changed eligibility until confirmation. Easy default and Advanced customization share one submission draft/validation/queue; protected minimal attribution and package link, no promotional URL. Offline text composition first; actual account linking, host choice, upload and submission deferred. No further capture fixture expansion in this increment.
+
+T43 offline composition and existing regression suite verified; next native readiness increment must preserve G1 and focus on evidence-backed registry/sequence dispatch and inert loader package readiness rather than extending capture fixtures. Do not infer support from synthetic loader tests.
