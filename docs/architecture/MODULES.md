@@ -64,3 +64,5 @@ T41 adds submission/public/track_interval_claims.hpp: pure caller-supplied inter
 T42 adds pure submission/public/track_coverage_claims.hpp over interval claims. Test-only active own-window destruction and Closed notification reuse standalone WGC fixture and retention parser. Provider-neutral future publishing boundaries documented in [HOSTED_SUBMISSION.md](../contracts/HOSTED_SUBMISSION.md); no production transport or credential dependencies.
 
 T43 offline tools/hosted_text.py is a pure text-composition boundary: Easy defaults / Advanced edited text share one composer; separate protected and personal text, explicit attribution flags and limits, no transport, authentication, native dependencies or eligibility authority. UI/controller and persistent preferences are future consumers. See HOSTED_SUBMISSION.md; all provider-neutral publishing ports remain proposals.
+
+T44: read-only menu/loader observation CLI and separate synthetic tests; no production use or G1 change. See [NATIVE_MENU_READINESS.md](../contracts/NATIVE_MENU_READINESS.md). No new capture fixture; focus on real native boundary and provenance.
