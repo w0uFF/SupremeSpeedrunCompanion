@@ -133,3 +133,5 @@ T43 offline composition and existing regression suite verified; next native read
 T44: read-only menu/loader observation CLI and separate synthetic tests; no production use or G1 change. See [NATIVE_MENU_READINESS.md](../contracts/NATIVE_MENU_READINESS.md). No new capture fixture; focus on real native boundary and provenance.
 
 T45: actual resource consumer and natural race-mode call path mapped statically; see [Time Attack lifecycle](../engine/TIME_ATTACK_LIFECYCLE.md). G1 remains blocked on installed-loader provenance and actual launch/exit/rollback; no redundant capture fixture or new code version for research-only scope.
+
+T45 candidate: bounded offline reference-level classifier and standalone CTest; static resource factory, scene attachment, sampling and teardown mapped. After candidate regression, prioritize G1 disposable baseline, exact loader provenance and authorized installed-disabled/rollback. No further capture experiments; then review actual loaded identity/controller/result observation for G2. No change to COMMUNITY-001 or DEMO-TRACK-01.

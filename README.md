@@ -103,3 +103,5 @@ T41 verified settled target replacement and interval-bound track claims; T42 ver
 T43 prioritizes the real Windows baseline and demonstration prerequisites; Easy and Advanced hosted submission modes are planned, with an offline text composer only. See [Windows baseline](docs/testing/WINDOWS_BASELINE.md) and [hosted submission contract](docs/contracts/HOSTED_SUBMISSION.md).
 
 T44 adds a [read-only native menu readiness diagnostic](docs/contracts/NATIVE_MENU_READINESS.md), not a playable or installable mod.
+
+T45 candidate (branch only): offline [reference-level path classifier](docs/engine/REFERENCE_LEVEL_PATH.md), not actual loaded-track proof. v0.0.35-p0 remains the verified baseline until v0.0.36-p0 candidate validation completes. No game integration, installation or rule change.

@@ -122,3 +122,5 @@ Implementation aadcbffacb0b763e94565a489ec9d4c984e6a02e. T41 promoted main b0796
 T44: read-only menu/loader observation CLI and separate synthetic tests; no production use or G1 change. See [NATIVE_MENU_READINESS.md](../contracts/NATIVE_MENU_READINESS.md). No new capture fixture; focus on real native boundary and provenance.
 
 T45: actual resource consumer and natural race-mode call path mapped statically; see [Time Attack lifecycle](../engine/TIME_ATTACK_LIFECYCLE.md). G1 remains blocked on installed-loader provenance and actual launch/exit/rollback; no redundant capture fixture or new code version for research-only scope.
+
+T45: lexical Level_Data path recognition is not proof of existence, successful load, active geometry, human controller or official IGT. Original Alpine resource aliases are legitimate; no mismatch accusation from those alone. Unknown paths stay unknown, noncompetitive paths have no competitive track. Failed-open branch can still allocate a resource; nonnull pointer and scene attachment alone are insufficient. Native geometry activation, human input identity and displayed result authority remain unverified. G1/audio blocked.
