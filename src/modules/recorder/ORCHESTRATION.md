@@ -28,3 +28,6 @@ Test: tests/test_recorder_orchestrator.cpp. GCC 14.2.0 Linux x86_64, exact depen
     /tmp/b-rec-01-release
 
 Both print B-REC-01: 6 deterministic scenario groups PASS. Fake backend only: start/finish/result with delayed completion and new capture; restart/reset/manual selection/multiple attempts; late/missing boundary and drop; backend rejection/failure/cancel/late finalize/truncation; four-slot saturation/shutdown; 128-marker bound. Full checkout, Windows build, existing suite and native runtime NOT_RUN. Root CMake remains unchanged per ownership; integration request in GPT_B.md. Rollback: omit three candidate files, no persisted state or install effects.
+
+## B-REC-02 successor (A-0004 review)
+The offline WorkerBackend now implements the feature-local Backend port; see WORKER_BACKEND.md for reserved command/notification mailboxes, cooperative deadlines, target/clock requirements, cleanup, test evidence and remaining fixture-length/real-media limitations. Report::terminal_stats_consistent adds a structural terminal counter/coverage coherence check; inconsistent snapshots remain raw and are marked incomplete. The original B-REC-01 tests are unchanged and pass against the successor header. Native capture is still disabled; no evidence or eligibility claim.
