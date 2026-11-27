@@ -4,12 +4,17 @@ from fixture_lifecycle import WRITE_COUNTS, split, Resource
 from fixture_fault_lifecycle import fault
 
 
-def evidence(text):
+def evidence(text,target_closed=False):
     blocks, resources = split(text, WRITE_COUNTS)
     gui = [fields(line, 'HDFaultGuiSample', 4) for line in text.splitlines() if line.startswith('HDFaultGuiSample ')]
     if len(gui)!=4 or any((p,pid)!=(r.phase,r.pid) or gdi>65536 or user>65536
                           for (p,pid,gdi,user),r in zip(gui,resources)):
         raise ValueError('GUI sample identity')
+    markers=[line for line in text.splitlines() if line.startswith('HDTarget')]
+    if markers != (['HDTargetDestroyed 120','HDTargetClosed 1'] if target_closed else []):
+        raise ValueError('target closure markers')
+    if target_closed:
+        closure_markers(blocks[1])
     stages=[]
     peak=resources[0].peak
     for i,block in enumerate(blocks,1):
@@ -29,5 +34,20 @@ def evidence(text):
     return blocks,resources,tuple(gui),tuple(stages)
 
 
-def failure(text, artifact_bytes, finalize=False):
-    return fault(text, 'sink-finalize-failure' if finalize else 'sink-write-failure', artifact_bytes)
+def closure_markers(text):
+    rows=text.splitlines()
+    markers=[i for i,line in enumerate(rows) if line.startswith('HDTarget')]
+    if len(markers)!=2 or [rows[i] for i in markers]!=['HDTargetDestroyed 120','HDTargetClosed 1'] or markers[1]!=markers[0]+1:
+        raise ValueError('target closure order')
+    last=[i for i,line in enumerate(rows) if line.startswith('LiveFrame ')]
+    outcome=[i for i,line in enumerate(rows) if line.startswith('HDFaultOutcome ')]
+    if len(last)!=120 or len(outcome)!=1 or not last[-1]<markers[0]<markers[1]<outcome[0]:
+        raise ValueError('target closure boundary')
+
+
+def failure(text, artifact_bytes, finalize=False,target_closed=False):
+    if finalize and target_closed:
+        raise ValueError('mixed failure modes')
+    if target_closed:
+        closure_markers(text)
+    return fault(text, 'target-closed' if target_closed else 'sink-finalize-failure' if finalize else 'sink-write-failure', artifact_bytes)

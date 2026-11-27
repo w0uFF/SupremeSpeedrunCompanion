@@ -6,7 +6,7 @@ Supreme Speedrun Companion (SSC) is an optional Windows mod in development for S
 
 SSC is **not a new version of Time Attack, a replacement for Online Time Attack, or a compulsory anti-cheat**. It is a companion for the existing game and its speedrunning community, intended to bring recording, timing, quick retries, run management and submission preparation into one place.
 
-> **Development status: v0.0.26-p0 — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, native run-library storage and verified offline archive indexing and read-only recovery inspection, synthetic A/V encoding, concurrent timestamped isolated test-window video capture (up to 1,200 selected frames per clip; same-process success/cancellation fixtures), synthetic-only admission model and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
+> **Development status: v0.0.33-p0 (verified isolated baseline) — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, native run-library storage and verified offline archive indexing and read-only recovery inspection, synthetic A/V encoding, concurrent timestamped isolated test-window video capture (up to 1,200 selected frames per clip; same-process success/cancellation fixtures), synthetic-only admission model and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
 
 ## Why build it?
 
@@ -90,3 +90,6 @@ T39 verified in isolated Windows fixtures: repeated capture-item creation +1 set
 T40 verified in isolated Windows fixtures: same-item actual acquisition600/1200/600 independently decoded, settled handles360/360/362. Bound-track workflow and PR66 PASS. No leak-free or production-cache claim. No gameplay/install/rule change.
 
 T41 candidate (branch only): separate destroyed-target refusal and replacement acquisition fixture, bound interval claims, portable parser6/6 and standalone C++108 assertions PASS; Windows/PR66 pending. No game integration, install or rule change.
+
+
+T41 verified settled target replacement and interval-bound track claims; T42 verifies isolated active target closure and coverage checks. Future hosted-video submission uses the direct supplementary evidence link in Speedrun.com Notes and automatically uploaded video descriptions; see [hosted submission contract](docs/contracts/HOSTED_SUBMISSION.md). No actual game or online submission.

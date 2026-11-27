@@ -20,7 +20,7 @@ class Fault:
 
 
 def fault(text, reason, artifact_bytes):
-    if reason not in (*FAULTS.values(), 'sink-write-failure', 'sink-finalize-failure'):
+    if reason not in (*FAULTS.values(), 'sink-write-failure', 'sink-finalize-failure', 'target-closed'):
         raise ValueError('unsupported fixture fault')
     if any(line.startswith(('LiveCapture ', 'LiveHandoff ', 'LiveDecode ', 'LivePerformance ', 'LiveResources '))
            for line in text.splitlines()):

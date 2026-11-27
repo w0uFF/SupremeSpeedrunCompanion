@@ -25,6 +25,8 @@
 #include "tools/media/fixture_isolation.hpp"
 #include <string_view>
 #include <optional>
+#include <atomic>
+#include <memory>
 namespace {
 namespace cap=winrt::Windows::Graphics::Capture;
 namespace dx=winrt::Windows::Graphics::DirectX;
@@ -319,7 +321,7 @@ int isolate_wgc_item(std::wstring_view mode,const std::filesystem::path& directo
     std::cout<<"WGCItemCounts "<<label<<" "<<supports<<" "<<factories<<" "<<items<<" "<<sizes<<" 1 "<<sessions<<std::endl;
     return 0;
 }
-enum class FixtureStop { none, user_cancel, simulated_device_loss, sink_write_failure, sink_finalize_failure };
+enum class FixtureStop { none, user_cancel, simulated_device_loss, sink_write_failure, sink_finalize_failure, target_closed };
 // Own-process, bounded stage diagnostics; no system-wide handle inspection.
 void stage_resources(unsigned stage){
     PROCESS_MEMORY_COUNTERS_EX m{};
@@ -475,6 +477,13 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
         }
     };
     CloseCapture close_capture{session,pool};
+    // Fixture-only callback owns shared counter state, never the window or worker.
+    std::shared_ptr<std::atomic<unsigned>> closed;
+    std::optional<cap::GraphicsCaptureItem::Closed_revoker> closed_revoker;
+    if(stop==FixtureStop::target_closed){
+        closed=std::make_shared<std::atomic<unsigned>>(0u);
+        closed_revoker.emplace(item.Closed(winrt::auto_revoke,[closed](auto const&,auto const&) noexcept {closed->fetch_add(1); }));
+    }
     const auto stop_hd=[&](const char* reason,int status){
         // Only the explicit bounded fixture paths enter here; no terminal packet
         // or sink finalization. The pending lookahead frame remains unoffered.
@@ -596,6 +605,20 @@ int run(const wchar_t* output,bool timed=false,bool live=false,bool resize=false
                 return stop_hd("sink-write-failure",5);
             if(stop==FixtureStop::user_cancel && lookahead.count()==120)
                 return stop_hd("user-cancel",3);
+            if(stop==FixtureStop::target_closed && lookahead.count()==120){
+                if(closed->load()!=0)throw std::runtime_error("target closed before controlled destruction");
+                const HWND old=window.handle;
+                if(!old || !DestroyWindow(old))throw std::runtime_error("active fixture target destruction failed");
+                window.handle=nullptr;
+                if(IsWindow(old))throw std::runtime_error("active fixture target still live");
+                std::cout<<"HDTargetDestroyed 120"<<std::endl;
+                const auto close_deadline=GetTickCount64()+5000;
+                while(!closed->load() && GetTickCount64()<close_deadline){pump();Sleep(10);}
+                closed_revoker->revoke();
+                if(closed->load()!=1)throw std::runtime_error("expected one observed Closed notification");
+                std::cout<<"HDTargetClosed 1"<<std::endl;
+                return stop_hd("target-closed",7);
+            }
             // Controlled fixture-only pause; not a production capture technique.
             if((long_fixture || extended || marathon || hd) && !paused && lookahead.count()>=100){
                 paused=true;
@@ -714,13 +737,14 @@ void lifecycle_sample(unsigned phase,bool gui=false){
     std::cout<<"HDLifecycleSample "<<phase<<" "<<GetCurrentProcessId()<<" "
              <<memory.PeakWorkingSetSize<<" "<<memory.WorkingSetSize<<" "<<memory.PrivateUsage<<" "<<handles<<std::endl;
 }
-int lifecycle(const std::filesystem::path& directory,bool faults=false,bool retention=false,bool finalize_failure=false,bool reuse_item=false,bool replace_item=false){
+int lifecycle(const std::filesystem::path& directory,bool faults=false,bool retention=false,bool finalize_failure=false,bool reuse_item=false,bool replace_item=false,bool target_closed=false){
+    if(target_closed && (!retention || finalize_failure || reuse_item || faults))return 2;
     if(replace_item && !reuse_item)return 2;
     if(reuse_item && (faults || retention || finalize_failure))return 2;
     if(!std::filesystem::is_directory(directory) || std::filesystem::is_symlink(directory))return 2;
     struct Segment {bool sustained;FixtureStop stop;};
     const std::vector<Segment> segments=retention?
-        std::vector<Segment>{{false,FixtureStop::none},{false,finalize_failure?FixtureStop::sink_finalize_failure:FixtureStop::sink_write_failure},{false,FixtureStop::none}}:
+        std::vector<Segment>{{false,FixtureStop::none},{false,target_closed?FixtureStop::target_closed:finalize_failure?FixtureStop::sink_finalize_failure:FixtureStop::sink_write_failure},{false,FixtureStop::none}}:
         faults?
         std::vector<Segment>{{false,FixtureStop::none},{false,FixtureStop::user_cancel},
                              {true,FixtureStop::none},{false,FixtureStop::simulated_device_loss},{false,FixtureStop::none}}:
@@ -738,7 +762,7 @@ int lifecycle(const std::filesystem::path& directory,bool faults=false,bool rete
         const auto count=segment.stop!=FixtureStop::none?120:segment.sustained?1200:600;
         std::cout<<"HDLifecycleBegin "<<i+1<<" "<<count<<std::endl;
         const int status=run(files[i].c_str(),false,true,false,false,false,false,false,true,true,segment.sustained,segment.stop,retention,reuse?&*reuse:nullptr);
-        const int expected=segment.stop==FixtureStop::user_cancel?3:segment.stop==FixtureStop::simulated_device_loss?4:segment.stop==FixtureStop::sink_write_failure?5:segment.stop==FixtureStop::sink_finalize_failure?6:0;
+        const int expected=segment.stop==FixtureStop::user_cancel?3:segment.stop==FixtureStop::simulated_device_loss?4:segment.stop==FixtureStop::sink_write_failure?5:segment.stop==FixtureStop::sink_finalize_failure?6:segment.stop==FixtureStop::target_closed?7:0;
         if(status!=expected){std::cerr<<"HDLifecycleIncomplete "<<i+1<<" "<<status<<'\n';return 1;}
         if(reuse){Sleep(1000);pump();Sleep(2000);pump();reuse->require_window();}
         if(retention){
@@ -773,9 +797,10 @@ int wmain(int argc,wchar_t** argv){
         catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     }
     const bool finalize_failure=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-finalize-failure-lifecycle";
-    const bool retention=finalize_failure || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-write-failure-lifecycle");
+    const bool target_closed=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-target-closed-lifecycle";
+    const bool retention=target_closed || finalize_failure || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-write-failure-lifecycle");
     if(reuse || retention || faults || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-lifecycle")){
-        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]),faults,retention,finalize_failure,reuse,replace);}
+        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]),faults,retention,finalize_failure,reuse,replace,target_closed);}
         catch(const winrt::hresult_error& e){std::cerr<<"HD lifecycle HRESULT "<<winrt::to_string(e.message())<<'\n';return 1;}
         catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     }

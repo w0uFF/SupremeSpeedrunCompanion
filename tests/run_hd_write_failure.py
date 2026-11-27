@@ -9,11 +9,12 @@ from fixture_retention import evidence, failure
 
 
 def main():
-    if len(sys.argv) not in (3,4) or (len(sys.argv)==4 and sys.argv[3]!='--finalize'):
-        raise SystemExit('usage: run_hd_write_failure.py WGC_PROBE MEDIA_PROBE [--finalize]')
-    finalize=len(sys.argv)==4
-    mode='--live-hd720-finalize-failure-lifecycle' if finalize else '--live-hd720-write-failure-lifecycle'
-    label='HDFinalize' if finalize else 'HDWrite'
+    if len(sys.argv) not in (3,4) or (len(sys.argv)==4 and sys.argv[3] not in ('--finalize','--target-closed')):
+        raise SystemExit('usage: run_hd_write_failure.py WGC_PROBE MEDIA_PROBE [--finalize|--target-closed]')
+    target_closed=len(sys.argv)==4 and sys.argv[3]=='--target-closed'
+    finalize=len(sys.argv)==4 and sys.argv[3]=='--finalize'
+    mode='--live-hd720-target-closed-lifecycle' if target_closed else '--live-hd720-finalize-failure-lifecycle' if finalize else '--live-hd720-write-failure-lifecycle'
+    label='HDTarget' if target_closed else 'HDFinalize' if finalize else 'HDWrite'
     with tempfile.TemporaryDirectory() as directory:
         root=Path(directory)
         with hosted_hd_mode(True):
@@ -22,13 +23,17 @@ def main():
         print(result.stdout,end='',flush=True)
         print(result.stderr,end='',flush=True)
         result.check_returncode()
-        clips,resources,gui,stages=evidence(result.stdout)
+        clips,resources,gui,stages=evidence(result.stdout,target_closed)
+        if target_closed:
+            names={p.name for p in root.iterdir()}
+            if not {'segment-1.mp4','segment-3.mp4'}<=names<={'segment-1.mp4','segment-2.mp4','segment-3.mp4'}:
+                raise ValueError('unexpected closure output files')
         for i,(clip,count) in enumerate(zip(clips,WRITE_COUNTS),1):
             path=root/f'segment-{i}.mp4'
             if i==2:
                 if path.is_symlink() or (path.exists() and not path.is_file()):
                     raise ValueError('unexpected artifact type')
-                f=failure(clip,path.stat().st_size if path.exists() else None,finalize)
+                f=failure(clip,path.stat().st_size if path.exists() else None,finalize,target_closed)
                 print(f'{label}FailureVerified {f.selected} {f.accepted} {f.written} {f.discarded} {f.pending}',flush=True)
             else:
                 timing=root/f'timeline-{i}.txt'
@@ -43,7 +48,8 @@ def main():
                 print(f'{label}SuccessVerified {i} {count} {t.pts_delta_100ns}',flush=True)
             rows=stages[i-1]
             print(f'HDStageHandleDelta {i} window={rows[1].handles-rows[0].handles} device={rows[2].handles-rows[1].handles} pool={rows[3].handles-rows[2].handles} worker={rows[4].handles-rows[3].handles} close={rows[5].handles-rows[4].handles} join={rows[6].handles-rows[5].handles} scope={rows[7].handles-rows[6].handles} settle1={rows[8].handles-rows[7].handles} settle3={rows[9].handles-rows[8].handles}',flush=True)
-        print(f'{label}LifecycleComplete 3 1200 1; injected sink failure, descriptive retention evidence')
+        reason='observed target Closed after destruction' if target_closed else 'injected sink failure'
+        print(f'{label}LifecycleComplete 3 1200 1; {reason}, descriptive retention evidence')
 
 
 if __name__=='__main__': main()

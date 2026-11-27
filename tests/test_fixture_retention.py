@@ -53,4 +53,15 @@ class RetentionTests(unittest.TestCase):
         with self.assertRaises(ValueError): failure(data,1234)
 
 
+    def test_target_closed(self):
+        data=failed().replace('HDFaultOutcome sink-write-failure failed','HDTargetDestroyed 120\nHDTargetClosed 1\nHDFaultOutcome target-closed cancelled')
+        self.assertEqual(failure(data,1234,target_closed=True).reason,'target-closed')
+        for bad in (data.replace('HDTargetClosed 1','HDTargetClosed 2'),data.replace('HDTargetDestroyed 120\n',''),data+'\nHDTargetClosed 1',data.replace('HDTargetDestroyed 120\nHDTargetClosed 1','HDTargetClosed 1\nHDTargetDestroyed 120')):
+            with self.assertRaises(ValueError): failure(bad,1234,target_closed=True)
+        full=log().replace('HDLifecycleBegin 2 120\n','HDLifecycleBegin 2 120\n'+data+'\n')
+        self.assertEqual(len(evidence(full,True)[0]),3)
+        with self.assertRaises(ValueError): evidence(full)
+        with self.assertRaises(ValueError): evidence(log(),True)
+
+
 if __name__=='__main__': unittest.main()
