@@ -19,3 +19,5 @@ T41 adds submission/public/track_interval_claims.hpp: pure caller-supplied inter
 
 
 T42 adds track_coverage_claims.hpp, bounded explicit supplied coverage and pre-start/result-visible claims; no eligibility change. Proposed hosted submission architecture and owner requirements: [contract](../../../docs/contracts/HOSTED_SUBMISSION.md).
+
+T43 offline tools/hosted_text.py is a pure text-composition boundary: Easy defaults / Advanced edited text share one composer; separate protected and personal text, explicit attribution flags and limits, no transport, authentication, native dependencies or eligibility authority. UI/controller and persistent preferences are future consumers. See HOSTED_SUBMISSION.md; all provider-neutral publishing ports remain proposals.
