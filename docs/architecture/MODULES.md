@@ -59,3 +59,6 @@ T39 adds submission/public/track_claims.hpp, pure per-leg typed claim agreement 
 T40 adds submission/public/bound_track_claims.hpp: pure owned per-source run/session/attempt/leg keys and optional expected category track, malformed/conflicting/incomplete/consistent_claims only. Delegates to T39 comparison, no production admission or schema changes. Existing draft review unchanged. Not verified provenance, timing, coverage or native replay parsing. See ADR-030.
 
 T41 adds submission/public/track_interval_claims.hpp: pure caller-supplied interval containment and sequence/domain/key checks atop T40 comparison. Owned values, synchronous, no OS/engine/UI dependency, no schema/provenance/eligibility or actual coverage claim. Existing draft review unchanged. See ADR-031.
+
+
+T42 adds pure submission/public/track_coverage_claims.hpp over interval claims. Test-only active own-window destruction and Closed notification reuse standalone WGC fixture and retention parser. Provider-neutral future publishing boundaries documented in [HOSTED_SUBMISSION.md](../contracts/HOSTED_SUBMISSION.md); no production transport or credential dependencies.
