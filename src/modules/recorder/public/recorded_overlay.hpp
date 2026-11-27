@@ -1,5 +1,5 @@
 #pragma once
-#include "contracts/observation.hpp"
+#include "src/modules/recorder/public/overlay_observation.hpp"
 #include "src/modules/recorder/public/pixel_conversion.hpp"
 #include "src/modules/recorder/public/timed_frames.hpp"
 #include <array>
@@ -7,71 +7,6 @@
 #include <string>
 
 namespace supreme::recorder::overlay {
-using Tick=std::uint64_t; // 100 ns from the same epoch as TimedFrame.time
-struct Action {
-    std::array<char,8> label{}; // producer-supplied mapped action, not physical key
-    std::uint8_t length=0;
-    bool analog=false;
-    std::optional<std::int16_t> value; // digital 0/1; analog signed permille
-    bool valid() const noexcept {
-        if(!length || length>label.size())return false;
-        for(std::size_t i=0;i<length;++i){const char c=label[i];if(!((c>='A' && c<='Z') || (c>='0' && c<='9') || c=='-'))return false;}
-        return !value || (analog?*value>=-1000 && *value<=1000:*value==0 || *value==1);
-    }
-};
-enum class Recording { unknown, acquiring, stopping, incomplete };
-enum class Integrity { unknown, insufficient, anomaly, violation, no_known_anomaly };
-// Feature-local presentation snapshot, NOT a new engine event or verification contract.
-// Full replacement on every publish, including transitions and unavailable fields.
-struct Snapshot {
-    std::uint64_t capture=0,sequence=0;
-    Tick time=0;
-    Origin origin=Origin::unavailable;
-    std::uint64_t session=0,attempt=0;
-    std::optional<std::uint64_t> rta_ms,igt_ms;
-    std::array<Action,8> actions{};
-    std::size_t action_count=0;
-    Recording recording=Recording::unknown;
-    Integrity integrity=Integrity::unknown;
-    bool valid() const noexcept {
-        if(!capture || !sequence || (!session!=!attempt) || action_count>actions.size() ||
-           (origin!=Origin::unavailable && origin!=Origin::synthetic && origin!=Origin::native) ||
-           static_cast<unsigned>(recording)>static_cast<unsigned>(Recording::incomplete) ||
-           static_cast<unsigned>(integrity)>static_cast<unsigned>(Integrity::no_known_anomaly))return false;
-        if((origin==Origin::unavailable || !attempt) && (rta_ms || igt_ms || action_count))return false;
-        for(std::size_t i=0;i<action_count;++i){
-            if(!actions[i].valid())return false;
-            for(std::size_t j=0;j<i;++j)if(actions[i].length==actions[j].length &&
-                std::equal(actions[i].label.begin(),actions[i].label.begin()+actions[i].length,actions[j].label.begin()))return false;
-        }
-        return true;
-    }
-};
-enum class Availability { missing, stale, current };
-struct Selection { Availability availability=Availability::missing; std::optional<Snapshot> sample; };
-// One history per capture token; immutable value copies, bounded synchronized access.
-class History {
-    const std::uint64_t capture_;
-    mutable std::mutex mutex_;
-    std::array<Snapshot,256> entries_{};
-    std::size_t count_=0,next_=0;
-public:
-    static constexpr std::size_t capacity=256;
-    std::uint64_t capture() const noexcept{return capture_;}
-    explicit History(std::uint64_t capture):capture_(capture){if(!capture)throw std::invalid_argument("overlay capture");}
-    bool publish(const Snapshot& s){
-        if(s.capture!=capture_ || !s.valid())return false;
-        std::lock_guard<std::mutex> lock(mutex_);
-        if(count_){const auto& last=entries_[(next_+capacity-1)%capacity];if(s.sequence<=last.sequence || s.time<=last.time)return false;}
-        entries_[next_]=s;next_=(next_+1)%capacity;if(count_<capacity)++count_;return true;
-    }
-    Selection select(Tick time,Tick max_age) const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        for(std::size_t i=0;i<count_;++i){const auto& s=entries_[(next_+capacity-1-i)%capacity];
-            if(s.time<=time){if(time-s.time>max_age)return {Availability::stale,{}};return {Availability::current,s};}}
-        return {};
-    }
-};
 struct Layout {
     bool enabled=false;
     std::size_t width=480,height=128,x=8,y=8;
@@ -143,15 +78,20 @@ public:
     bool draw(Canvas& c,const Selection& v) override {
         std::size_t y=1;bool fit=true;
         auto put=[&](std::string_view t){if(!line(c,y,t)){fit=false;(void)line(c,y,"CLIPPED");}y+=8;};
-        if(v.availability!=Availability::current || !v.sample){put(v.availability==Availability::stale?"OBS STALE":"OBS UNKNOWN");return fit;}
+        if(v.availability!=Availability::current || !v.sample || !v.sample->valid()){
+            put(v.availability==Availability::stale?"OBS STALE":v.availability==Availability::ambiguous?"OBS AMBIGUOUS":"OBS UNKNOWN");
+            put("TRACK: UNKNOWN");put("CHECK UNKNOWN");return fit;
+        }
         const auto& s=*v.sample;
         put(s.origin==Origin::synthetic?"SYNTHETIC":s.origin==Origin::native?"NATIVE OBS":"OBS UNKNOWN");
         put("RTA: "+timer(s.rta_ms));put("IGT: "+timer(s.igt_ms));
         put(s.attempt?"SESSION: "+std::to_string(s.session):"SESSION UNKNOWN");
         put(s.attempt?"ATTEMPT: "+std::to_string(s.attempt):"ATTEMPT UNKNOWN");
+        std::string track(track_label(s));for(char& ch:track)if(ch>='a' && ch<='z')ch=static_cast<char>(ch-'a'+'A');
+        put("TRACK: "+track);
         constexpr std::array<std::string_view,4> recording{"REC UNKNOWN","REC ACQUIRING","REC STOPPING","REC INCOMPLETE"};
         constexpr std::array<std::string_view,5> integrity{"CHECK UNKNOWN","CHECK INSUFFICIENT","CHECK ANOMALY","CHECK VIOLATION","NO KNOWN ANOMALY"};
-        put(recording.at(static_cast<std::size_t>(s.recording)));put(integrity.at(static_cast<std::size_t>(s.integrity)));
+        put(recording.at(static_cast<std::size_t>(s.recording)));put(integrity.at(static_cast<std::size_t>(visible_integrity(s))));
         if(!s.action_count)put("INPUT UNKNOWN");
         for(std::size_t i=0;i<s.action_count;++i){const auto& a=s.actions[i];
             std::string value=a.value?(a.analog?std::to_string(*a.value)+"/1000":(*a.value?"ON":"OFF")):"UNKNOWN";
