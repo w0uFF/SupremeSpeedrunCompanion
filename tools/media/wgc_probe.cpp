@@ -337,9 +337,14 @@ struct ReuseFixture {
     std::optional<Window> window;
     cap::GraphicsCaptureItem item{nullptr};
     unsigned supports=0,windows=0,factories=0,items=0,sizes=0,sessions=0,starts=0,closes=0;
+    unsigned replacements=0;
     ReuseFixture(){
         if(!cap::GraphicsCaptureSession::IsSupported())throw std::runtime_error("WGC unavailable");
         ++supports;
+        create_window_item();
+    }
+    void create_window_item(){
+        if(window || item)throw std::runtime_error("persistent fixture already owns a target");
         window.emplace(true);
         if(!window->handle)throw std::runtime_error("persistent HD window creation");
         ++windows;pump();
@@ -352,9 +357,30 @@ struct ReuseFixture {
     }
     void require_window() const {
         DWORD pid=0;
-        if(!window || !IsWindow(window->handle) ||
+        if(!item || !window || !IsWindow(window->handle) ||
            GetWindowThreadProcessId(window->handle,&pid)!=GetCurrentThreadId() || pid!=GetCurrentProcessId())
             throw std::runtime_error("persistent HD own window unavailable");
+    }
+    // Called only after the preceding run's session, pool, sink and worker
+    // have left scope. No stale target is ever passed to CreateCaptureSession.
+    void replace_window(){
+        require_window();
+        if(starts!=closes || replacements)throw std::runtime_error("replacement outside settled scope");
+        const HWND old=window->handle;
+        if(!DestroyWindow(old))throw std::runtime_error("fixture window destruction failed");
+        window->handle=nullptr; // prevent a second DestroyWindow on the stale handle
+        if(IsWindow(old))throw std::runtime_error("destroyed window still live");
+        bool refused=false;
+        try{require_window();}catch(const std::runtime_error&){refused=true;}
+        if(!refused)throw std::runtime_error("stale target was admitted");
+        std::cout<<"HDReplaceRefused 1"<<std::endl;
+        item=nullptr;
+        window.reset();
+        pump();
+        create_window_item();
+        require_window();
+        ++replacements;
+        std::cout<<"HDReplaceReady 2"<<std::endl;
     }
     void reset_pattern(){
         require_window();
@@ -688,7 +714,8 @@ void lifecycle_sample(unsigned phase,bool gui=false){
     std::cout<<"HDLifecycleSample "<<phase<<" "<<GetCurrentProcessId()<<" "
              <<memory.PeakWorkingSetSize<<" "<<memory.WorkingSetSize<<" "<<memory.PrivateUsage<<" "<<handles<<std::endl;
 }
-int lifecycle(const std::filesystem::path& directory,bool faults=false,bool retention=false,bool finalize_failure=false,bool reuse_item=false){
+int lifecycle(const std::filesystem::path& directory,bool faults=false,bool retention=false,bool finalize_failure=false,bool reuse_item=false,bool replace_item=false){
+    if(replace_item && !reuse_item)return 2;
     if(reuse_item && (faults || retention || finalize_failure))return 2;
     if(!std::filesystem::is_directory(directory) || std::filesystem::is_symlink(directory))return 2;
     struct Segment {bool sustained;FixtureStop stop;};
@@ -721,17 +748,21 @@ int lifecycle(const std::filesystem::path& directory,bool faults=false,bool rete
         }
         lifecycle_sample(i+1,faults||retention);
         std::cout<<"HDLifecycleEnd "<<i+1<<std::endl;
+        if(replace_item && i==0)reuse->replace_window();
     }
     if(reuse){
-        std::cout<<"HDReuseCounts "<<reuse->supports<<" "<<reuse->windows<<" "<<reuse->factories<<" "
-                 <<reuse->items<<" "<<reuse->sizes<<" "<<reuse->sessions<<" "<<reuse->starts<<" "<<reuse->closes<<std::endl;
+        std::cout<<(replace_item?"HDReplaceCounts ":"HDReuseCounts ")<<reuse->supports<<" "<<reuse->windows<<" "<<reuse->factories<<" "
+                 <<reuse->items<<" "<<reuse->sizes<<" "<<reuse->sessions<<" "<<reuse->starts<<" "<<reuse->closes;
+        if(replace_item)std::cout<<" "<<reuse->replacements;
+        std::cout<<std::endl;
         reuse.reset();
     }
     return 0;
 }
 }
 int wmain(int argc,wchar_t** argv){
-    const bool reuse=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-reuse-lifecycle";
+    const bool replace=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-replace-lifecycle";
+    const bool reuse=replace || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-reuse-lifecycle");
     const bool faults=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-fault-lifecycle";
     const bool item=argc==4 && std::wstring_view(argv[1])==L"--isolate-wgc-item";
     const bool once=argc==4 && std::wstring_view(argv[1])==L"--isolate-wgc-once";
@@ -744,7 +775,7 @@ int wmain(int argc,wchar_t** argv){
     const bool finalize_failure=argc==3 && std::wstring_view(argv[1])==L"--live-hd720-finalize-failure-lifecycle";
     const bool retention=finalize_failure || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-write-failure-lifecycle");
     if(reuse || retention || faults || (argc==3 && std::wstring_view(argv[1])==L"--live-hd720-lifecycle")){
-        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]),faults,retention,finalize_failure,reuse);}
+        try{Apartment apartment;return lifecycle(std::filesystem::path(argv[2]),faults,retention,finalize_failure,reuse,replace);}
         catch(const winrt::hresult_error& e){std::cerr<<"HD lifecycle HRESULT "<<winrt::to_string(e.message())<<'\n';return 1;}
         catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     }

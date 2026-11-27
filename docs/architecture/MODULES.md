@@ -57,3 +57,5 @@ T35 fixture-only sink write counter and post-join injection evidence; production
 T39 adds submission/public/track_claims.hpp, pure per-leg typed claim agreement using categories public catalog only. No runtime source, archive parser, video/replay inspection, attempt binding, proof or eligibility. Existing draft review unchanged. Tested in workflow target and standalone smoke; native tests pending. See docs/product/COMMUNITY_ACCEPTANCE.md.
 
 T40 adds submission/public/bound_track_claims.hpp: pure owned per-source run/session/attempt/leg keys and optional expected category track, malformed/conflicting/incomplete/consistent_claims only. Delegates to T39 comparison, no production admission or schema changes. Existing draft review unchanged. Not verified provenance, timing, coverage or native replay parsing. See ADR-030.
+
+T41 adds submission/public/track_interval_claims.hpp: pure caller-supplied interval containment and sequence/domain/key checks atop T40 comparison. Owned values, synchronous, no OS/engine/UI dependency, no schema/provenance/eligibility or actual coverage claim. Existing draft review unchanged. See ADR-031.

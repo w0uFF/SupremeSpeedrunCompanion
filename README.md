@@ -88,3 +88,5 @@ T38 verified in isolated Windows fixtures: one-time support and factory-only con
 T39 verified in isolated Windows fixtures: repeated capture-item creation +1 settled handles per scope; reused-item Size and session setup flat across six scopes. Track-claim workflow and PR66 PASS. Conditional moderator support; demonstration pending, no rule change. See [community acceptance record](docs/product/COMMUNITY_ACCEPTANCE.md).
 
 T40 verified in isolated Windows fixtures: same-item actual acquisition600/1200/600 independently decoded, settled handles360/360/362. Bound-track workflow and PR66 PASS. No leak-free or production-cache claim. No gameplay/install/rule change.
+
+T41 candidate (branch only): separate destroyed-target refusal and replacement acquisition fixture, bound interval claims, portable parser6/6 and standalone C++108 assertions PASS; Windows/PR66 pending. No game integration, install or rule change.

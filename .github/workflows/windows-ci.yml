@@ -135,7 +135,7 @@ jobs:
 
   capture-probes:
     runs-on: windows-latest
-    timeout-minutes: 36
+    timeout-minutes: 39
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -150,7 +150,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build capture-build --config Release --target p0_wgc_probe p0_process_audio_probe p0_media_probe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ctest --test-dir capture-build -C Release -R "^p0_(wgc|process_audio|process_audio_sample|captured_video|timed_video|live_video|live_long_video|live_extended_video|live_marathon_video|live_hd720_video|live_hd720_extended_video|live_hd720_repeat_video|live_hd720_lifecycle_video|live_hd720_fault_lifecycle_video|live_hd720_write_failure_video|live_hd720_finalize_failure_video|retention_isolation|wgc_refinement|wgc_once|wgc_item|live_hd720_reuse_lifecycle_video)_probe$" --verbose --no-tests=error
+          ctest --test-dir capture-build -C Release -R "^p0_(wgc|process_audio|process_audio_sample|captured_video|timed_video|live_video|live_long_video|live_extended_video|live_marathon_video|live_hd720_video|live_hd720_extended_video|live_hd720_repeat_video|live_hd720_lifecycle_video|live_hd720_fault_lifecycle_video|live_hd720_write_failure_video|live_hd720_finalize_failure_video|retention_isolation|wgc_refinement|wgc_once|wgc_item|live_hd720_reuse_lifecycle_video|live_hd720_replace_lifecycle_video)_probe$" --verbose --no-tests=error
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   storage-probe:

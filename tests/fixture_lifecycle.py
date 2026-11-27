@@ -103,3 +103,15 @@ def reuse_split(text):
     if not rows or rows[-1]!=marker or [line for line in rows if line.startswith('HDReuse')]!=[marker]:
         raise ValueError('reuse counts or marker order')
     return split(text)
+
+
+def replace_split(text):
+    rows=text.splitlines()
+    markers=['HDReplaceRefused 1','HDReplaceReady 2','HDReplaceCounts 1 2 2 2 3 3 3 3 1']
+    if not rows or rows[-1]!=markers[-1] or [line for line in rows if line.startswith(('HDReplace','HDReuse'))]!=markers:
+        raise ValueError('replacement counts or markers')
+    clips,resources=split(text)
+    end=rows.index('HDLifecycleEnd 1')
+    if rows[end+1:end+3]!=markers[:2] or rows[end+3]!='HDLifecycleBegin 2 1200':
+        raise ValueError('replacement outside inter-scope boundary')
+    return clips,resources
