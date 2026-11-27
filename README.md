@@ -6,7 +6,7 @@ Supreme Speedrun Companion (SSC) is an optional Windows mod in development for S
 
 SSC is **not a new version of Time Attack, a replacement for Online Time Attack, or a compulsory anti-cheat**. It is a companion for the existing game and its speedrunning community, intended to bring recording, timing, quick retries, run management and submission preparation into one place.
 
-> **Development status: v0.0.33-p0 (verified isolated baseline) — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, native run-library storage and verified offline archive indexing and read-only recovery inspection, synthetic A/V encoding, concurrent timestamped isolated test-window video capture (up to 1,200 selected frames per clip; same-process success/cancellation fixtures), synthetic-only admission model and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
+> **Development status: v0.0.33-p0 (verified isolated baseline; T43 candidate v0.0.34-p0) — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, native run-library storage and verified offline archive indexing and read-only recovery inspection, synthetic A/V encoding, concurrent timestamped isolated test-window video capture (up to 1,200 selected frames per clip; same-process success/cancellation fixtures), synthetic-only admission model and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
 
 ## Why build it?
 
@@ -41,7 +41,13 @@ These are product goals, not a list of features available today. See [developmen
 
 Players must remain free to use the original game, community mods and existing recording methods. SSC is intended to work alongside the Community Launcher and other compatible mods, not to replace Xinfe's Online Time Attack, which has its own replay-upload workflow.
 
-Current reported Speedrun.com rules require video showing track and difficulty selection from the main menu, and use the game's displayed finish time. The proposed alternative is to allow approved SSC-generated evidence to establish those selections without recording the main menu every time. **That alternative requires moderator approval and is not in force.** Until then, automatic-only recording is not established to meet menu-proof requirements; the planned manual recording mode preserves the existing workflow. No approval or endorsement is implied. No physics, difficulty or competition rules should be changed silently.
+Current reported Speedrun.com rules require video showing track and difficulty selection from the main menu and use the game's displayed finish time.
+
+The proposed SSC alternative would display the actual loaded track and difficulty directly in the recorded gameplay, removing the need to record the main menu for every run.
+
+The idea has received positive feedback from a Speedrun.com moderator, who is supportive of the approach and would like to see representative SSC gameplay footage. Demonstrating this workflow is one of SSC's key development objectives.
+
+Traditional recording methods will remain supported, and SSC will always remain optional. Existing eligibility checks remain unchanged pending final confirmation.
 
 ## Community integration and development
 
@@ -93,3 +99,5 @@ T41 candidate (branch only): separate destroyed-target refusal and replacement a
 
 
 T41 verified settled target replacement and interval-bound track claims; T42 verifies isolated active target closure and coverage checks. Future hosted-video submission uses the direct supplementary evidence link in Speedrun.com Notes and automatically uploaded video descriptions; see [hosted submission contract](docs/contracts/HOSTED_SUBMISSION.md). No actual game or online submission.
+
+T43 prioritizes the real Windows baseline and demonstration prerequisites; Easy and Advanced hosted submission modes are planned, with an offline text composer only. See [Windows baseline](docs/testing/WINDOWS_BASELINE.md) and [hosted submission contract](docs/contracts/HOSTED_SUBMISSION.md).
