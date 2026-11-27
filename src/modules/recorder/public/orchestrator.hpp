@@ -37,6 +37,7 @@ struct Report {
     std::optional<Id> acquired_ms, stop_boundary_ms;
     bool stop_boundary_reached=false;
     bool incomplete=false;
+    bool terminal_stats_consistent=false;
     State terminal=State::starting;
     Stats stats{};
     std::array<StreamQuality,2> quality{};
@@ -68,6 +69,25 @@ class Orchestrator {
     }
     static AttemptRecord* latest(Slot& s) noexcept {
         return s.report.attempts.empty()?nullptr:&s.report.attempts.back();
+    }
+    static bool consistent(const Stats& stats,const std::array<StreamQuality,2>& q) noexcept {
+        const auto sum=[](Id total,Id a,Id b){return a<=total && b==total-a;};
+        if(!sum(stats.accepted,stats.written,stats.discarded) ||
+           !sum(stats.accepted,q[0].accepted,q[1].accepted) ||
+           !sum(stats.written,q[0].written.packets,q[1].written.packets) ||
+           !sum(stats.discarded,q[0].discarded,q[1].discarded) ||
+           !sum(stats.dropped_full,q[0].dropped_full,q[1].dropped_full) ||
+           q[0].rejected_invalid>stats.rejected_invalid ||
+           q[1].rejected_invalid>stats.rejected_invalid-q[0].rejected_invalid)return false;
+        for(const auto& stream:q){
+            const auto& w=stream.written;
+            if(!sum(stream.accepted,w.packets,stream.discarded))return false;
+            if(w.packets){
+                if(w.end<=w.first || w.duration<w.packets || w.duration>w.end-w.first)return false;
+            }else if(w.first || w.end || w.duration)return false;
+            if((!stream.dropped_full && stream.dropped_duration) || stream.dropped_duration<stream.dropped_full)return false;
+        }
+        return true;
     }
     void close(Slot& s,Id ms,bool cancel,bool incomplete) noexcept {
         auto& r=s.report;
@@ -179,7 +199,8 @@ public:
             r.incomplete=true;r.ledger.failure();
         }
         r.stop_boundary_reached=r.stop_boundary_ms.has_value() && stop_boundary_reached;
-        if(!r.stop_boundary_reached || !quality[0].written.packets || stats.dropped_full || stats.rejected_invalid || stats.discarded || stats.accepted!=stats.written)r.incomplete=true;
+        r.terminal_stats_consistent=consistent(stats,quality);
+        if(!r.terminal_stats_consistent || !r.stop_boundary_reached || !quality[0].written.packets || stats.dropped_full || stats.rejected_invalid || stats.discarded || stats.accepted!=stats.written)r.incomplete=true;
         r.terminal=state;r.stats=stats;r.quality=quality;s->phase=Phase::terminal;
         if(active_==capture)active_=0;
         return true;
