@@ -130,3 +130,5 @@ T45 candidate isolated regression passed; actual game/launcher, geometry, human 
 T46: orchestration candidate simulated backend only; actual command delivery/cleanup/clock/target lease and persistent recovery, media adapter, audio and native events remain blocked. Successor counter consistency is not coverage evidence. G1/G2/license unchanged. B-REC-02/02b pending full review.
 
 T46 exact candidate isolated regression passed; native loader/observations/audio and licensing still blocked. See PROJECT_STATUS for B review and remaining track overlay/target/clock/cleanup concerns. No new runtime authority.
+
+T47 candidate: B-REC-02/02b/02c source reviewed; Windows verification pending. Cooperative deadlines cannot interrupt hung factory/source/codec/cleanup. Ready versus first-frame acquisition distinct; no production storage reservation/quota, actual clock/target lease, gameplay recording/audio or native observation. Overlay/persistent output separate. Existing rules/manual fallback unchanged.

@@ -128,3 +128,5 @@ Existing workflow review: .github/workflows/windows-ci.yml development-release i
 T45 exact postmerge45939042388/45939042392 PASS isolated scope, release skipped. T46 expected54 core, no workflow changes or publication; license and release metadata gates remain.
 
 T46 exact candidate Windows45968609709 core54/54 each, media6, capture22 PASS/1 audio SKIP, storage/entry PASS; PR6645968583059 PASS. Release skipped; no workflow/licensing/approval changes. Final-doc CI pending.
+
+T46 final-doc45980708182 and exact postmerge45985091749/45985091766 PASS isolated scope; release skipped. T47 expected57 core each with three appended tests, no new workflow or capture experiment. Existing media/capture regressions required due to shared fixture facade extraction. No license, publication or approval gate changes.
