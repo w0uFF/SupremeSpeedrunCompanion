@@ -9,7 +9,7 @@ using categories::Track;
 Snapshot sample(std::uint64_t seq,Tick time,Track track=Track::alpine_easy){
     Snapshot s;s.capture=5;s.sequence=seq;s.time=time;s.origin=Origin::synthetic;s.session=10;s.attempt=1;
     s.rta_ms=100;s.igt_ms=90;s.recording=Recording::acquiring;s.integrity=Integrity::no_known_anomaly;
-    s.actions[0]={{'J','U','M','P'},4,false,0};s.action_count=1;s.validated_loaded_track=track;return s;
+    s.actions[0]={{'J','U','M','P'},4,false,std::int16_t{0}};s.action_count=1;s.validated_loaded_track=track;return s;
 }
 bool catalog_labels(){
     constexpr std::array<std::string_view,9> expected{"Alpine - easy","Alpine - medium","Alpine - hard","Forest - easy","Forest - medium","Forest - hard","Village - easy","Village - medium","Village - hard"};
@@ -77,7 +77,7 @@ bool integrity_states(){
 }
 struct Failure final:Renderer {bool draw(Canvas& c,const Selection&) override {c.pixel(0,0,255);throw std::runtime_error("renderer");}};
 bool composition(){
-    History h(5);auto s=sample(1,100);s.action_count=8;for(std::size_t i=0;i<8;++i)s.actions[i]={{'A',static_cast<char>('0'+i)},2,false,1};CHECK(h.publish(s));
+    History h(5);auto s=sample(1,100);s.action_count=8;for(std::size_t i=0;i<8;++i)s.actions[i]={{'A',static_cast<char>('0'+i)},2,false,std::int16_t{1}};CHECK(h.publish(s));
     BitmapRenderer r;Layout l;l.enabled=true;l.x=4;l.y=6;l.width=400;l.height=128;l.max_age=100;
     TimedFrame input{100,std::vector<std::uint8_t>(480*160*3/2,99)};const auto original=input.pixels;
     Composer good(h,r,l,480,160);auto result=good.compose(input);CHECK(result.state==ComposeState::rendered && result.frame && result.frame->time==100 && input.pixels==original);

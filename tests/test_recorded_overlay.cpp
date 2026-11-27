@@ -9,7 +9,7 @@ using namespace supreme::recorder::overlay;
 Snapshot snap(std::uint64_t seq,Tick time,std::uint64_t attempt=1){
     Snapshot s;s.capture=5;s.sequence=seq;s.time=time;s.origin=Origin::synthetic;s.session=10;s.attempt=attempt;
     s.rta_ms=1234;s.igt_ms=567;s.recording=Recording::acquiring;s.integrity=Integrity::insufficient;
-    s.actions[0]={{'T','U','R','N'},4,true,-1000};s.actions[1]={{'J','U','M','P'},4,false,0};s.action_count=2;return s;
+    s.actions[0]={{'T','U','R','N'},4,true,std::int16_t{-1000}};s.actions[1]={{'J','U','M','P'},4,false,std::int16_t{0}};s.action_count=2;return s;
 }
 TimedFrame frame(Tick t,std::size_t w=480,std::size_t h=160){return {t,std::vector<std::uint8_t>(w*h*3/2,99)};}
 Layout layout(){Layout l;l.enabled=true;l.x=4;l.y=6;l.width=400;l.height=128;l.max_age=100;return l;}
@@ -33,8 +33,8 @@ bool history_alignment(){
 }
 bool validation_and_capacity(){
     History h(5);auto a=snap(1,100);a.capture=6;CHECK(!h.publish(a));a.capture=5;
-    a.actions[0].value=-1001;CHECK(!h.publish(a));a.actions[0].value=1000;a.actions[1].value=2;CHECK(!h.publish(a));
-    a.actions[1].value=0;a.actions[1].label[0]='\n';CHECK(!h.publish(a));a=snap(1,100);a.actions[1]=a.actions[0];CHECK(!h.publish(a));
+    a.actions[0].value=std::int16_t{-1001};CHECK(!h.publish(a));a.actions[0].value=std::int16_t{1000};a.actions[1].value=std::int16_t{2};CHECK(!h.publish(a));
+    a.actions[1].value=std::int16_t{0};a.actions[1].label[0]='\n';CHECK(!h.publish(a));a=snap(1,100);a.actions[1]=a.actions[0];CHECK(!h.publish(a));
     a=snap(1,100);a.action_count=9;CHECK(!h.publish(a));a=snap(1,100);a.session=0;CHECK(!h.publish(a));
     a=snap(1,100);a.origin=Origin::unavailable;CHECK(!h.publish(a));
     for(std::uint64_t i=1;i<=History::capacity+2;++i)CHECK(h.publish(snap(i,i)));
