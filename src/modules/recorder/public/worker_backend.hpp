@@ -48,6 +48,7 @@ using Notification=std::variant<Acquired,Completion>;
 struct BackendLimits {
     std::size_t slots=8, max_packet=2u*1024u*1024u;
     std::chrono::milliseconds ready{5000}, idle{5000}, stop{5000};
+    LookaheadPolicy timeline{}; // explicit extended opt-in, legacy default
 };
 // Offline video adapter. Fixed mailboxes; Worker owns encoding, lanes own sources.
 // Construct/join/destroy outside game/UI callbacks; owner methods never join.
@@ -88,8 +89,8 @@ class WorkerBackend final:public Backend {
         }
         if(worker.state()!=State::running)return BackendEnd::worker_failed;
         if(Clock::now()>=l.ready_deadline)return BackendEnd::timeout;
-        // One lane-owned allocation; keep the validated fixture helper unchanged.
-        auto look=std::make_unique<FrameLookahead>(media.frame_bytes);
+        // One lane-owned allocation; timeline policy is immutable for this backend.
+        auto look=std::make_unique<FrameLookahead>(media.frame_bytes,limits_.timeline);
         auto idle_deadline=Clock::now()+limits_.idle;
         Id last_ms=0;
         for(;;){
@@ -184,7 +185,7 @@ public:
     explicit WorkerBackend(MediaFactory& factory,BackendLimits limits={}):factory_(factory),limits_(limits){
         const auto valid=[](Ms d){return d.count()>0 && d<=Ms(60000);};
         if(!limits.slots || limits.slots>128 || !limits.max_packet || limits.max_packet>16u*1024u*1024u ||
-           limits.slots>32u*1024u*1024u/limits.max_packet || !valid(limits.ready) || !valid(limits.idle) || !valid(limits.stop))
+           limits.slots>32u*1024u*1024u/limits.max_packet || !valid(limits.ready) || !valid(limits.idle) || !valid(limits.stop) || !limits.timeline.valid())
             throw std::invalid_argument("backend limits");
         try {for(auto& l:lanes_)l.thread=std::thread([this,p=&l]{loop(*p);});}
         catch(...){join();throw;}
