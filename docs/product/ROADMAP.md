@@ -131,3 +131,9 @@ G1 actual Windows baseline, provenance review, then installed-disabled/rollback 
 T43 offline composition and existing regression suite verified; next native readiness increment must preserve G1 and focus on evidence-backed registry/sequence dispatch and inert loader package readiness rather than extending capture fixtures. Do not infer support from synthetic loader tests.
 
 T44: read-only menu/loader observation CLI and separate synthetic tests; no production use or G1 change. See [NATIVE_MENU_READINESS.md](../contracts/NATIVE_MENU_READINESS.md). No new capture fixture; focus on real native boundary and provenance.
+
+T45: actual resource consumer and natural race-mode call path mapped statically; see [Time Attack lifecycle](../engine/TIME_ATTACK_LIFECYCLE.md). G1 remains blocked on installed-loader provenance and actual launch/exit/rollback; no redundant capture fixture or new code version for research-only scope.
+
+T45 candidate: bounded offline reference-level classifier and standalone CTest; static resource factory, scene attachment, sampling and teardown mapped. After candidate regression, prioritize G1 disposable baseline, exact loader provenance and authorized installed-disabled/rollback. No further capture experiments; then review actual loaded identity/controller/result observation for G2. No change to COMMUNITY-001 or DEMO-TRACK-01.
+
+T45 candidate automated regression PASS; documentation regression/promotion pending. Owner-approved GitHub Releases distribution for non-installable development pre-releases and later beta/stable (ADR-035); license and explicit manifest/test-scope review before first publication. Prioritize actual G1 baseline and loader provenance; no extra capture experiment.
