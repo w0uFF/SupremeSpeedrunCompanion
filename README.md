@@ -6,7 +6,7 @@ Supreme Speedrun Companion (SSC) is an optional Windows mod in development for S
 
 SSC is **not a new version of Time Attack, a replacement for Online Time Attack, or a compulsory anti-cheat**. It is a companion for the existing game and its speedrunning community, intended to bring recording, timing, quick retries, run management and submission preparation into one place.
 
-> **Development status: v0.0.34-p0 (verified isolated baseline) — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, native run-library storage and verified offline archive indexing and read-only recovery inspection, synthetic A/V encoding, concurrent timestamped isolated test-window video capture (up to 1,200 selected frames per clip; same-process success/cancellation fixtures), synthetic-only admission model and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
+> **Development status: v0.0.34-p0 (verified isolated baseline; T44 candidate v0.0.35-p0) — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, native run-library storage and verified offline archive indexing and read-only recovery inspection, synthetic A/V encoding, concurrent timestamped isolated test-window video capture (up to 1,200 selected frames per clip; same-process success/cancellation fixtures), synthetic-only admission model and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
 
 ## Why build it?
 
@@ -101,3 +101,5 @@ T41 candidate (branch only): separate destroyed-target refusal and replacement a
 T41 verified settled target replacement and interval-bound track claims; T42 verifies isolated active target closure and coverage checks. Future hosted-video submission uses the direct supplementary evidence link in Speedrun.com Notes and automatically uploaded video descriptions; see [hosted submission contract](docs/contracts/HOSTED_SUBMISSION.md). No actual game or online submission.
 
 T43 prioritizes the real Windows baseline and demonstration prerequisites; Easy and Advanced hosted submission modes are planned, with an offline text composer only. See [Windows baseline](docs/testing/WINDOWS_BASELINE.md) and [hosted submission contract](docs/contracts/HOSTED_SUBMISSION.md).
+
+T44 adds a [read-only native menu readiness diagnostic](docs/contracts/NATIVE_MENU_READINESS.md), not a playable or installable mod.
