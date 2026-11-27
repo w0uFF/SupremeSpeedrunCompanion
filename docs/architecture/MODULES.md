@@ -66,3 +66,5 @@ T42 adds pure submission/public/track_coverage_claims.hpp over interval claims. 
 T43 offline tools/hosted_text.py is a pure text-composition boundary: Easy defaults / Advanced edited text share one composer; separate protected and personal text, explicit attribution flags and limits, no transport, authentication, native dependencies or eligibility authority. UI/controller and persistent preferences are future consumers. See HOSTED_SUBMISSION.md; all provider-neutral publishing ports remain proposals.
 
 T44: read-only menu/loader observation CLI and separate synthetic tests; no production use or G1 change. See [NATIVE_MENU_READINESS.md](../contracts/NATIVE_MENU_READINESS.md). No new capture fixture; focus on real native boundary and provenance.
+
+T45: engine_bridge/reference_level_path.hpp is a pure standalone lexical adapter depending only on existing categories catalog. It emits candidate reference kind/track/weather; no observation/admission, filesystem, engine, submission or bootstrap dependency. Remove the header, test and CTest independently to roll back. Unknown is not a violation.
