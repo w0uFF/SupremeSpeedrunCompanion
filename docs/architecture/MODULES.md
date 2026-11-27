@@ -68,3 +68,5 @@ T43 offline tools/hosted_text.py is a pure text-composition boundary: Easy defau
 T44: read-only menu/loader observation CLI and separate synthetic tests; no production use or G1 change. See [NATIVE_MENU_READINESS.md](../contracts/NATIVE_MENU_READINESS.md). No new capture fixture; focus on real native boundary and provenance.
 
 T45: engine_bridge/reference_level_path.hpp is a pure standalone lexical adapter depending only on existing categories catalog. It emits candidate reference kind/track/weather; no observation/admission, filesystem, engine, submission or bootstrap dependency. Remove the header, test and CTest independently to roll back. Unknown is not a violation.
+
+T46 candidate: recorder/public/orchestrator.hpp B-owned application layer depends only on public ledger/session/worker quality and injected Backend. One owner, four slots and 128 markers, explicit prepare/manual/start/result/stop/cancel and terminal report, terminal counter coherence. No bootstrap registration, engine pointers, IO or eligibility. Standalone P0_recorder_orchestrator. Omit feature header/test/registration to roll back. B-REC-02/02b independent review pending.
