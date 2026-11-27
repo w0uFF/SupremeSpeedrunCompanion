@@ -117,3 +117,6 @@ T47 candidate integrates reusable asynchronous video backend, timeline policy an
 T47 candidate, final documentation and post-merge Windows automated regressions passed including the reusable MF extraction, synthetic A/V and all existing isolated capture fixtures; actual gameplay capture and audio remain unavailable.
 
 T48 candidate adds optional offline recorded-overlay composition and typed track/difficulty presentation. Native observations and actual gameplay recording are not implemented; see [ADR-038](docs/architecture/ADR-038.md).
+
+
+T48 correction (A-0019): original Windows46024807447 core compilation failed C4244/C2220 in two overlay tests. Exact B-REC-03c successor 766a8be00978f92ce568d66f33a865f491e09202 changes only eight explicit int16_t literals; tests and strict warnings unchanged. B reports full portable targets6/6 and5/5 each configuration, dependency regressions passed. Corrected Windows/PR66 pending; no promotion. See PROJECT_STATUS and ADR-038. No native activation, extra capture experiment or rule change.
