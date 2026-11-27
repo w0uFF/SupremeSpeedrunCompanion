@@ -145,3 +145,5 @@ T46 exact candidate regression PASS, final-doc CI/promotion pending. B-REC-02/02
 T46 main v0.0.37-p0 fully verified isolated scope. T47 v0.0.38-p0 media integration candidate expected57 core; overlay successor expected59 and persistent output expected60 separate reviews. B-RUN-01 independent. A native prerequisite remains disposable no-install Windows baseline and actual loader provenance, then reviewed installed-disabled/rollback gate. No new capture experiment.
 
 T47 candidate automated PASS, final-doc CI/promotion pending. After verified main, overlay expected59, persistence expected60 separate review/validation; B-RUN-01 independent. G1 actual loader/disposable baseline remains primary native prerequisite; static Time_Race_Controller mapping narrows candidate but is not runtime proof.
+
+T47 main v0.0.38-p0 fully verified isolated scope. T48 v0.0.39-p0 overlay candidate expected59. Persistence60/history61/annotation62/archive exchange63 separate review/gates, B-VAL-01 parallel. G1 actual installed-loader identity and disposable baseline primary native prerequisite, not more capture experiments.

@@ -132,3 +132,5 @@ T46 exact candidate Windows45968609709 core54/54 each, media6, capture22 PASS/1 
 T46 final-doc45980708182 and exact postmerge45985091749/45985091766 PASS isolated scope; release skipped. T47 expected57 core each with three appended tests, no new workflow or capture experiment. Existing media/capture regressions required due to shared fixture facade extraction. No license, publication or approval gate changes.
 
 T47 exact candidate Windows45992552398 core57/57 both, media6 incl actual synthetic AAC decode, capture22 PASS/1 existing audio SKIP, storage/entry PASS; PR6645992535519 PASS. Release skipped. Final-doc CI pending, no workflow/license change.
+
+T47 final-doc45996294006 and exact postmerge46012420344/46012420429 PASS isolated scope, release skipped. T48 expected59 core tests with two appended registrations; full original overlay/backend scenario required, prior media/capture/PR66 regression unchanged. No workflow or release gate changes.
