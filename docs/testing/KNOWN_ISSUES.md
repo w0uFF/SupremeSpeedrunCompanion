@@ -132,3 +132,5 @@ T46: orchestration candidate simulated backend only; actual command delivery/cle
 T46 exact candidate isolated regression passed; native loader/observations/audio and licensing still blocked. See PROJECT_STATUS for B review and remaining track overlay/target/clock/cleanup concerns. No new runtime authority.
 
 T47 candidate: B-REC-02/02b/02c source reviewed; Windows verification pending. Cooperative deadlines cannot interrupt hung factory/source/codec/cleanup. Ready versus first-frame acquisition distinct; no production storage reservation/quota, actual clock/target lease, gameplay recording/audio or native observation. Overlay/persistent output separate. Existing rules/manual fallback unchanged.
+
+T47 actual Windows fixture regression PASS; production source/target/clock lease, concrete output binding, hung platform call handling and actual game audio remain blocked. B-REC-04 source reviewed for offline scope only: caller-private Windows ACL, fixed volume, reparse/Unicode/cross-process and durability validation pending; finalized_claim is not codec/authority proof.
