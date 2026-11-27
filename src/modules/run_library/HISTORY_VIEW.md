@@ -1,0 +1,50 @@
+# B-RUN-01 — Read-only history and recovery presentation (offline candidate)
+
+Status: implemented, local portable automated tests PASS. Native menu, real archive-source binding, Windows/SQLite integration and full runtime NOT_RUN. No storage/schema changes.
+
+## Boundary and decisions
+
+Reuse QueryRepository, Record, Annotation, Comparison and record_validation.hpp unchanged. public/history_view.hpp is the application read projection over a const injected QueryRepository; public/recovery_view.hpp adds explicit archive and recording recovery queries. No new DB, archive verifier, record-admission service, game observation schema, controller mutation or filesystem traversal. Existing NativeRepository remains an owner-thread synchronous derived index, not evidence authority. Composition root should construct its read-only connection and call these queries on its I/O owner thread, never in the frame hook or native UI rendering callback; publish copies to a view. Borrowed dependencies outlive History/Recovery. No persistent state or background thread in either class. Optional recovery dependencies may be absent; history still works. No automatic retry, repair, promotion or deletion.
+
+History::recent defaults to scanning newest 200 insertion-order records and returning at most 50; configurable scan 1..1000, row 1..100 and no larger than scan. Existing repository insertion order is not race chronology. Filter exact origin/status/category, optional favorites, or explicit Comparison namespace (exact category/profile/event_semantics plus IGT or RTA). Time ordering is ascending raw integer values within the bounded subset and namespace, unknown last, tie by run ID; zero is not missing. It is not a ranking or PB. Never calls best_local because trusted native local admission and approved comparison mapping remain blocked. Stored origin, including local, is an index claim; do not show it as independently admitted/verified. No date/rider/board/tag/search fields absent from the existing schema, no global count or pagination cursor. scan_limit_reached means the source returned the full requested bound (possibly more elsewhere); row_limit_reached means matching rows were truncated after filtering/order. Not global search.
+
+Validate inputs before I/O; validate all returned records and uniqueness, reject oversized response or wrong detail identity; no partial results from malformed record sets. ReadState distinguishes available/absent/unavailable/invalid_data (empty successful history still available). Existing repository exceptions map to unavailable, not missing. Each annotation is a separate value copy; missing, invalid, unavailable are explicit, invalid/unavailable never interpreted as favorite. For favorites-only results annotation_errors counts uncertain exclusions, so empty is not a proof of no favorites. Read projection never calls insert/annotate/best_local. No persistent mutation; returned values do not reference repository buffers. Up to 1000 annotation reads; no latency measurements or consistent read transaction across repository calls. Caller must serialize with writes or accept a changing snapshot; no UI-thread polling. Bounds constrain cooperating adapters, not memory allocated inside arbitrary malicious port implementations.
+
+## Archive recovery
+
+ArchiveSource is a narrow feature-local injected read adapter: map existing tools/archive_status.py inspection after checked archive verification and native read-only compare/presence, not manifest claims or raw input JSON. Existing ARCHIVE_INDEX.md nonlocal workflow and SYNTHETIC_RECOVERY.md remain authoritative for actual publication/reconciliation. Source must run against same index in caller-owned quiescent directory, preserve imported/synthetic provenance, report exact run ID/origin/archive state/index state/digest. For identical status it must also supply the exact nonlocal Record projection that was independently compared (from the existing index_archive.project pass, not a reconstructed record from display fields). Existing public JSON status only exposes digest/status, not full projection: adapter binding must retain the actual comparison payload from trusted controller; JSON alone cannot produce matching_nonlocal_index. Adapter not implemented or invoked this increment. No Python process or parsing dependency in C++.
+
+Recovery::archive accepts explicit run ID and origin; local returns unsupported_local before any read. Validate facts, enum, ID/origin/digest, consistency and required full projection. Re-read actual index record through QueryRepository, validate identity, presence and exact full compared Record via identical(). Never construct/insert a run record from media markers or archive metadata; returned indexed_record is the actual index copy. A matched nonlocal index is a verified-archive/index consistency presentation from a trusted read adapter, not authenticated gameplay, complete evidence, eligibility or local authority. Store and archive observations are not atomic, no cross-store transaction/TOCTOU defense. Known inconsistency stays review; missing source or unavailable verification/index cannot mean absent. Incomplete race status can coexist with finalized ZIP.
+
+| Verified archive state | Index state | Disposition |
+| --- | --- | --- |
+| absent | missing | absent |
+| absent | present with matching origin | orphan_index |
+| pending | missing | pending_publication |
+| finalized | missing | finalized_unindexed |
+| finalized | identical with exact full current projection | matching_nonlocal_index |
+| finalized with pending alias | missing or identical | pending_alias_review |
+| separate pending conflict, malformed, conflicting/stale identity/projection, other inconsistent states | any | review_required |
+| unavailable source/index | — | unavailable (known invalid/conflict remains visible in facts) |
+
+No action executes from a disposition. Explicit recovery controller may later re-inspect and route to already-existing verified nonlocal operations. No eligibility/PB/export authorization.
+
+## Recording recovery
+
+Recovery::media consumes existing recorder::staging::Store const interface and staging::inspect unchanged, explicit caller-supplied list max64 unique validated tokens, validate entire list before any I/O. Requires caller attestation that writers are quiescent; false returns not_quiescent without store access. Missing optional Store returns unavailable. Return token and exact Inspection value, including absent/pending/incomplete/finalized_claim/review_required, claimed identity and nullable observed bytes. Pending at restart means unresolved, not resumable; finalized_claim is not verified MP4, successful attempt/capture or archive. No token-to-run association inferred (even equal hex strings), no repository lookup for media, no path exposure or discovery. Store catches unsafe/unavailable observations as review_required per B-REC-04. Quiescence is a caller contract, not automatically enforced. No scan, deletes or writes. No local provenance/PB from any recovery status. Private evidence and user annotations preserved.
+
+## Executed validation
+
+Actual Linux x86-64 GCC 14.2.0, reconstructed exact dependency subset: repository.hpp f68d3b934630ca9506757b67b20de7c44a537f4e, record_validation.hpp 715eb6f9c4cea2fec331ff30f177d5602402779c, persistent_output.hpp 1f345f43a73151d6334dc0a4a71d446ee723b10c, owned_video_sink.hpp f151c975c6f174c0791eb3e97a2dc3d2089b9e99, worker.hpp 1b26a286855abd881994defb472a8f72a0f6d88d, quality.hpp 23c7c1c52d125de2a423f833af1539d6cd7e3bb6. Exact local source/test hashes verified against uploaded Git blobs. Commands from reconstructed root:
+    for flags in '-O0' '-O2 -DNDEBUG'; do
+      g++ -std=c++17 $flags -Wall -Wextra -Wpedantic -Werror -pthread -I. tests/test_history_view.cpp -o bin/history
+      timeout 30 bin/history
+      g++ -std=c++17 $flags -Wall -Wextra -Wpedantic -Werror -pthread -I. tests/test_run_repository.cpp -o bin/repo
+      timeout 30 bin/repo
+    done
+    for i in $(seq 1 10); do timeout 30 bin/history; done
+    g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -pthread -I. tests/test_history_view.cpp -o bin/history-san
+    ASAN_OPTIONS=detect_leaks=1 timeout 30 bin/history-san
+All exit0. New test prints B-RUN-01: 6 history/recovery scenario groups PASS in both strict builds, 10 optimized repetitions and ASan/UBSan/leak run (no diagnostics observed). Original exact test_run_repository.cpp b1c80e8a0489c9aaaa80745be691fcbf05f20472 exit0 both. Cases: bounded recent/filters/favorites and truncation, exact namespace ordering/tie/zero/null, immutable copied annotations and invalid/unavailable state, malformed/duplicate/oversize/wrong identity/index unavailable, nonlocal archive matrix including unindexed/orphan/alias/conflict/pending, full compared-record change despite unchanged digest, local/foreign-origin/malformed identity refusal, source/index failure and disabled dependencies, actual staging::inspect over injected Store (all five states, corrupt token/size/unavailable, no quiescence, bounds/duplicates, no writes/no repository or PB calls). No real ZIP verification, SQLite, filesystem persistence, codec or native test in this increment. Existing B-REC-01/02/02b/02c/03/03b/04, lookahead, full native/Windows/CI regressions NOT_RERUN; original sources preserved. All five mounted original ZIP SHA256 unchanged. No native activation, release, CI or Actions artifact operation.
+
+Integration: append independent P0_history_view CTest after reviewed persistence target; existing repository interfaces, schemas and tests unchanged. A to review exact source and dependency chain; existing archive_status/NativeRepository binding remains separate, must retain verified full comparison payload and run read-only on owner thread. Rollback omit two new headers/test/doc; no persistent state or native change. G1/G2/audio/license/COMMUNITY-001/DEMO-TRACK-01/manual fallback/optionality/privacy/rules remain unchanged.
