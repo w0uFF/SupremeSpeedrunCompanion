@@ -134,3 +134,11 @@ T46 exact candidate isolated regression passed; native loader/observations/audio
 T47 candidate: B-REC-02/02b/02c source reviewed; Windows verification pending. Cooperative deadlines cannot interrupt hung factory/source/codec/cleanup. Ready versus first-frame acquisition distinct; no production storage reservation/quota, actual clock/target lease, gameplay recording/audio or native observation. Overlay/persistent output separate. Existing rules/manual fallback unchanged.
 
 T47 actual Windows fixture regression PASS; production source/target/clock lease, concrete output binding, hung platform call handling and actual game audio remain blocked. B-REC-04 source reviewed for offline scope only: caller-private Windows ACL, fixed volume, reparse/Unicode/cross-process and durability validation pending; finalized_claim is not codec/authority proof.
+
+T48 candidate: offline overlay source-reviewed, independent full integrated successor regression pending. Explicit unknown/stale/ambiguous status is presentation only; no trustworthy native producer, epoch/target binding, encoded legibility or overhead validation. Fail closed on renderer/clipping error; renderer may block acquisition lane. Existing G1/G2/audio/license and storage/privacy blockers unchanged. B-EXP-01 strict container binding and member-role safety concerns require shared tools review; no import exposure authorized.
+
+
+T48 correction (A-0019): original Windows46024807447 core compilation failed C4244/C2220 in two overlay tests. Exact B-REC-03c successor 766a8be00978f92ce568d66f33a865f491e09202 changes only eight explicit int16_t literals; tests and strict warnings unchanged. B reports full portable targets6/6 and5/5 each configuration, dependency regressions passed. Corrected Windows/PR66 pending; no promotion. See PROJECT_STATUS and ADR-038. No native activation, extra capture experiment or rule change.
+
+
+T48 corrected candidate actual Windows46080954165 PASS core59 each including #58/#59, media6, storage/entry1/1, capture22 PASS/1 existing audio SKIP. PR66 prior actual46024798811 accepted on exact fixture-source equivalence (no trigger for correction paths). Final-doc/postmerge pending; no promotion at preparation, no game runtime or rule change. See PROJECT_STATUS and ADR-038.

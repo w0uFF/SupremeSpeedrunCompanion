@@ -145,3 +145,11 @@ T46 exact candidate regression PASS, final-doc CI/promotion pending. B-REC-02/02
 T46 main v0.0.37-p0 fully verified isolated scope. T47 v0.0.38-p0 media integration candidate expected57 core; overlay successor expected59 and persistent output expected60 separate reviews. B-RUN-01 independent. A native prerequisite remains disposable no-install Windows baseline and actual loader provenance, then reviewed installed-disabled/rollback gate. No new capture experiment.
 
 T47 candidate automated PASS, final-doc CI/promotion pending. After verified main, overlay expected59, persistence expected60 separate review/validation; B-RUN-01 independent. G1 actual loader/disposable baseline remains primary native prerequisite; static Time_Race_Controller mapping narrows candidate but is not runtime proof.
+
+T47 main v0.0.38-p0 fully verified isolated scope. T48 v0.0.39-p0 overlay candidate expected59. Persistence60/history61/annotation62/archive exchange63 separate review/gates, B-VAL-01 parallel. G1 actual installed-loader identity and disposable baseline primary native prerequisite, not more capture experiments.
+
+
+T48 correction (A-0019): original Windows46024807447 core compilation failed C4244/C2220 in two overlay tests. Exact B-REC-03c successor 766a8be00978f92ce568d66f33a865f491e09202 changes only eight explicit int16_t literals; tests and strict warnings unchanged. B reports full portable targets6/6 and5/5 each configuration, dependency regressions passed. Corrected Windows/PR66 pending; no promotion. See PROJECT_STATUS and ADR-038. No native activation, extra capture experiment or rule change.
+
+
+T48 corrected candidate actual Windows46080954165 PASS core59 each including #58/#59, media6, storage/entry1/1, capture22 PASS/1 existing audio SKIP. PR66 prior actual46024798811 accepted on exact fixture-source equivalence (no trigger for correction paths). Final-doc/postmerge pending; no promotion at preparation, no game runtime or rule change. See PROJECT_STATUS and ADR-038.
