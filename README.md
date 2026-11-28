@@ -6,7 +6,7 @@ Supreme Speedrun Companion (SSC) is an optional Windows mod in development for S
 
 SSC is **not a new version of Time Attack, a replacement for Online Time Attack, or a compulsory anti-cheat**. It is a companion for the existing game and its speedrunning community, intended to bring recording, timing, quick retries, run management and submission preparation into one place.
 
-> **Development status: v0.0.38-p0 (verified isolated candidate; final documentation CI and main promotion pending) — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, native run-library storage and verified offline archive indexing and read-only recovery inspection, synthetic A/V encoding, concurrent timestamped isolated test-window video capture (up to 1,200 selected frames per clip; same-process success/cancellation fixtures), synthetic-only admission model and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
+> **Development status: v0.0.39-p0 candidate (verified main v0.0.38-p0; corrected isolated regression passed; final-doc/postmerge pending) — not yet playable or installable.** Native configuration, the reviewed PR66 loader in an isolated synthetic host, native run-library storage and verified offline archive indexing and read-only recovery inspection, synthetic A/V encoding, concurrent timestamped isolated test-window video capture (up to 1,200 selected frames per clip; same-process success/cancellation fixtures), synthetic-only admission model and offline evidence components have automated test coverage. Actual launcher UI and game integration, native menus, race timing and gameplay recording remain unverified. Do not install development files into your game.
 
 ## Why build it?
 
@@ -114,4 +114,12 @@ T46 candidate, final documentation and post-merge regression passed, including r
 
 T47 candidate integrates reusable asynchronous video backend, timeline policy and MF writer extraction for isolated validation only. Actual gameplay recording and installation remain unavailable; see [ADR-037](docs/architecture/ADR-037.md).
 
-T47 candidate Windows automated regression passed including the reusable MF extraction, synthetic A/V and all existing isolated capture fixtures; actual gameplay capture and audio remain unavailable.
+T47 candidate, final documentation and post-merge Windows automated regressions passed including the reusable MF extraction, synthetic A/V and all existing isolated capture fixtures; actual gameplay capture and audio remain unavailable.
+
+T48 candidate adds optional offline recorded-overlay composition and typed track/difficulty presentation. Native observations and actual gameplay recording are not implemented; see [ADR-038](docs/architecture/ADR-038.md).
+
+
+T48 correction (A-0019): original Windows46024807447 core compilation failed C4244/C2220 in two overlay tests. Exact B-REC-03c successor 766a8be00978f92ce568d66f33a865f491e09202 changes only eight explicit int16_t literals; tests and strict warnings unchanged. B reports full portable targets6/6 and5/5 each configuration, dependency regressions passed. Corrected Windows/PR66 pending; no promotion. See PROJECT_STATUS and ADR-038. No native activation, extra capture experiment or rule change.
+
+
+T48 corrected candidate actual Windows46080954165 PASS core59 each including #58/#59, media6, storage/entry1/1, capture22 PASS/1 existing audio SKIP. PR66 prior actual46024798811 accepted on exact fixture-source equivalence (no trigger for correction paths). Final-doc/postmerge pending; no promotion at preparation, no game runtime or rule change. See PROJECT_STATUS and ADR-038.
