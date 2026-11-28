@@ -113,3 +113,6 @@ T45 postmerge validated; T46 candidate has no native integration change. Canonic
 ## T48 — Mode, event and result-path refinement (OBSERVED_STATIC)
 
 See ENGINE_MAP A-0017/A-0018 for exact original binary RVAs. Arcade Time Attack produces descriptor mode7, Championship path mode5; both can select Time_Race_Controller. EXE owns descriptor; DLL borrows it; invalidate on Exit/destruction. Controller-owned Basic_Event bound to Player+0x1b8 and completion argument forwarded to its setter; distinct from rounded row time and not unique human proof. Time Attack post-race vector formatter reads element+0x40; actual provenance/official digits and threshold caller unresolved. G1 no-install baseline and loader provenance remain required before native runtime validation. No live reads or hooks.
+
+
+A-0020: completed result row+0x18 copied to linked result node+0x40, separate pointer vector membership compared during list formatting; see ENGINE_MAP. Static path only, historical records may coexist; no official IGT/current human proof.
