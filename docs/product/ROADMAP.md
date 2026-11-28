@@ -153,3 +153,10 @@ T48 correction (A-0019): original Windows46024807447 core compilation failed C42
 
 
 T48 corrected candidate actual Windows46080954165 PASS core59 each including #58/#59, media6, storage/entry1/1, capture22 PASS/1 existing audio SKIP. PR66 prior actual46024798811 accepted on exact fixture-source equivalence (no trigger for correction paths). Final-doc/postmerge pending; no promotion at preparation, no game runtime or rule change. See PROJECT_STATUS and ADR-038.
+
+
+## Coordination and next increments (A-0026)
+
+Both agents synchronized to verified T48 main; A merge3ded3d74f658797626764295a4cab98ab0735be5, B merge db502c8240528825978d3706103cff071edbeb1a independently verified exact314-blob union. B-INT-02 terminal handoff e52bd1cca68eac40da2342ee0c255a1d45d689a1 future69, B-INT-03 archive-size preflight afbe56d6307d4564da4cebb55a900d521c3f2168 future70 statically accepted. B-INT-04 proposal26cea0410257d3b68db798ea30d5f7b1786b212d pure projection/codec authorized only; no implementation received yet. Durable journal, global allocator and native binding separately gated. A retains integration and engine research. Future isolated queue: history61, annotation62, archive exchange63, validator64, guarded exchange65, playback66, comparison67, offline integration68, handoff69, size preflight70; provisional test counts, not product completion. Human verification NOT REQUIRED for offline scope; actual G1 loader/native timing/capture/audio tests required later. Previous keyboard test accepted; no redundant gameplay tests. COMMUNITY-001/DEMO-TRACK-01 and current rules unchanged.
+
+Owner instruction A-0026: maintain a customer-friendly English README for most substantive changes in either workstream, including meaningful feature progress, compatibility, validation milestones, blockers and remaining tasks. A owns public README updates; B reports player-facing changes in its journal. Keep routine tiny corrections and raw CI/disassembly in linked technical docs; consolidate README with the next authorized integration/documentation checkpoint instead of triggering duplicate expensive CI. No invented availability, release dates or percentages.

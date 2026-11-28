@@ -142,3 +142,6 @@ T48 correction (A-0019): original Windows46024807447 core compilation failed C42
 
 
 T48 corrected candidate actual Windows46080954165 PASS core59 each including #58/#59, media6, storage/entry1/1, capture22 PASS/1 existing audio SKIP. PR66 prior actual46024798811 accepted on exact fixture-source equivalence (no trigger for correction paths). Final-doc/postmerge pending; no promotion at preparation, no game runtime or rule change. See PROJECT_STATUS and ADR-038.
+
+
+T49 integration version mismatch (A-0025): corrected generator version only, verified by A-0026 actual Windows60/60 both. Version consistency check required before future publication. Final-doc/postmerge pending. Actual loader, native result/player identity, codec/game audio and license remain blocked; prior keyboard persistence accepted, no redundant manual check.
