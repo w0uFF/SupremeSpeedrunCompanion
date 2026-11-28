@@ -47,7 +47,8 @@ inline auto stats_fields(const Stats& s) noexcept {return std::tie(s.accepted,s.
 inline auto quality_fields(const StreamQuality& q) noexcept {
     return std::tie(q.written.packets,q.written.duration,q.written.first,q.written.end,q.accepted,q.dropped_full,q.rejected_invalid,q.discarded,q.dropped_duration);
 }
-inline bool matches(const Completion& c,const Report& r) noexcept {
+namespace detail {
+template<class R> inline bool matches_report(const Completion& c,const R& r) noexcept {
     if(c.capture!=r.request.capture || c.state!=r.terminal || !terminal(c.state) ||
        (c.worker_state && !terminal(*c.worker_state)) || c.high_water>128 ||
        static_cast<unsigned>(c.reason)>static_cast<unsigned>(BackendEnd::internal_error) ||
@@ -55,6 +56,8 @@ inline bool matches(const Completion& c,const Report& r) noexcept {
     for(std::size_t i=0;i<c.quality.size();++i)if(quality_fields(c.quality[i])!=quality_fields(r.quality[i]))return false;
     return !c.stop_boundary_reached || (c.reason==BackendEnd::stopped && c.state==State::finalized && c.worker_state==State::finalized && r.stop_boundary_ms);
 }
+}
+inline bool matches(const Completion& c,const Report& r) noexcept {return detail::matches_report(c,r);}
 inline bool valid_accepted(const Accepted& a,const AttemptRecord& r,const AttemptKey& k) noexcept {
     const auto& v=a.attempt;
     constexpr auto max_time=static_cast<Id>(std::numeric_limits<std::int64_t>::max());
@@ -78,16 +81,15 @@ inline bool media_matches(const OutputIdentity& expected,const staging::Inspecti
     }
 }
 struct Result { Disposition disposition; std::optional<Snapshot> snapshot; };
-// Only trusted owner snapshots after terminal take(), cleanup and quiescent media inspection.
-// Missing accepted results may be retained as incomplete; contradictory identities refuse.
-// Caller retains original inputs on refusal; no mutation, journal codec or local admission.
-inline Result assemble(const Binding& b,const Report& r,const std::optional<Completion>& c,
+namespace detail {
+// Shared pure public-value classification; R may be a historical projection.
+template<class R> inline Disposition assess(const Binding& b,const R& r,const std::optional<Completion>& c,
                        const std::vector<Accepted>& accepted,const staging::Inspection& m){
-    const Result review{Disposition::review_required,{}};
+    const auto review=Disposition::review_required;
     if(!valid(b) || !same_request(b.request,r.request) || !terminal(r.terminal) || r.ledger.id()!=b.output.capture ||
        r.attempts.size()>b.attempts.size() || accepted.size()>r.attempts.size() ||
        (b.request.mode==Mode::manual && r.attempts.size()!=b.attempts.size()) || !media_matches(b.output,m) ||
-       (c && !matches(*c,r)))return review;
+       (c && !matches_report(*c,r)))return review;
     bool incomplete=r.incomplete || !r.terminal_stats_consistent || !c || c->reason!=BackendEnd::stopped ||
         c->worker_state!=State::finalized || r.terminal!=State::finalized || !r.stop_boundary_reached ||
         r.ledger.state()!=capture_boundary::State::finalized || m.status!=staging::Status::finalized_claim ||
@@ -105,7 +107,16 @@ inline Result assemble(const Binding& b,const Report& r,const std::optional<Comp
         if(!a.marked || a.state!=session::AttemptState::finished || !a.result_ms || !r.acquired_ms || *r.acquired_ms>=a.start_ms)incomplete=true;
     }
     if(supplied!=accepted.size())return review;
-    const auto disposition=incomplete?Disposition::incomplete:Disposition::reconciled;
+    return incomplete?Disposition::incomplete:Disposition::reconciled;
+}
+}
+// Only trusted owner snapshots after terminal take(), cleanup and quiescent media inspection.
+// Missing accepted results may be retained as incomplete; contradictory identities refuse.
+// Caller retains original inputs on refusal; no mutation, journal codec or local admission.
+inline Result assemble(const Binding& b,const Report& r,const std::optional<Completion>& c,
+                       const std::vector<Accepted>& accepted,const staging::Inspection& m){
+    const auto disposition=detail::assess(b,r,c,accepted,m);
+    if(disposition==Disposition::review_required)return {disposition,{}};
     return {disposition,Snapshot{b,r,c,accepted,m,disposition}};
 }
 enum class Recovery { matching_claim, incomplete, changed_or_review, not_quiescent, unavailable };

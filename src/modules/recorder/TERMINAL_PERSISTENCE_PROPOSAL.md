@@ -73,3 +73,60 @@ A to review/authorize exact next B-owned paths: new recorder public/terminal_pro
 | TJ-06 | Existing B-INT-02 six groups, orchestrator six groups, persistent output five groups, synthetic journal/recovery and archive regressions unchanged; strict Debug/Release and sanitizer, actual Windows private fixed-volume fixture before claiming platform support. |
 
 Actual evidence for this proposal: static source review at exact B baseline; reconstructed existing B-INT-02 dependency/test hashes rechecked, fresh Linux GCC14.2.0 strict C++17 -O0 and -O2 -DNDEBUG -Wall -Wextra -Wpedantic -Werror -pthread -I. tests/test_terminal_handoff.cpp src/modules/session/model/session.cpp, timeout30, 6/6 each exit0. No new executable/schema or durability tests in this increment. Existing five original ZIP SHA256 checked before/after unchanged. All proposed codec/storage/recovery tests NOT_RUN. No Windows build, no game execution, capture, install, release, extraction or Actions artifacts. No native integration, local authority, package readiness or policy eligibility. Rollback omit proposal only; no data migration. Human verification not required for proposal or offline fixtures; G1 no-install baseline/loader provenance and later native race/audio/capture/runtime remain mandatory. 
+
+## A-0025 amendment — B-INT-04 pure terminal projection and codec
+
+Status: IMPLEMENTED / PORTABLE AUTOMATED TESTS PASS, pending independent A review and Windows integration. This supersedes the design-only status above solely for the pure projection/codec. Durable journal, allocator, filesystem extraction, production/native activation, local admission and shared schema remain unapproved.
+
+### Interface and canonical grammar (SSC-TERMINAL-1, provisional)
+
+Feature-owned terminal_projection.hpp exposes project(Snapshot) -> Result<LiveValue>, encode(Value) -> Result<string>, decode(string_view) -> Result<HistoricalValue>. Both value types retain every public field of the existing terminal snapshot comparison, including opaque identities, optional request attempt, report/ledger, Completion, accepted results, inspected media and disposition. LedgerView has only copied historical fields and read-only accessors; no live Ledger reconstruction or fabricated events. Neither API path creates authenticity, allocation proof or authority. Result errors: none, limit, syntax, version, domain, association, arithmetic, disposition; refusal has no value. Allocation exceptions are not translated into successful results. Caller retains original inputs or bytes on refusal.
+
+Record sequence below is positional and case-sensitive. The header is exactly SSC-TERMINAL-1 followed by LF. Each subsequent line consists of the literal tag followed by one ASCII space per field and one final LF. No blank lines, tabs, CR, NUL, non-ASCII, leading/trailing spaces, extra fields or suffix. N is canonical unsigned count 0..128, checked before allocation; B is exactly 0 or 1. Question mark denotes one optional field, represented by '-' or a domain token; paired optionals must both be present or both absent. Repeated rows have exactly their declared count, in existing order.
+
+    binding capture target mode session? attempt? requested_ms
+    output capture token byte_budget
+    keys N
+    key session attempt run_id session_id          [N rows]
+    request capture target mode session? attempt? requested_ms
+    report acquired_ms? stop_boundary_ms? stop_boundary_reached incomplete terminal_stats_consistent terminal_state
+    stats accepted written dropped_full rejected_invalid discarded
+    video packets duration first end accepted dropped_full rejected_invalid discarded dropped_duration
+    audio packets duration first end accepted dropped_full rejected_invalid discarded dropped_duration
+    attempts N
+    attempt session attempt start_ms sequence state marked selection_observed end_ms? result_ms?  [N rows]
+    ledger capture phase menu
+    markers N
+    marker run_id_numeric attempt_id start_ms end_ms? end_reason?  [N rows]
+    completion B
+    done capture reason state worker_state? high_water stop_boundary_reached  [if B=1]
+    done_stats accepted written dropped_full rejected_invalid discarded        [if B=1]
+    done_video packets duration first end accepted dropped_full rejected_invalid discarded dropped_duration [if B=1]
+    done_audio packets duration first end accepted dropped_full rejected_invalid discarded dropped_duration [if B=1]
+    accepted N
+    result key_session key_attempt run_id session_id attempt_id started_ms track state end_ms? igt_ms? resets rta_ns? [N rows]
+    media status observed_bytes? has_claim
+    claim capture token byte_budget                [if has_claim=1]
+    disposition reconciled|incomplete
+
+All unsigned integers use canonical decimal (0, or nonzero leading digit followed by digits), max 20 digits and UINT64_MAX unless a narrower domain applies. No signs or leading zeros. Reader checks representability before narrowing to actual destination type. Required nonzero numeric identities follow existing Binding validation. Text identity tokens (run_id, session_id, output token) are exactly 32 lowercase hex characters, including all-zero only if permitted by existing validator. Marker run_id_numeric is the numeric session identity, not the allocated run token. Request and attempt/event timestamps are milliseconds. IGT is ms, RTA is ns, each optional and at most INT64_MAX. Stream coverage first/end/duration and dropped_duration are 100 ns units. Resets 0..1000000; high_water 0..128; output budget 1..68719476736 bytes. Raw observed media bytes are uint64, including oversize values for incomplete media; finalized_claim must satisfy existing budget and identity checks. Zero is distinct from absence.
+
+Stable named enums (not ordinal encodings):
+- mode: automatic, manual.
+- recorder state: starting, running, draining, cancelling, finalizing, finalized, cancelled, failed; terminal report/completion and present worker state limited to finalized/cancelled/failed.
+- ledger phase: armed, acquiring, finalizing, finalized, failed; historical terminal projection limited to finalized/failed.
+- attempt state: racing, finished, restarted, abandoned; marker end: finished, restarted, abandoned.
+- track: alpine_easy, alpine_medium, alpine_hard, forest_easy, forest_medium, forest_hard, village_easy, village_medium, village_hard.
+- backend reason: stopped, cancelled, startup_error, source_error, source_ended, invalid_frame, timeout, handoff_rejected, worker_failed, internal_error.
+- media status: absent, pending, incomplete, finalized_claim, review_required (last refused).
+- disposition: reconciled, incomplete, review_required (last refused).
+
+Encoder and decoder share positional field traversal. Decode validates domains, associations and exact re-encoding equality. Narrow pure extraction of matches_report and assess from terminal_handoff.hpp allows identical existing classification for copied public views; Journal API, same_snapshot and existing live assemble behavior preserved. Additional codec-only validation checks monotonic times, paired marker ends, marker-to-marked-attempt association and order, terminal phase, and consistency arithmetic independently of report flag. Arithmetic mirrors Orchestrator's private predicate; keep parity under review rather than modifying the unauthorized orchestrator. No unchecked unsigned subtraction, no Coverage::internal_gap on decoded inputs. False raw consistency flag with incomplete disposition retains contradictory diagnostic counters verbatim; true contradictory flag refuses. Reconciled additionally requires internally consistent counts, nonempty video and zero dropped/rejected/discarded packets. No normalization, no conversion of incomplete to reconciled. Manual racing attempt with abandoned marker, unmarked late start, rejected start absent completion/media, missing worker state, cancelled disposition with finalized worker and failed ledger with open marker are represented without inventing events.
+
+### Bounds and actual evidence
+
+Total limit 131072 bytes; line limit 512 bytes including LF; max 128 entries independently for keys, attempts, markers, accepted. Each repeated row bound includes tag, spaces and LF: key 112 (3+4+1+20+20+32+32), attempt 148 (7+9+1+6*20+9+2), marker 101 (6+5+1+4*20+9), result 251 (6+12+1+20+20+32+32+20+20+14+9+20+19+7+19). At most 21 fixed lines including header, each <=512. Conservative total 128*(112+148+101+251)+21*512 = 89088 bytes <131072. Static assertion guards this calculation. All four collections populated in independent golden fixture, 78613 bytes, longest line 250 bytes, 20-digit identities/times, max signed IGT/RTA, 64 GiB budget and synthetic accepted reset count 1000000. No assertion that a million live resets occurred. Actual fixture counts and bytes checked independent of encoder, no external fixtures required.
+
+TP-01 exact field comparison and small literal golden, zero/missing RTA; TP-02 full count golden and incomplete outcomes above; TP-03 all 143 tokens individually replaced with invalid token and a candidate alternative, ten valid changed values verified independently, plus explicit version/line/count/total/domain/overflow/identity/order tests; TP-04 raw incomplete uint64 extremes and oversize, forged flag/disposition, invalid span, aggregate/loss arithmetic. Exact original handoff 6 groups and orchestrator 6 groups pass both configurations. Strict Linux x86_64 GCC14.2.0 C++17 -Wall -Wextra -Wpedantic -Werror -pthread, -O0 and -O2 -DNDEBUG; ten optimized projection repetitions; ASan/UBSan with leak detection exit0. Tests use actual Session and Orchestrator with fake backend, synthetic Completion and media inspection; no actual worker lanes, codec, storage, Windows or native execution. Full CMake and other suites NOT_RUN. Durable TJ-01..06 remain NOT_RUN and unapproved. Original five ZIP hashes unchanged. See B-0020 for exact source and validation command record.
+
+Player-facing impact: prepares a compact, bounded record of terminal capture facts so a later separately approved persistence layer can preserve incomplete recordings accurately. This is not yet a player-visible feature or durable recovery; A to queue this distinction for the next substantive authorized README checkpoint, not trigger CI for wording alone.
